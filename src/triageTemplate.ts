@@ -3,7 +3,7 @@ import { Context } from 'probot';
 
 const triageVersion = async (version: string, context: Context) => {
   if (!version) {
-    // TODO(codebytere): somehow let opener know we require version
+    await createMissingInfoComment(context);
   } else {
     if (!semver.valid(version)) {
       // inform user their version is not a valid version
@@ -37,6 +37,15 @@ const triagePlatform = async (platform: string, context: Context) => {
   }
 };
 
+const createMissingInfoComment = async (context: Context) => {
+  await context.github.issues.createComment(
+    context.issue({
+      body:
+        'Please fill out all applicable sections of the template correctly for the maintainers to be able to triage your issue.',
+    }),
+  );
+};
+
 export const triageBugReport = async (components: string[], context: Context) => {
   const electronVersion: string = components['Electron Version'].raw;
   await triageVersion(electronVersion, context);
@@ -50,9 +59,7 @@ export const triageBugReport = async (components: string[], context: Context) =>
   }
 
   const actualBehavior = components['Actual Behavior'].raw;
-  if (actualBehavior === '') {
-    // TODO(codebytere): inform user they did not fill our required actual behavior section
-  }
+  if (actualBehavior === '') await createMissingInfoComment(context);
 };
 
 export const triageFeatureRequest = async (components: string[], context: Context) => {
@@ -63,5 +70,6 @@ export const triageMASRejection = async (components: string[], context: Context)
   const electronVersion: string = components['Electron Version'].raw;
   await triageVersion(electronVersion, context);
 
-  // TODO: implement triageMASRejection
+  const rejectionEmail: string = components['Rejection Email'].raw;
+  if (rejectionEmail === '') await createMissingInfoComment(context);
 };
