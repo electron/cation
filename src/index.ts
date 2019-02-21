@@ -6,19 +6,19 @@ const matchTemplate = async (context: Context) => {
   const templates = await utils.getIssueTemplates(context);
   templates.forEach(template => {
     if (JSON.stringify(issue) === JSON.stringify(template)) {
-      return template
+      return template;
     }
-  })
-}
+  });
+};
 
 const triage = async (context: Context) => {
-  const template = matchTemplate(context)
+  const template = matchTemplate(context);
   // todo
-}
+};
 
 const probotHandler = async (robot: Application) => {
-  robot.on(['issue.opened', 'issue.edited'], triage)
-}
+  robot.on(['issue.opened', 'issue.edited'], triage);
+};
 
 module.exports = probotHandler;
 
