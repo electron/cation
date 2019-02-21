@@ -1,5 +1,4 @@
 import { Application, Context } from 'probot';
-const issueParser = require('github-issue-parser');
 
 const ISSUE_TEMPLATE_BASE_PATH = '.github/ISSUE_TEMPLATE/';
 
