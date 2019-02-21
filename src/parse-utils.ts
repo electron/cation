@@ -3,7 +3,7 @@ const issueParser = require('github-issue-parser');
 
 const ISSUE_TEMPLATE_BASE_PATH = '.github/ISSUE_TEMPLATE/';
 
-async function getIssueTemplates (context: Context) {
+export async function getIssueTemplates (context: Context) {
   const {data: templatesList} = await context.github.repos.getContents({
     owner: 'electron',
     repo: 'electron',
@@ -20,13 +20,4 @@ async function getIssueTemplates (context: Context) {
     })
     return Buffer.from(content, 'base64').toString()
   }))
-}
-
-const matchIssue = async (context: Context) => {
-  const templates = await getIssueTemplates(context);
-  console.log(templates)
-}
-
-module.exports = {
-  getIssueTemplates
 }
