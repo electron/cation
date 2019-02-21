@@ -3,6 +3,7 @@ import * as triager from './triageTemplate';
 
 const issueParser = require('github-issue-parser');
 import { Application, Context } from 'probot';
+import { setUp24HourRule } from './24-hour-rule';
 
 const validTemplateMatch = async (context: Context): Promise<string | false> => {
   const issue = context.payload.issue;
@@ -12,7 +13,8 @@ const validTemplateMatch = async (context: Context): Promise<string | false> => 
     const issueParts = Object.keys(issueParser(template));
     const templateParts = Object.keys(issueParser(issue));
     if (JSON.stringify(issueParts) === JSON.stringify(templateParts)) {
-      match = template.name;
+      // TODO: Turn this back on
+      // match = template.name;
     }
   });
 
@@ -22,7 +24,7 @@ const validTemplateMatch = async (context: Context): Promise<string | false> => 
 };
 
 const triage = async (context: Context) => {
-  let templateComponents: string[];
+  let templateComponents: Record<string, { raw: string }>;
   const templateType = await validTemplateMatch(context);
   if (templateType) {
     templateComponents = issueParser(context.payload.issue.body);
@@ -41,6 +43,8 @@ const triage = async (context: Context) => {
 
 const probotHandler = async (robot: Application) => {
   robot.on(['issue.opened', 'issue.edited'], triage);
+
+  setUp24HourRule(robot);
 };
 
 module.exports = probotHandler;

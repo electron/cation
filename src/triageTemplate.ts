@@ -38,7 +38,10 @@ const triagePlatform = async (platform: string, context: Context) => {
   }
 };
 
-export const triageBugReport = async (components: string[], context: Context) => {
+export const triageBugReport = async (
+  components: Record<string, { raw: string }>,
+  context: Context,
+) => {
   const electronVersion: string = components['Electron Version'].raw;
   await triageVersion(electronVersion, context);
 
@@ -54,11 +57,17 @@ export const triageBugReport = async (components: string[], context: Context) =>
   if (actualBehavior === '') await utils.createMissingInfoComment(context);
 };
 
-export const triageFeatureRequest = async (components: string[], context: Context) => {
+export const triageFeatureRequest = async (
+  components: Record<string, { raw: string }>,
+  context: Context,
+) => {
   // TODO: implement triageFeatureRequest
 };
 
-export const triageMASRejection = async (components: string[], context: Context) => {
+export const triageMASRejection = async (
+  components: Record<string, { raw: string }>,
+  context: Context,
+) => {
   const electronVersion: string = components['Electron Version'].raw;
   await triageVersion(electronVersion, context);
 
