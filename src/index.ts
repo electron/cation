@@ -1,7 +1,8 @@
 import * as utils from './parse-utils';
 import { Application, Context } from 'probot';
 
-const matchTemplate = async (issue: string, context: Context) => {
+const matchTemplate = async (context: Context) => {
+  const issue = context.payload.issue;
   const templates = await utils.getIssueTemplates(context);
   templates.forEach(template => {
     if (JSON.stringify(issue) === JSON.stringify(template)) {
@@ -11,7 +12,7 @@ const matchTemplate = async (issue: string, context: Context) => {
 }
 
 const triage = async (context: Context) => {
-  const template = matchTemplate 
+  const template = matchTemplate(context)
   // todo
 }
 
