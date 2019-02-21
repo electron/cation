@@ -1,16 +1,18 @@
 import * as utils from './parse-utils';
+import * as triager from './triageTemplate';
+
 const issueParser = require('github-issue-parser');
 import { Application, Context } from 'probot';
 
-const getValidMatch = async (context: Context): Promise<string | null> => {
+const validTemplateMatch = async (context: Context): Promise<string | false> => {
   const issue = context.payload.issue;
-  let match: string | null = null;
+  let match: string | false = false;
   const templates = await utils.getIssueTemplates(context);
   templates.forEach(template => {
-    const issueHeaders = Object.keys(issueParser(template));
-    const templateHeaders = Object.keys(issueParser(issue));
-    if (JSON.stringify(issueHeaders) === JSON.stringify(templateHeaders)) {
-      match = template;
+    const issueParts = Object.keys(issueParser(template));
+    const templateParts = Object.keys(issueParser(issue));
+    if (JSON.stringify(issueParts) === JSON.stringify(templateParts)) {
+      match = template.name;
     }
   });
 
@@ -29,7 +31,21 @@ const getValidMatch = async (context: Context): Promise<string | null> => {
 };
 
 const triage = async (context: Context) => {
-  const template = getValidMatch(context);
+  let templateComponents: string[];
+  const templateType = await validTemplateMatch(context);
+  if (templateType) {
+    templateComponents = issueParser(context.payload.issue);
+    switch (templateType) {
+      case 'bug_report.md':
+        await triager.triageBugReport(templateComponents, context);
+      case 'feature_request.md':
+        await triager.triageFeatureRequest(templateComponents, context);
+      case 'mac_app_store_private_api_rejection.md':
+        await triager.triageMASRejection(templateComponents, context);
+      default:
+        console.log('template was not a triagable template');
+    }
+  }
 };
 
 const probotHandler = async (robot: Application) => {

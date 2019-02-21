@@ -1,4 +1,4 @@
-import { Application, Context } from 'probot';
+import { Context } from 'probot';
 
 const ISSUE_TEMPLATE_BASE_PATH = '.github/ISSUE_TEMPLATE/';
 
