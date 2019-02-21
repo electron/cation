@@ -34,7 +34,7 @@ const triage = async (context: Context) => {
   let templateComponents: string[];
   const templateType = await validTemplateMatch(context);
   if (templateType) {
-    templateComponents = issueParser(context.payload.issue);
+    templateComponents = issueParser(context.payload.issue.body);
     switch (templateType) {
       case 'bug_report.md':
         await triager.triageBugReport(templateComponents, context);
