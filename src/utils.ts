@@ -24,3 +24,12 @@ export async function getIssueTemplates(context: Context) {
     }),
   );
 }
+
+export const createMissingInfoComment = async (context: Context) => {
+  await context.github.issues.createComment(
+    context.issue({
+      body:
+        'Please fill out all applicable sections of the template correctly for the maintainers to be able to triage your issue.',
+    }),
+  );
+};

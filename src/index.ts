@@ -1,4 +1,4 @@
-import * as utils from './parse-utils';
+import * as utils from './utils';
 import * as triager from './triageTemplate';
 
 const issueParser = require('github-issue-parser');
@@ -17,16 +17,7 @@ const validTemplateMatch = async (context: Context): Promise<string | false> => 
   });
 
   // check for a match and complain to issue opener if none exists
-  if (!match) {
-    await context.github.issues.createComment(
-      context.issue({
-        body:
-          'It seems that you did not fill out a valid issue template. \
-        Please fill out all applicable fields in the template correctly for the \
-        maintainers to be able to triage your issue.',
-      }),
-    );
-  }
+  if (!match) await utils.createMissingInfoComment(context);
   return match;
 };
 

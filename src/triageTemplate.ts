@@ -1,9 +1,10 @@
 const semver = require('semver');
 import { Context } from 'probot';
+import * as utils from './utils';
 
 const triageVersion = async (version: string, context: Context) => {
   if (!version) {
-    await createMissingInfoComment(context);
+    await utils.createMissingInfoComment(context);
   } else {
     if (!semver.valid(version)) {
       // inform user their version is not a valid version
@@ -37,15 +38,6 @@ const triagePlatform = async (platform: string, context: Context) => {
   }
 };
 
-const createMissingInfoComment = async (context: Context) => {
-  await context.github.issues.createComment(
-    context.issue({
-      body:
-        'Please fill out all applicable sections of the template correctly for the maintainers to be able to triage your issue.',
-    }),
-  );
-};
-
 export const triageBugReport = async (components: string[], context: Context) => {
   const electronVersion: string = components['Electron Version'].raw;
   await triageVersion(electronVersion, context);
@@ -59,7 +51,7 @@ export const triageBugReport = async (components: string[], context: Context) =>
   }
 
   const actualBehavior = components['Actual Behavior'].raw;
-  if (actualBehavior === '') await createMissingInfoComment(context);
+  if (actualBehavior === '') await utils.createMissingInfoComment(context);
 };
 
 export const triageFeatureRequest = async (components: string[], context: Context) => {
@@ -71,5 +63,5 @@ export const triageMASRejection = async (components: string[], context: Context)
   await triageVersion(electronVersion, context);
 
   const rejectionEmail: string = components['Rejection Email'].raw;
-  if (rejectionEmail === '') await createMissingInfoComment(context);
+  if (rejectionEmail === '') await utils.createMissingInfoComment(context);
 };
