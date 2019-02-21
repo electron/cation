@@ -7,7 +7,9 @@ const getValidMatch = async (context: Context): Promise<string | null> => {
   let match: string | null = null;
   const templates = await utils.getIssueTemplates(context);
   templates.forEach(template => {
-    if (JSON.stringify(issue) === JSON.stringify(template)) {
+    const issueHeaders = Object.keys(issueParser(template));
+    const templateHeaders = Object.keys(issueParser(issue));
+    if (JSON.stringify(issueHeaders) === JSON.stringify(templateHeaders)) {
       match = template;
     }
   });
