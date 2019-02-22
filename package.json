@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "lint": "tslint --project '.'",
-    "start": "tsc && probot run ./lib/index.js",
+    "start": "probot run ./lib/index.js",
     "postinstall": "tsc",
     "prettier:check": "prettier --list-different \"src/**/*.{ts,tsx}\"",
     "prettier:write": "prettier --write \"src/**/*.{ts,tsx}\""
