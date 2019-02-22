@@ -1,6 +1,6 @@
 import { Application } from 'probot';
 
-import { NEW_PR_LABEL, MINIMUM_OPEN_TIME } from './constants';
+import { NEW_PR_LABEL, MINIMUM_OPEN_TIME } from '../constants';
 
 const CHECK_INTERVAL = 1000 * 60;
 
