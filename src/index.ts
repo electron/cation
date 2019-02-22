@@ -68,7 +68,9 @@ const triage = async (context: Context) => {
 };
 
 const probotHandler = async (robot: Application) => {
-  robot.on(['issues.opened', 'issues.edited', 'issues.reopened'], triage);
+  if (!process.env.DISABLE_CATION_TRAIGE) {
+    robot.on(['issues.opened', 'issues.edited', 'issues.reopened'], triage);
+  }
 
   setUp24HourRule(robot);
 };
