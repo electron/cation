@@ -1,0 +1,20 @@
+{
+  "name": "cation",
+  "description": "a bot that does issue / pr management for electron",
+  "scripts": {},
+  "env": {
+    "APP_ID": {
+      "required": true
+    },
+    "PRIVATE_KEY": {
+      "required": true
+    }
+  },
+  "formation": {},
+  "addons": [
+
+  ],
+  "buildpacks": [{
+    "url": "heroku/nodejs"
+  }]
+}
