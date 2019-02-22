@@ -29,7 +29,7 @@ const validTemplateMatch = async (context: Context): Promise<string | false> => 
         optional = ['Additional context'];
         break;
       case 'mac-app-store-private-api-rejection.md':
-        optional = ['Additional context'];
+        optional = ['Additional Information'];
         break;
       default:
       // fallthrough

@@ -5,9 +5,19 @@ import * as utils from './utils';
 const triageVersion = async (version: string, context: Context): Promise<Boolean> => {
   if (version) {
     if (!semver.valid(version)) {
-      // TODO: inform user their version is not a valid version
+      await context.github.issues.createComment(
+        context.issue({
+          body: 'The version you provided does not appear to be valid. Please re-check it!',
+        }),
+      );
     } else if (semver.lt('3.0.0', version)) {
-      // TODO(codebytere): inform user their version is too old
+      await context.github.issues.createComment(
+        context.issue({
+          body: `The version of Electron you provided is no longer actively maintained,
+and as such we are no longer implementing fixes. Please check this issue with a newer version
+of Electron to see if it still persists, and if it does the maintainers can triage your issue.`,
+        }),
+      );
     } else {
       const parts = semver.parse(version);
       const minor = parts.minor === 0 ? 0 : parts.minor;
@@ -28,9 +38,19 @@ const triagePlatform = async (platform: string, context: Context): Promise<Boole
     // TODO(codebytere): a super terrible regex for platforms
     const platformMatch = platform.match(/some shit here/);
     if (platformMatch && platformMatch[0]) {
-      // TODO(codebytere): add label for affected platform(s)
+      await context.github.issues.addLabels(
+        context.repo({
+          number: context.payload.issue.number,
+          labels: [`PLATFORM TBD`],
+        }),
+      );
     } else {
-      // TODO(codebytere): inform user they did not provide a valid platform
+      await context.github.issues.createComment(
+        context.issue({
+          body:
+            'The operating system you provided does not appear to be valid. Please re-check it!',
+        }),
+      );
     }
     return true;
   }
@@ -62,7 +82,19 @@ export const triageFeatureRequest = async (
   components: Record<string, { raw: string }>,
   context: Context,
 ) => {
-  // TODO: implement triageFeatureRequest
+  let missingInfo: string[] = [];
+
+  const featureDescription: string =
+    components['Is your feature request related to a problem? Please describe.'].raw;
+  if (featureDescription === '') missingInfo.push('Feature Description');
+
+  const proposedSolution: string = components["Describe the solution you'd like"].raw;
+  if (proposedSolution === '') missingInfo.push('Proposed Solution');
+
+  const alternativeConsidered: string = components["Describe alternatives you've considered"].raw;
+  if (alternativeConsidered === '') missingInfo.push('Alternatives Considered');
+
+  if (missingInfo.length > 0) await utils.notifyMissingInfo(context, missingInfo);
 };
 
 export const triageMASRejection = async (
