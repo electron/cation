@@ -45,7 +45,7 @@ const triagePlatform = async (platform: string, context: Context): Promise<Boole
   if (platform) {
     const labelsToAdd: string[] = [];
 
-    const macOSMatch = platform.match(/(mac[oO]?[sS]?)|(darwin)/);
+    const macOSMatch = platform.match(/([mM]ac[oO]?[sS]?)|(darwin)/);
     const windowsMatch = platform.match(/([wW]indows)|(win32)/);
     const linuxMatch = platform.match(/(ubuntu)|(arch)|(linux)|(mint)/);
 

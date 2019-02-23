@@ -68,7 +68,7 @@ const triage = async (context: Context) => {
 };
 
 const probotHandler = async (robot: Application) => {
-  if (!process.env.DISABLE_CATION_TRAIGE) {
+  if (!process.env.DISABLE_CATION_TRIAGE) {
     robot.on(['issues.opened', 'issues.edited', 'issues.reopened'], triage);
   }
 
