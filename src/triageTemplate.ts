@@ -99,14 +99,13 @@ export const triageFeatureRequest = async (
 ) => {
   let missingInfo: string[] = [];
 
-  const featureDescription: string =
-    components['Is your feature request related to a problem? Please describe.'].raw;
+  const featureDescription: string = components['Problem Description'].raw;
   if (featureDescription === '') missingInfo.push('Feature Description');
 
-  const proposedSolution: string = components["Describe the solution you'd like"].raw;
+  const proposedSolution: string = components['Proposed Solution'].raw;
   if (proposedSolution === '') missingInfo.push('Proposed Solution');
 
-  const alternativeConsidered: string = components["Describe alternatives you've considered"].raw;
+  const alternativeConsidered: string = components['Alternatives Considered'].raw;
   if (alternativeConsidered === '') missingInfo.push('Alternatives Considered');
 
   if (missingInfo.length > 0) {
@@ -122,7 +121,7 @@ export const triageMASRejection = async (
 ) => {
   let missingInfo: string[] = [];
 
-  const electronVersion: string = components['Electron Version'].raw;
+  const electronVersion: string = components['Electron Version:'].raw;
   if (!(await triageVersion(electronVersion, context))) missingInfo.push('Electron Version');
 
   const rejectionEmail: string = components['Rejection Email'].raw;
