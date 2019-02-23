@@ -1,6 +1,13 @@
 const semver = require('semver');
 import { Context } from 'probot';
 import * as utils from './utils';
+import {
+  ENHANCEMENT_LABEL,
+  BUG_LABEL,
+  PLATFORM_MAC,
+  PLATFORM_WIN,
+  PLATFORM_LINUX,
+} from './constants';
 
 const triageVersion = async (version: string, context: Context): Promise<Boolean> => {
   if (version) {
@@ -35,22 +42,25 @@ of Electron to see if it still persists, and if it does the maintainers can tria
 
 const triagePlatform = async (platform: string, context: Context): Promise<Boolean> => {
   if (platform) {
-    // TODO(codebytere): a super terrible regex for platforms
-    const platformMatch = platform.match(/some shit here/);
-    if (platformMatch && platformMatch[0]) {
-      await context.github.issues.addLabels(
-        context.repo({
-          number: context.payload.issue.number,
-          labels: [`PLATFORM TBD`],
-        }),
-      );
-    } else {
+    const labelsToAdd: string[] = [];
+
+    const macOSMatch = platform.match(/(mac[oO]?[sS]?)|(darwin)/);
+    const windowsMatch = platform.match(/([wW]indows)|(win32)/);
+    const linuxMatch = platform.match(/(ubuntu)|(arch)|(linux)|(mint)/);
+
+    if (macOSMatch && macOSMatch[0]) labelsToAdd.push(PLATFORM_MAC);
+    if (windowsMatch && windowsMatch[0]) labelsToAdd.push(PLATFORM_WIN);
+    if (linuxMatch && linuxMatch[0]) labelsToAdd.push(PLATFORM_LINUX);
+
+    if (labelsToAdd.length === 0) {
       await context.github.issues.createComment(
         context.issue({
           body:
             'The operating system you provided does not appear to be valid. Please re-check it!',
         }),
       );
+    } else {
+      await utils.addIssueLabels(labelsToAdd, context);
     }
     return true;
   }
@@ -75,7 +85,11 @@ export const triageBugReport = async (
   const actualBehavior = components['Actual Behavior'].raw;
   if (actualBehavior === '') missingInfo.push('Actual Behavior');
 
-  if (missingInfo.length > 0) await utils.notifyMissingInfo(context, missingInfo);
+  if (missingInfo.length > 0) {
+    await utils.notifyMissingInfo(context, missingInfo);
+  } else {
+    await utils.addIssueLabels([BUG_LABEL], context);
+  }
 };
 
 export const triageFeatureRequest = async (
@@ -94,7 +108,11 @@ export const triageFeatureRequest = async (
   const alternativeConsidered: string = components["Describe alternatives you've considered"].raw;
   if (alternativeConsidered === '') missingInfo.push('Alternatives Considered');
 
-  if (missingInfo.length > 0) await utils.notifyMissingInfo(context, missingInfo);
+  if (missingInfo.length > 0) {
+    await utils.notifyMissingInfo(context, missingInfo);
+  } else {
+    await utils.addIssueLabels([ENHANCEMENT_LABEL], context);
+  }
 };
 
 export const triageMASRejection = async (

@@ -52,6 +52,15 @@ export const notifyMissingInfo = async (context: Context, missingValues?: string
   );
 };
 
+export const addIssueLabels = async (labelsToAdd: string[], context: Context) => {
+  await context.github.issues.addLabels(
+    context.repo({
+      number: context.payload.issue.number,
+      labels: labelsToAdd,
+    }),
+  );
+};
+
 export const createNoMatchComment = async (context: Context) => {
   await context.github.issues.createComment(
     context.issue({
