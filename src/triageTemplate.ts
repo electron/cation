@@ -7,6 +7,7 @@ import {
   PLATFORM_MAC,
   PLATFORM_WIN,
   PLATFORM_LINUX,
+  APP_STORE_LABEL,
 } from './constants';
 
 const triageVersion = async (version: string, context: Context): Promise<Boolean> => {
@@ -127,5 +128,9 @@ export const triageMASRejection = async (
   const rejectionEmail: string = components['Rejection Email'].raw;
   if (rejectionEmail === '') missingInfo.push('Rejection Email');
 
-  if (missingInfo.length > 0) await utils.notifyMissingInfo(context, missingInfo);
+  if (missingInfo.length > 0) {
+    await utils.notifyMissingInfo(context, missingInfo);
+  } else {
+    await utils.addIssueLabels([APP_STORE_LABEL], context);
+  }
 };
