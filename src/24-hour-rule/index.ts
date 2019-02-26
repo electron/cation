@@ -1,13 +1,18 @@
 import { Application } from 'probot';
 
-import { NEW_PR_LABEL, MINIMUM_OPEN_TIME } from '../constants';
+import { NEW_PR_LABEL, MINIMUM_OPEN_TIME, BACKPORT_LABEL } from '../constants';
 
 const CHECK_INTERVAL = 1000 * 60;
 
 export function setUp24HourRule(probot: Application) {
   probot.on(['pull_request.opened', 'pull_request.unlabeled'], async context => {
     const pr = context.payload.pull_request;
-    if (pr.labels.some((l: any) => l.name === NEW_PR_LABEL)) return;
+    if (
+      pr.labels.some((l: any) => {
+        l.name === NEW_PR_LABEL || l.name === BACKPORT_LABEL;
+      })
+    )
+      return;
 
     probot.log(
       'received PR:',
@@ -46,8 +51,9 @@ export function setUp24HourRule(probot: Application) {
 async function runCron(probot: Application, installId: number) {
   const github = await probot.auth(installId);
   const repos = await github.apps.listRepos({});
+
   for (const repo of repos.data.repositories) {
-    probot.log('running 24 hour cron job on repo:', `${repo.owner.login}/${repo.name}`);
+    probot.log('Running 24 hour cron job on repo:', `${repo.owner.login}/${repo.name}`);
     // TODO: Paginate the PR list
     const prs = await github.pullRequests.list({
       owner: repo.owner.login,
@@ -55,6 +61,7 @@ async function runCron(probot: Application, installId: number) {
       per_page: 100,
       state: 'open',
     });
+
     for (const pr of prs.data) {
       if (!pr.labels.some(l => l.name === NEW_PR_LABEL)) continue;
       const created = new Date(pr.created_at).getTime();
@@ -63,10 +70,10 @@ async function runCron(probot: Application, installId: number) {
 
       if (shouldRemove) {
         probot.log(
-          'found PR:',
+          'Found PR:',
           `${repo.owner.login}/${repo.name}#${pr.number}`,
           `created ${now - created} ms ago`,
-          'therefore removing label',
+          'therefore removing label.',
         );
 
         await github.issues.removeLabel({
