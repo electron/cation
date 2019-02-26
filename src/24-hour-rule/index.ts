@@ -7,12 +7,12 @@ const CHECK_INTERVAL = 1000 * 60;
 export function setUp24HourRule(probot: Application) {
   probot.on(['pull_request.opened', 'pull_request.unlabeled'], async context => {
     const pr = context.payload.pull_request;
-    if (
-      pr.labels.some((l: any) => {
-        l.name === NEW_PR_LABEL || l.name === BACKPORT_LABEL;
-      })
-    )
-      return;
+    const excludedLabels = [NEW_PR_LABEL, BACKPORT_LABEL];
+    const excludedPrefixes = ['build', 'ci'];
+
+    const prefix = pr.title.split(':')[0];
+    const hasExcludedLabel = pr.labels.some((l: any) => excludedLabels.includes(l.name));
+    if (excludedPrefixes.includes(prefix) || hasExcludedLabel) return;
 
     probot.log(
       'received PR:',
