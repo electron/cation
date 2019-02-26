@@ -1,18 +1,16 @@
 import { Application } from 'probot';
 
-import { NEW_PR_LABEL, MINIMUM_OPEN_TIME, BACKPORT_LABEL } from '../constants';
+import { NEW_PR_LABEL, MINIMUM_OPEN_TIME, EXCLUDE_LABELS, EXCLUDE_PREFIXES } from '../constants';
 
 const CHECK_INTERVAL = 1000 * 60;
 
 export function setUp24HourRule(probot: Application) {
   probot.on(['pull_request.opened', 'pull_request.unlabeled'], async context => {
     const pr = context.payload.pull_request;
-    const excludedLabels = [NEW_PR_LABEL, BACKPORT_LABEL];
-    const excludedPrefixes = ['build', 'ci'];
 
     const prefix = pr.title.split(':')[0];
-    const hasExcludedLabel = pr.labels.some((l: any) => excludedLabels.includes(l.name));
-    if (excludedPrefixes.includes(prefix) || hasExcludedLabel) return;
+    const hasExcludedLabel = pr.labels.some((l: any) => EXCLUDE_LABELS.includes(l.name));
+    if (EXCLUDE_PREFIXES.includes(prefix) || hasExcludedLabel) return;
 
     probot.log(
       'received PR:',
