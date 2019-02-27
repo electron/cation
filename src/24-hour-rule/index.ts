@@ -9,7 +9,7 @@ import {
 } from '../constants';
 import { WebhookPayloadWithRepository, Context } from 'probot/lib/context';
 
-const CHECK_INTERVAL = 1000 * 60 * 2;
+const CHECK_INTERVAL = 1000 * 60 * 5;
 
 export function setUp24HourRule(probot: Application) {
   const shouldPRHaveLabel = (pr: WebhookPayloadWithRepository['pull_request']): boolean => {
