@@ -17,5 +17,5 @@ export const PLATFORM_MAC = 'platform/macOS';
 export const PLATFORM_WIN = 'platform/windows';
 export const PLATFORM_LINUX = 'platform/linux';
 
-export const EXCLUDE_LABELS = [NEW_PR_LABEL, BACKPORT_LABEL];
+export const EXCLUDE_LABELS = [BACKPORT_LABEL];
 export const EXCLUDE_PREFIXES = ['build', 'ci'];
