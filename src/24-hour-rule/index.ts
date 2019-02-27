@@ -6,6 +6,7 @@ import {
   EXCLUDE_LABELS,
   EXCLUDE_PREFIXES,
   BACKPORT_LABEL,
+  EXCLUDE_USERS,
 } from '../constants';
 import { WebhookPayloadWithRepository, Context } from 'probot/lib/context';
 
@@ -14,8 +15,19 @@ const CHECK_INTERVAL = 1000 * 60 * 5;
 export function setUp24HourRule(probot: Application) {
   const shouldPRHaveLabel = (pr: WebhookPayloadWithRepository['pull_request']): boolean => {
     const prefix = pr.title.split(':')[0];
-    const hasExcludedLabel = pr.labels.some((l: any) => EXCLUDE_LABELS.includes(l.name));
-    if (EXCLUDE_PREFIXES.includes(prefix) || hasExcludedLabel) return false;
+    const backportMatch = pr.title.match(/[bB]ackport/);
+    const backportInTitle = backportMatch && backportMatch[0];
+    const hasExcludedLabel = pr.labels.some((l: any) => {
+      return EXCLUDE_LABELS.includes(l.name) || prefix !== 'feat';
+    });
+
+    if (
+      EXCLUDE_PREFIXES.includes(prefix) ||
+      hasExcludedLabel ||
+      backportInTitle ||
+      EXCLUDE_USERS.includes(pr.user.login)
+    )
+      return false;
 
     const created = new Date(pr.created_at).getTime();
     const now = Date.now();
