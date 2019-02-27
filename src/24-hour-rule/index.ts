@@ -19,6 +19,9 @@ export function setUp24HourRule(probot: Application) {
 
     const created = new Date(pr.created_at).getTime();
     const now = Date.now();
+
+    probot.log('Checking PR:', `#${pr.number}`, 'created', created, 'now', now);
+
     return now - created < MINIMUM_OPEN_TIME;
   };
 
@@ -105,7 +108,10 @@ export function setUp24HourRule(probot: Application) {
         state: 'open',
       });
 
+      probot.log('Found', prs.data.length, 'prs for repo:', `${repo.owner.login}/${repo.name}`);
+
       for (const pr of prs.data) {
+        probot.log('Running cron on', `#${pr.number}`);
         await applyLabelToPR(github, pr, repo.owner.login, repo.name, shouldPRHaveLabel(pr));
       }
     }
