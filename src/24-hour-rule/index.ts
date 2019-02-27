@@ -6,6 +6,7 @@ import {
   EXCLUDE_LABELS,
   EXCLUDE_PREFIXES,
   BACKPORT_LABEL,
+  EXCLUDE_USERS,
 } from '../constants';
 import { WebhookPayloadWithRepository, Context } from 'probot/lib/context';
 
@@ -20,7 +21,13 @@ export function setUp24HourRule(probot: Application) {
       return EXCLUDE_LABELS.includes(l.name) || prefix !== 'feat';
     });
 
-    if (EXCLUDE_PREFIXES.includes(prefix) || hasExcludedLabel || backportInTitle) return false;
+    if (
+      EXCLUDE_PREFIXES.includes(prefix) ||
+      hasExcludedLabel ||
+      backportInTitle ||
+      EXCLUDE_USERS.includes(pr.user.login)
+    )
+      return false;
 
     const created = new Date(pr.created_at).getTime();
     const now = Date.now();

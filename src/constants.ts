@@ -19,3 +19,4 @@ export const PLATFORM_LINUX = 'platform/linux';
 
 export const EXCLUDE_LABELS = [NEW_PR_LABEL, BACKPORT_LABEL];
 export const EXCLUDE_PREFIXES = ['build', 'ci'];
+export const EXCLUDE_USERS = ['roller-bot[bot]'];
