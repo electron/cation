@@ -42,12 +42,16 @@ export function setUp24HourRule(probot: Application) {
       if (pr.labels.some((l: any) => l.name === BACKPORT_LABEL)) {
         probot.log('Found PR:', `${repoOwner}/${repoName}#${pr.number}`, 'should remove label.');
 
-        await github.issues.removeLabel({
-          owner: repoOwner,
-          repo: repoName,
-          number: pr.number,
-          name: NEW_PR_LABEL,
-        });
+        try {
+          await github.issues.removeLabel({
+            owner: repoOwner,
+            repo: repoName,
+            number: pr.number,
+            name: NEW_PR_LABEL,
+          });
+        } catch {
+          // Ignore the error here, it's a race condition between the Cron jobb and GitHub webhooks
+        }
       }
     }
   };
