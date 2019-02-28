@@ -26,7 +26,7 @@ const validTemplateMatch = async (context: Context): Promise<string | false> => 
         ];
         break;
       case 'feature_request.md':
-        optional = ['Additional context'];
+        optional = ['Additional Information'];
         break;
       case 'mac-app-store-private-api-rejection.md':
         optional = ['Additional Information'];
@@ -46,22 +46,23 @@ const validTemplateMatch = async (context: Context): Promise<string | false> => 
   return match;
 };
 
-const triage = async (context: Context) => {
+const triage = async (context: Context, update: Boolean) => {
   let templateComponents: Record<string, { raw: string }>;
   const templateType = await validTemplateMatch(context);
   if (templateType) {
     templateComponents = issueParser(context.payload.issue.body);
     switch (templateType) {
       case 'bug_report.md':
-        await triager.triageBugReport(templateComponents, context);
+        await triager.triageBugReport(templateComponents, context, update);
         break;
       case 'feature_request.md':
-        await triager.triageFeatureRequest(templateComponents, context);
+        await triager.triageFeatureRequest(templateComponents, context, update);
         break;
       case 'mac_app_store_private_api_rejection.md':
-        await triager.triageMASRejection(templateComponents, context);
+        await triager.triageMASRejection(templateComponents, context, update);
         break;
       default:
+        // we don't want to triage security reports, as they shouldn't be opened.
         console.log('template was not a triagable template');
     }
   }
@@ -69,7 +70,8 @@ const triage = async (context: Context) => {
 
 const probotHandler = async (robot: Application) => {
   if (!process.env.DISABLE_CATION_TRIAGE) {
-    robot.on(['issues.opened', 'issues.edited', 'issues.reopened'], triage);
+    robot.on('issues.opened', async context => triage(context, false));
+    robot.on(['issues.edited', 'issues.reopened'], async context => triage(context, true));
   }
 
   setUp24HourRule(robot);

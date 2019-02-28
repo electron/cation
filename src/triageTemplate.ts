@@ -8,6 +8,7 @@ import {
   PLATFORM_WIN,
   PLATFORM_LINUX,
   APP_STORE_LABEL,
+  MISSING_INFO_LABEL,
 } from './constants';
 
 const triageVersion = async (version: string, context: Context): Promise<Boolean> => {
@@ -61,7 +62,7 @@ const triagePlatform = async (platform: string, context: Context): Promise<Boole
         }),
       );
     } else {
-      await utils.addIssueLabels(labelsToAdd, context);
+      await utils.addIssueLabels(context, labelsToAdd);
     }
     return true;
   }
@@ -71,6 +72,7 @@ const triagePlatform = async (platform: string, context: Context): Promise<Boole
 export const triageBugReport = async (
   components: Record<string, { raw: string }>,
   context: Context,
+  update: Boolean,
 ) => {
   let missingInfo: string[] = [];
 
@@ -86,16 +88,21 @@ export const triageBugReport = async (
   const actualBehavior = components['Actual Behavior'].raw;
   if (actualBehavior === '') missingInfo.push('Actual Behavior');
 
-  if (missingInfo.length > 0) {
+  if (!update && missingInfo.length > 0) {
     await utils.notifyMissingInfo(context, missingInfo);
   } else {
-    await utils.addIssueLabels([BUG_LABEL], context);
+    if (update && utils.labelExistsOnIssue(context, MISSING_INFO_LABEL)) {
+      await utils.removeIssueLabel(context, MISSING_INFO_LABEL);
+    } else {
+      await utils.addIssueLabels(context, [BUG_LABEL]);
+    }
   }
 };
 
 export const triageFeatureRequest = async (
   components: Record<string, { raw: string }>,
   context: Context,
+  update: Boolean,
 ) => {
   let missingInfo: string[] = [];
 
@@ -108,16 +115,21 @@ export const triageFeatureRequest = async (
   const alternativeConsidered: string = components['Alternatives Considered'].raw;
   if (alternativeConsidered === '') missingInfo.push('Alternatives Considered');
 
-  if (missingInfo.length > 0) {
+  if (!update && missingInfo.length > 0) {
     await utils.notifyMissingInfo(context, missingInfo);
   } else {
-    await utils.addIssueLabels([ENHANCEMENT_LABEL], context);
+    if (update && utils.labelExistsOnIssue(context, MISSING_INFO_LABEL)) {
+      await utils.removeIssueLabel(context, MISSING_INFO_LABEL);
+    } else {
+      await utils.addIssueLabels(context, [ENHANCEMENT_LABEL]);
+    }
   }
 };
 
 export const triageMASRejection = async (
   components: Record<string, { raw: string }>,
   context: Context,
+  update: Boolean,
 ) => {
   let missingInfo: string[] = [];
 
@@ -127,9 +139,13 @@ export const triageMASRejection = async (
   const rejectionEmail: string = components['Rejection Email'].raw;
   if (rejectionEmail === '') missingInfo.push('Rejection Email');
 
-  if (missingInfo.length > 0) {
+  if (!update && missingInfo.length > 0) {
     await utils.notifyMissingInfo(context, missingInfo);
   } else {
-    await utils.addIssueLabels([APP_STORE_LABEL], context);
+    if (update && utils.labelExistsOnIssue(context, MISSING_INFO_LABEL)) {
+      await utils.removeIssueLabel(context, MISSING_INFO_LABEL);
+    } else {
+      await utils.addIssueLabels(context, [APP_STORE_LABEL]);
+    }
   }
 };

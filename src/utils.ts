@@ -36,29 +36,50 @@ export const arrayContainsArray = (superset: string[], subset: string[]) => {
 export const notifyMissingInfo = async (context: Context, missingValues?: string[]) => {
   let body;
   if (missingValues) {
-    body = `Please fill out all applicable sections of the template
-    correctly for the maintainers to be able to triage your issue. 
-    You seem to be missing: ${missingValues.join(' ')}.`;
+    body = `Some items in the issue template appear to be missing. \
+Please provide \n${missingValues.map(val => `* **${val}**`).join('\n')}\n\n for \
+the maintainers to be able to triage your issue.`;
   } else {
-    body = `Please fill out all applicable sections of the template
-    correctly for the maintainers to be able to triage your issue.`;
+    body = `Please fill out all applicable sections of the template \
+correctly for the maintainers to be able to triage your issue.`;
   }
   await context.github.issues.createComment(context.issue({ body }));
   await context.github.issues.addLabels(
     context.repo({
-      number: context.payload.pull_request.number,
+      number: context.payload.issue.number,
       labels: [MISSING_INFO_LABEL],
     }),
   );
 };
 
-export const addIssueLabels = async (labelsToAdd: string[], context: Context) => {
+export const addIssueLabels = async (context: Context, labelsToAdd: string[]) => {
   await context.github.issues.addLabels(
     context.repo({
       number: context.payload.issue.number,
       labels: labelsToAdd,
     }),
   );
+};
+
+export const removeIssueLabel = async (context: Context, labelToRemove: string) => {
+  await context.github.issues.removeLabel(
+    context.repo({
+      number: context.payload.issue.number,
+      name: labelToRemove,
+    }),
+  );
+};
+
+export const labelExistsOnIssue = async (context: Context, labelName: string) => {
+  const labels = await context.github.issues.listLabelsOnIssue(
+    context.repo({
+      number: context.payload.issue.number,
+      per_page: 100,
+      page: 1,
+    }),
+  );
+
+  return labels.data.some(label => label.name === labelName);
 };
 
 export const createNoMatchComment = async (context: Context) => {
