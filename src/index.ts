@@ -16,6 +16,7 @@ const validTemplateMatch = async (context: Context): Promise<string | false> => 
     const issueParts = Object.keys(issueParser(issue.body));
     let optional: string[] = [];
 
+    // set optional fields for the template purportedly used
     switch (template.name) {
       case 'bug_report.md':
         optional = [
@@ -31,11 +32,18 @@ const validTemplateMatch = async (context: Context): Promise<string | false> => 
       case 'mac-app-store-private-api-rejection.md':
         optional = ['Additional Information'];
         break;
+      case 'security_report':
+        console.log('skipping security report');
+        break;
       default:
-      // fallthrough
+        console.log(`unrecognized template: '${template.name}'`);
+        break;
     }
 
+    // filter out non-required aspects of the issue template used
     const required: string[] = templateParts.filter(key => !optional.includes(key));
+
+    // determine template type by whether the issue's filled fields match a template
     if (utils.arrayContainsArray(issueParts, required)) {
       match = template.name;
     }

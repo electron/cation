@@ -72,7 +72,7 @@ const triagePlatform = async (platform: string, context: Context): Promise<Boole
 export const triageBugReport = async (
   components: Record<string, { raw: string }>,
   context: Context,
-  update: Boolean,
+  isUpdate: Boolean,
 ) => {
   let missingInfo: string[] = [];
 
@@ -88,21 +88,24 @@ export const triageBugReport = async (
   const actualBehavior = components['Actual Behavior'].raw;
   if (actualBehavior === '') missingInfo.push('Actual Behavior');
 
-  if (!update && missingInfo.length > 0) {
+  // comment on the pr notifying user of missing required fields
+  if (!isUpdate && missingInfo.length > 0) {
     await utils.notifyMissingInfo(context, missingInfo);
+    return;
+  }
+
+  // only edit labels if this isn't the issue's initial open event
+  if (isUpdate && utils.labelExistsOnIssue(context, MISSING_INFO_LABEL)) {
+    await utils.removeIssueLabel(context, MISSING_INFO_LABEL);
   } else {
-    if (update && utils.labelExistsOnIssue(context, MISSING_INFO_LABEL)) {
-      await utils.removeIssueLabel(context, MISSING_INFO_LABEL);
-    } else {
-      await utils.addIssueLabels(context, [BUG_LABEL]);
-    }
+    await utils.addIssueLabels(context, [BUG_LABEL]);
   }
 };
 
 export const triageFeatureRequest = async (
   components: Record<string, { raw: string }>,
   context: Context,
-  update: Boolean,
+  isUpdate: Boolean,
 ) => {
   let missingInfo: string[] = [];
 
@@ -115,21 +118,24 @@ export const triageFeatureRequest = async (
   const alternativeConsidered: string = components['Alternatives Considered'].raw;
   if (alternativeConsidered === '') missingInfo.push('Alternatives Considered');
 
-  if (!update && missingInfo.length > 0) {
+  // comment on the pr notifying user of missing required fields
+  if (!isUpdate && missingInfo.length > 0) {
     await utils.notifyMissingInfo(context, missingInfo);
+    return;
+  }
+
+  // only edit labels if this isn't the issue's initial open event
+  if (isUpdate && utils.labelExistsOnIssue(context, MISSING_INFO_LABEL)) {
+    await utils.removeIssueLabel(context, MISSING_INFO_LABEL);
   } else {
-    if (update && utils.labelExistsOnIssue(context, MISSING_INFO_LABEL)) {
-      await utils.removeIssueLabel(context, MISSING_INFO_LABEL);
-    } else {
-      await utils.addIssueLabels(context, [ENHANCEMENT_LABEL]);
-    }
+    await utils.addIssueLabels(context, [ENHANCEMENT_LABEL]);
   }
 };
 
 export const triageMASRejection = async (
   components: Record<string, { raw: string }>,
   context: Context,
-  update: Boolean,
+  isUpdate: Boolean,
 ) => {
   let missingInfo: string[] = [];
 
@@ -139,13 +145,16 @@ export const triageMASRejection = async (
   const rejectionEmail: string = components['Rejection Email'].raw;
   if (rejectionEmail === '') missingInfo.push('Rejection Email');
 
-  if (!update && missingInfo.length > 0) {
+  // comment on the pr notifying user of missing required fields
+  if (!isUpdate && missingInfo.length > 0) {
     await utils.notifyMissingInfo(context, missingInfo);
+    return;
+  }
+
+  // only edit labels if this isn't the issue's initial open event
+  if (isUpdate && utils.labelExistsOnIssue(context, MISSING_INFO_LABEL)) {
+    await utils.removeIssueLabel(context, MISSING_INFO_LABEL);
   } else {
-    if (update && utils.labelExistsOnIssue(context, MISSING_INFO_LABEL)) {
-      await utils.removeIssueLabel(context, MISSING_INFO_LABEL);
-    } else {
-      await utils.addIssueLabels(context, [APP_STORE_LABEL]);
-    }
+    await utils.addIssueLabels(context, [APP_STORE_LABEL]);
   }
 };
