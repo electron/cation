@@ -17,6 +17,6 @@ export const PLATFORM_MAC = 'platform/macOS';
 export const PLATFORM_WIN = 'platform/windows';
 export const PLATFORM_LINUX = 'platform/linux';
 
-export const EXCLUDE_LABELS = [BACKPORT_LABEL];
+export const EXCLUDE_LABELS = [BACKPORT_LABEL, 'fast-track 🚅'];
 export const EXCLUDE_PREFIXES = ['build', 'ci'];
-export const EXCLUDE_USERS = ['roller-bot[bot]'];
+export const EXCLUDE_USERS = ['roller-bot[bot]', 'electron-bot'];
