@@ -18,7 +18,7 @@ export function setUp24HourRule(probot: Application) {
     const backportMatch = pr.title.match(/[bB]ackport/);
     const backportInTitle = backportMatch && backportMatch[0];
     const hasExcludedLabel = pr.labels.some((l: any) => {
-      return EXCLUDE_LABELS.includes(l.name) || prefix !== 'feat';
+      return EXCLUDE_LABELS.includes(l.name) && prefix !== 'feat';
     });
 
     if (
