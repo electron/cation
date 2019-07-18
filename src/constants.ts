@@ -5,19 +5,8 @@ export const MINIMUM_OPEN_TIME = 1000 * 60 * 60 * 24;
 export const NEW_PR_LABEL = 'new-pr 🌱';
 export const BACKPORT_LABEL = 'backport';
 export const FAST_TRACK_LABEL = 'fast-track 🚅';
-export const BUG_LABEL = 'bug 🐞';
-export const ENHANCEMENT_LABEL = 'enhancement ✨';
-export const APP_STORE_LABEL = 'app-store';
 
-// missing information labels
-export const MISSING_INFO_LABEL = 'blocked/need-info ❌';
-export const NEEDS_REPRO_LABEL = 'blocked/needs-repro ❌';
-
-// platform labels
-export const PLATFORM_MAC = 'platform/macOS';
-export const PLATFORM_WIN = 'platform/windows';
-export const PLATFORM_LINUX = 'platform/linux';
-
+// exclusion labels
 export const EXCLUDE_LABELS = [BACKPORT_LABEL, FAST_TRACK_LABEL];
 export const EXCLUDE_PREFIXES = ['build', 'ci', 'test'];
 export const EXCLUDE_USERS = ['roller-bot[bot]', 'electron-bot'];

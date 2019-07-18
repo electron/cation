@@ -5,9 +5,8 @@ import {
   MINIMUM_OPEN_TIME,
   EXCLUDE_LABELS,
   EXCLUDE_PREFIXES,
-  BACKPORT_LABEL,
   EXCLUDE_USERS,
-} from '../constants';
+} from './constants';
 import { WebhookPayloadWithRepository, Context } from 'probot/lib/context';
 
 const CHECK_INTERVAL = 1000 * 60 * 5;
@@ -107,7 +106,7 @@ export function setUp24HourRule(probot: Application) {
 
     for (const repo of repos.data.repositories) {
       probot.log('Running 24 hour cron job on repo:', `${repo.owner.login}/${repo.name}`);
-      // TODO: Paginate the PR list
+      // TODO(codebytere): Paginate the PR list
       const prs = await github.pullRequests.list({
         owner: repo.owner.login,
         repo: repo.name,
