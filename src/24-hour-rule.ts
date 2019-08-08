@@ -16,6 +16,7 @@ export function setUp24HourRule(probot: Application) {
     const prefix = pr.title.split(':')[0];
     const backportMatch = pr.title.match(/[bB]ackport/);
     const backportInTitle = backportMatch && backportMatch[0];
+    const isDraft = pr.draft;
     const hasExcludedLabel = pr.labels.some((l: any) => {
       return EXCLUDE_LABELS.includes(l.name) && prefix !== 'feat';
     });
@@ -24,7 +25,8 @@ export function setUp24HourRule(probot: Application) {
       EXCLUDE_PREFIXES.includes(prefix) ||
       hasExcludedLabel ||
       backportInTitle ||
-      EXCLUDE_USERS.includes(pr.user.login)
+      EXCLUDE_USERS.includes(pr.user.login) ||
+      isDraft
     )
       return false;
 
@@ -65,23 +67,26 @@ export function setUp24HourRule(probot: Application) {
     }
   };
 
-  probot.on(['pull_request.opened', 'pull_request.unlabeled'], async context => {
-    const pr = context.payload.pull_request;
+  probot.on(
+    ['pull_request.opened', 'pull_request.unlabeled', 'pull_request.ready_for_review'],
+    async context => {
+      const pr = context.payload.pull_request;
 
-    probot.log(
-      'received PR:',
-      `${context.payload.repository.full_name}#${pr.number}`,
-      'checking now',
-    );
+      probot.log(
+        'received PR:',
+        `${context.payload.repository.full_name}#${pr.number}`,
+        'checking now',
+      );
 
-    await applyLabelToPR(
-      context.github,
-      pr,
-      context.repo({}).owner,
-      context.repo({}).repo,
-      shouldPRHaveLabel(pr),
-    );
-  });
+      await applyLabelToPR(
+        context.github,
+        pr,
+        context.repo({}).owner,
+        context.repo({}).repo,
+        shouldPRHaveLabel(pr),
+      );
+    },
+  );
 
   runInterval();
 
