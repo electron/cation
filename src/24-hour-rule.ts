@@ -114,7 +114,7 @@ export function setUp24HourRule(probot: Application) {
         `repo:${repo.owner.login}/${repo.name}`,
         'is:pr',
         `-label:${NEW_PR_LABEL}`,
-        `created:>${cutoffStr}`,
+        `created:<=${cutoffStr}`,
       ].join('+');
       const prs = await github.search.issues({ q });
       for (const pr of prs) {
@@ -127,7 +127,7 @@ export function setUp24HourRule(probot: Application) {
       const q = [
         `repo:${repo.owner.login}/${repo.name}`,
         'is:pr',
-        `created:<=${cutoffStr}`,
+        `created:>${cutoffStr}`,
         `label:${NEW_PR_LABEL}`,
       ].join('+');
       const prs = await github.search.issues({ q });
