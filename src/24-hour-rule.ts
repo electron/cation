@@ -2,16 +2,27 @@ import { Application } from 'probot';
 
 import {
   NEW_PR_LABEL,
-  MINIMUM_OPEN_TIME,
   EXCLUDE_LABELS,
   EXCLUDE_PREFIXES,
   EXCLUDE_USERS,
+  SEMVER_LABELS,
+  MINIMUM_MAJOR_OPEN_TIME,
+  MINIMUM_PATCH_OPEN_TIME,
+  MINIMUM_MINOR_OPEN_TIME,
 } from './constants';
 import { WebhookPayloadWithRepository, Context } from 'probot/lib/context';
 
 const CHECK_INTERVAL = 1000 * 60 * 5;
 
 export function setUp24HourRule(probot: Application) {
+  const getMinimumOpenTime = (pr: WebhookPayloadWithRepository['pull_request']): number => {
+    if (pr.labels.some((l: any) => l.name === SEMVER_LABELS.MAJOR)) return MINIMUM_MAJOR_OPEN_TIME;
+    if (pr.labels.some((l: any) => l.name === SEMVER_LABELS.MINOR)) return MINIMUM_MINOR_OPEN_TIME;
+    if (pr.labels.some((l: any) => l.name === SEMVER_LABELS.PATCH)) return MINIMUM_PATCH_OPEN_TIME;
+    /** If it is not labelled yet, we assume it is semver/major and do not remove the label */
+    return MINIMUM_MAJOR_OPEN_TIME;
+  };
+
   const shouldPRHaveLabel = (pr: WebhookPayloadWithRepository['pull_request']): boolean => {
     const prefix = pr.title.split(':')[0];
     const backportMatch = pr.title.match(/[bB]ackport/);
@@ -31,7 +42,7 @@ export function setUp24HourRule(probot: Application) {
     const created = new Date(pr.created_at).getTime();
     const now = Date.now();
 
-    return now - created < MINIMUM_OPEN_TIME;
+    return now - created < getMinimumOpenTime(pr);
   };
 
   const applyLabelToPR = async (
@@ -106,17 +117,26 @@ export function setUp24HourRule(probot: Application) {
 
     for (const repo of repos.data.repositories) {
       probot.log('Running 24 hour cron job on repo:', `${repo.owner.login}/${repo.name}`);
-      // TODO(codebytere): Paginate the PR list
-      const prs = await github.pullRequests.list({
-        owner: repo.owner.login,
-        repo: repo.name,
-        per_page: 100,
-        state: 'open',
-      });
+      let page = 0;
+      const prs = [];
+      let lastPRCount = -1;
+      do {
+        lastPRCount = prs.length;
+        prs.push(
+          ...(await github.pullRequests.list({
+            owner: repo.owner.login,
+            repo: repo.name,
+            per_page: 100,
+            state: 'open',
+            page,
+          })).data,
+        );
+        page++;
+      } while (lastPRCount < prs.length);
 
-      probot.log('Found', prs.data.length, 'prs for repo:', `${repo.owner.login}/${repo.name}`);
+      probot.log('Found', prs.length, 'prs for repo:', `${repo.owner.login}/${repo.name}`);
 
-      for (const pr of prs.data) {
+      for (const pr of prs) {
         await applyLabelToPR(github, pr, repo.owner.login, repo.name, shouldPRHaveLabel(pr));
       }
     }
