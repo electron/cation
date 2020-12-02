@@ -3,3 +3,4 @@ lib
 *.pem
 .env
 .vscode
+.envrc

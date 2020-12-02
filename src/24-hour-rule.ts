@@ -80,7 +80,7 @@ export function setUp24HourRule(probot: Application) {
     const pr = context.payload.pull_request;
 
     probot.log(
-      'received PR:',
+      '24-hour rule received PR:',
       `${context.payload.repository.full_name}#${pr.number}`,
       'checking now',
     );
