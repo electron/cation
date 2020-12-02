@@ -5,6 +5,9 @@ export const MINIMUM_MINOR_OPEN_TIME = 1000 * 60 * 60 * 24 * 7;
 // 168 Hour Minimum Time
 export const MINIMUM_MAJOR_OPEN_TIME = 1000 * 60 * 60 * 24 * 7;
 
+export const ORGANIZATION = 'electron';
+export const REPO = 'electron';
+
 // backport type labels
 export const NEW_PR_LABEL = 'new-pr 🌱';
 export const BACKPORT_LABEL = 'backport';
@@ -14,6 +17,14 @@ export const SEMVER_LABELS = {
   PATCH: 'semver/patch',
   MINOR: 'semver/minor',
   MAJOR: 'semver/major',
+};
+
+export const API_REVIEW_PREFIX = 'api-review/';
+
+export const REVIEW_LABELS = {
+  REQUESTED: 'api-review/requested 🗳',
+  APPROVED: 'api-review/approved ✅',
+  DECLINED: 'api-review/declined ❌',
 };
 
 // exclusion labels
