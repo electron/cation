@@ -16,6 +16,8 @@ const CHECK_INTERVAL = 1000 * 60 * 5;
 
 export function setUp24HourRule(probot: Application) {
   const getMinimumOpenTime = (pr: WebhookPayloadWithRepository['pull_request']): number => {
+    if (!pr) throw new Error('Unable to find PR');
+
     if (pr.labels.some((l: any) => l.name === SEMVER_LABELS.MAJOR)) return MINIMUM_MAJOR_OPEN_TIME;
     if (pr.labels.some((l: any) => l.name === SEMVER_LABELS.MINOR)) return MINIMUM_MINOR_OPEN_TIME;
     if (pr.labels.some((l: any) => l.name === SEMVER_LABELS.PATCH)) return MINIMUM_PATCH_OPEN_TIME;
@@ -24,6 +26,8 @@ export function setUp24HourRule(probot: Application) {
   };
 
   const shouldPRHaveLabel = (pr: WebhookPayloadWithRepository['pull_request']): boolean => {
+    if (!pr) throw new Error('Unable to find PR');
+
     const prefix = pr.title.split(':')[0];
     const backportMatch = pr.title.match(/[bB]ackport/);
     const backportInTitle = backportMatch && backportMatch[0];
@@ -46,16 +50,18 @@ export function setUp24HourRule(probot: Application) {
   };
 
   const applyLabelToPR = async (
-    github: Context['github'],
+    github: Context['octokit'],
     pr: WebhookPayloadWithRepository['pull_request'],
     repoOwner: string,
     repoName: string,
     shouldHaveLabel: boolean,
   ) => {
+    if (!pr) throw new Error('Unable to find PR');
+
     if (shouldHaveLabel) {
       probot.log('Found PR:', `${repoOwner}/${repoName}#${pr.number}`, 'should add label.');
       await github.issues.addLabels({
-        number: pr.number,
+        issue_number: pr.number,
         labels: [NEW_PR_LABEL],
         repo: repoName,
         owner: repoOwner,
@@ -67,7 +73,7 @@ export function setUp24HourRule(probot: Application) {
         await github.issues.removeLabel({
           owner: repoOwner,
           repo: repoName,
-          number: pr.number,
+          issue_number: pr.number,
           name: NEW_PR_LABEL,
         });
       } catch {
@@ -123,13 +129,15 @@ export function setUp24HourRule(probot: Application) {
       do {
         lastPRCount = prs.length;
         prs.push(
-          ...(await github.pullRequests.list({
-            owner: repo.owner.login,
-            repo: repo.name,
-            per_page: 100,
-            state: 'open',
-            page,
-          })).data,
+          ...(
+            await github.pullRequests.list({
+              owner: repo.owner.login,
+              repo: repo.name,
+              per_page: 100,
+              state: 'open',
+              page,
+            })
+          ).data,
         );
         page++;
       } while (lastPRCount < prs.length);
