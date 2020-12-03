@@ -205,7 +205,7 @@ export function setupAPIReviewStateManagement(probot: Application) {
     let userApprovalState: ReturnType<typeof addOrUpdateAPIReviewCheck> extends Promise<infer T>
       ? T
       : unknown;
-    const fullPR = await context.octokit.pulls.get({
+    const { data: pr } = await context.octokit.pulls.get({
       owner: repository.owner.login,
       repo: repository.name,
       pull_number: parseInt(prNumber, 10),
@@ -213,13 +213,18 @@ export function setupAPIReviewStateManagement(probot: Application) {
 
     switch (id) {
       case ApiReviewAction.LGTM: {
-        userApprovalState = await addOrUpdateAPIReviewCheck(context.octokit, fullPR.data as any, {
-          approved: [initiator],
-        });
+        // The author of the PR should not be able to LGTM their own API.
+        if (initiator === pr.user.login) {
+          probot.log(`User ${initiator} tried to LGTM their own API - this is not permitted.`);
+        } else {
+          userApprovalState = await addOrUpdateAPIReviewCheck(context.octokit, pr as any, {
+            approved: [initiator],
+          });
+        }
         break;
       }
       case ApiReviewAction.REQUEST_CHANGES: {
-        userApprovalState = await addOrUpdateAPIReviewCheck(context.octokit, fullPR.data as any, {
+        userApprovalState = await addOrUpdateAPIReviewCheck(context.octokit, pr as any, {
           requestedChanges: [initiator],
         });
         break;
