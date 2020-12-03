@@ -24,12 +24,6 @@ export const REVIEW_LABELS = {
   DECLINED: 'api-review/declined ❌',
 };
 
-export enum CheckRunStatus {
-  NEUTRAL = 'neutral',
-  FAILURE = 'failure',
-  SUCCESS = 'success',
-}
-
 export const API_REVIEW_CHECK_NAME = 'API Review';
 
 // exclusion labels
