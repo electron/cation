@@ -1,4 +1,4 @@
-import { Application } from 'probot';
+import { Application, Context } from 'probot';
 
 import {
   NEW_PR_LABEL,
@@ -10,8 +10,8 @@ import {
   MINIMUM_PATCH_OPEN_TIME,
   MINIMUM_MINOR_OPEN_TIME,
 } from './constants';
-import { Context } from 'probot/lib/context';
 import { EventPayloads } from '@octokit/webhooks';
+import { addOrUpdateAPIReviewCheck } from './api-review-state';
 
 const CHECK_INTERVAL = 1000 * 60 * 5;
 
@@ -77,6 +77,8 @@ export function setUp24HourRule(probot: Application) {
           issue_number: pr.number,
           name: NEW_PR_LABEL,
         });
+        pr.labels = pr.labels.filter(l => l.name !== NEW_PR_LABEL);
+        await addOrUpdateAPIReviewCheck(github, pr);
       } catch {
         // Ignore the error here, it's a race condition between the Cron jobb and GitHub webhooks
       }
