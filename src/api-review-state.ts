@@ -2,6 +2,7 @@ import { Application, Context } from 'probot';
 import {
   API_REVIEW_CHECK_NAME,
   API_WORKING_GROUP,
+  NEW_PR_LABEL,
   REVIEW_LABELS,
   SEMVER_LABELS,
 } from './constants';
@@ -119,6 +120,8 @@ async function addOrUpdateCheck(
         ...opts,
       });
     }
+
+    return parsedUsers;
   };
 
   if (currentReviewLabel.name === REVIEW_LABELS.REQUESTED) {
@@ -189,44 +192,53 @@ export function setupAPIReviewStateManagement(probot: Application) {
       return;
     }
 
-    // TODO(codebytere): make Octokit aware of the requested_action parameter.
-    const reviewAction: ApiReviewAction = (context.payload as any).requested_action.identifier;
-
     // GitHub plz...
     const [ident, prNumber] = (context.payload as any).requested_action.identifier.split('|');
+    let userApprovalState: ReturnType<typeof addOrUpdateCheck> extends Promise<infer T>
+      ? T
+      : unknown;
+    const fullPR = await context.octokit.pulls.get({
+      owner: context.payload.repository.owner.login,
+      repo: context.payload.repository.name,
+      pull_number: prNumber,
+    });
+
     switch (ident) {
       case ApiReviewAction.LGTM: {
-        const fullPR = await context.octokit.pulls.get({
-          owner: context.payload.repository.owner.login,
-          repo: context.payload.repository.name,
-          pull_number: prNumber,
-        });
-        await addOrUpdateCheck(context.octokit, fullPR.data as any, {
-          approved: [context.payload.sender.login],
+        userApprovalState = await addOrUpdateCheck(context.octokit, fullPR.data as any, {
+          approved: [sender],
         });
         break;
       }
       case ApiReviewAction.REQUEST_CHANGES: {
-        const fullPR = await context.octokit.pulls.get({
-          owner: context.payload.repository.owner.login,
-          repo: context.payload.repository.name,
-          pull_number: prNumber,
-        });
-        await addOrUpdateCheck(context.octokit, fullPR.data as any, {
-          requestedChanges: [context.payload.sender.login],
+        userApprovalState = await addOrUpdateCheck(context.octokit, fullPR.data as any, {
+          requestedChanges: [sender],
         });
         break;
       }
+      // Only allow chair of WG to do this bit
       case ApiReviewAction.DECLINE: {
-        const fullPR = await context.octokit.pulls.get({
-          owner: context.payload.repository.owner.login,
-          repo: context.payload.repository.name,
-          pull_number: prNumber,
-        });
-        await addOrUpdateCheck(context.octokit, fullPR.data as any, {
-          declined: [context.payload.sender.login],
+        userApprovalState = await addOrUpdateCheck(context.octokit, fullPR.data as any, {
+          declined: [sender],
         });
         break;
+      }
+    }
+
+    if (userApprovalState && userApprovalState.declined.length > 0) {
+      // We declined...
+      return;
+    }
+
+    if (userApprovalState && !fullPR.data.labels.some(l => l.name === NEW_PR_LABEL)) {
+      if (
+        userApprovalState.approved.length >= 2 &&
+        userApprovalState.declined.length === 0 &&
+        userApprovalState.requestedChanges.length === 0
+      ) {
+        // We good...
+      } else {
+        // We pending..
       }
     }
   });
