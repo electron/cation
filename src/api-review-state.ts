@@ -296,7 +296,7 @@ export function setupAPIReviewStateManagement(probot: Application) {
       }
     }
 
-    await addOrUpdateCheck(context.octokit, context.payload.pull_request);
+    await addOrUpdateCheck(context.octokit, pr);
   });
 
   probot.on('pull_request.unlabeled', async context => {
@@ -328,7 +328,7 @@ export function setupAPIReviewStateManagement(probot: Application) {
         }
       }
 
-      await addOrUpdateCheck(context.octokit, context.payload.pull_request);
+      await addOrUpdateCheck(context.octokit, pr);
     }
   });
 }
