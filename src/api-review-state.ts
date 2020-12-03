@@ -1,11 +1,11 @@
 import { Application, Context } from 'probot';
 import {
-  API_REVIEW_ACTIONS,
   API_REVIEW_CHECK_NAME,
+  API_WORKING_GROUP,
   REVIEW_LABELS,
   SEMVER_LABELS,
 } from './constants';
-import { CheckRunStatus } from './enums';
+import { ApiReviewAction, CheckRunStatus } from './enums';
 import { isAPIReviewRequired } from './utils/check-utils';
 import { getEnvVar } from './utils/env-util';
 import { EventPayloads } from '@octokit/webhooks';
@@ -92,17 +92,17 @@ async function addOrUpdateCheck(
         {
           label: 'API LGTM',
           description: 'Approves this API change',
-          identifier: API_REVIEW_ACTIONS.LGTM,
+          identifier: ApiReviewAction.LGTM,
         },
         {
           label: 'Request API Changes',
           description: 'Mark this API as needing changes',
-          identifier: API_REVIEW_ACTIONS.REQUEST_CHANGES,
+          identifier: ApiReviewAction.REQUEST_CHANGES,
         },
         {
           label: 'Decline API Change',
           description: 'Declines this API change',
-          identifier: API_REVIEW_ACTIONS.DECLINE,
+          identifier: ApiReviewAction.DECLINE,
         },
       ],
     });
@@ -136,17 +136,30 @@ export function setupAPIReviewStateManagement(probot: Application) {
   });
 
   probot.on('check_run.requested_action', async context => {
-    // Validate sender
+    const { data } = await context.github.teams.listMembersInOrg({
+      org: context.payload.repository.owner.login,
+      team_slug: API_WORKING_GROUP,
+    });
 
-    // GitHub plz...
-    switch ((context.payload as any).requested_action.identifier) {
-      case API_REVIEW_ACTIONS.LGTM:
+    const members = data.map(m => m.login);
+    const sender = context.payload.sender.login;
+
+    if (!members.includes(sender)) {
+      probot.log(`${sender} is not a member of the API Working Group and cannot review this PR.`);
+      return;
+    }
+
+    // TODO(codebytere): make Octokit aware of the requested_action parameter.
+    const reviewAction: ApiReviewAction = (context.payload as any).requested_action.identifier;
+
+    switch (reviewAction) {
+      case ApiReviewAction.LGTM:
         probot.log('lgtm');
         break;
-      case API_REVIEW_ACTIONS.REQUEST_CHANGES:
+      case ApiReviewAction.REQUEST_CHANGES:
         probot.log('req changes');
         break;
-      case API_REVIEW_ACTIONS.DECLINE:
+      case ApiReviewAction.DECLINE:
         probot.log('decline');
         break;
     }

@@ -10,3 +10,9 @@ export enum LogLevel {
   WARN,
   ERROR,
 }
+
+export enum ApiReviewAction {
+  LGTM = 'lgtm',
+  REQUEST_CHANGES = 'request-changes',
+  DECLINE = 'decline',
+}
