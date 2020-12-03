@@ -10,12 +10,13 @@ import {
   MINIMUM_PATCH_OPEN_TIME,
   MINIMUM_MINOR_OPEN_TIME,
 } from './constants';
-import { WebhookPayloadWithRepository, Context } from 'probot/lib/context';
+import { Context } from 'probot/lib/context';
+import { EventPayloads } from '@octokit/webhooks';
 
 const CHECK_INTERVAL = 1000 * 60 * 5;
 
 export function setUp24HourRule(probot: Application) {
-  const getMinimumOpenTime = (pr: WebhookPayloadWithRepository['pull_request']): number => {
+  const getMinimumOpenTime = (pr: EventPayloads.WebhookPayloadPullRequestPullRequest): number => {
     if (!pr) throw new Error('Unable to find PR');
 
     if (pr.labels.some((l: any) => l.name === SEMVER_LABELS.MAJOR)) return MINIMUM_MAJOR_OPEN_TIME;
@@ -25,7 +26,7 @@ export function setUp24HourRule(probot: Application) {
     return MINIMUM_MAJOR_OPEN_TIME;
   };
 
-  const shouldPRHaveLabel = (pr: WebhookPayloadWithRepository['pull_request']): boolean => {
+  const shouldPRHaveLabel = (pr: EventPayloads.WebhookPayloadPullRequestPullRequest): boolean => {
     if (!pr) throw new Error('Unable to find PR');
 
     const prefix = pr.title.split(':')[0];
@@ -51,7 +52,7 @@ export function setUp24HourRule(probot: Application) {
 
   const applyLabelToPR = async (
     github: Context['octokit'],
-    pr: WebhookPayloadWithRepository['pull_request'],
+    pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
     repoOwner: string,
     repoName: string,
     shouldHaveLabel: boolean,
@@ -119,7 +120,7 @@ export function setUp24HourRule(probot: Application) {
 
   async function runCron(probot: Application, installId: number) {
     const github = await probot.auth(installId);
-    const repos = await github.apps.listRepos({});
+    const repos = await github.apps.listReposAccessibleToInstallation({});
 
     for (const repo of repos.data.repositories) {
       probot.log('Running 24 hour cron job on repo:', `${repo.owner.login}/${repo.name}`);

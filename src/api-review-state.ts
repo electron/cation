@@ -1,11 +1,16 @@
 import { Application, Context } from 'probot';
-import { API_REVIEW_CHECK_NAME, NEW_PR_LABEL, REVIEW_LABELS, SEMVER_LABELS } from './constants';
+import { API_REVIEW_CHECK_NAME, REVIEW_LABELS, SEMVER_LABELS } from './constants';
 import { CheckRunStatus } from './enums';
 import { isAPIReviewRequired } from './utils/check-utils';
 import { getEnvVar } from './utils/env-util';
 import { EventPayloads } from '@octokit/webhooks';
-import { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods';
 import { Endpoints } from '@octokit/types';
+
+const checkTitles = {
+  [REVIEW_LABELS.APPROVED]: 'Approved',
+  [REVIEW_LABELS.DECLINED]: 'Declined',
+  [REVIEW_LABELS.REQUESTED]: 'Pending',
+};
 
 async function addOrUpdateCheck(
   octokit: Context['octokit'],
@@ -43,12 +48,6 @@ async function addOrUpdateCheck(
     await resetToNeutral();
     return;
   }
-
-  const checkTitles = {
-    [REVIEW_LABELS.APPROVED]: 'Approved',
-    [REVIEW_LABELS.DECLINED]: 'Declined',
-    [REVIEW_LABELS.REQUESTED]: 'Pending',
-  };
 
   const checkSummary = checkRun ? checkRun.output.summary : '';
 
