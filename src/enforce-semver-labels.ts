@@ -7,11 +7,11 @@ export function setupSemverLabelEnforcement(probot: Application) {
   probot.on(
     ['pull_request.opened', 'pull_request.unlabeled', 'pull_request.labeled'],
     async context => {
-      const pr = context.payload.pull_request;
+      const { pull_request: pr, repository } = context.payload;
 
       probot.log(
         'semver-enforce received PR:',
-        `${context.payload.repository.full_name}#${pr.number}`,
+        `${repository.full_name}#${pr.number}`,
         'checking now',
       );
 

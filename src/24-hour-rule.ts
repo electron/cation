@@ -22,7 +22,8 @@ export function setUp24HourRule(probot: Application) {
     if (pr.labels.some((l: any) => l.name === SEMVER_LABELS.MAJOR)) return MINIMUM_MAJOR_OPEN_TIME;
     if (pr.labels.some((l: any) => l.name === SEMVER_LABELS.MINOR)) return MINIMUM_MINOR_OPEN_TIME;
     if (pr.labels.some((l: any) => l.name === SEMVER_LABELS.PATCH)) return MINIMUM_PATCH_OPEN_TIME;
-    /** If it is not labelled yet, we assume it is semver/major and do not remove the label */
+
+    // If it's not labeled yet, assume it is semver/major and do not remove the label.
     return MINIMUM_MAJOR_OPEN_TIME;
   };
 
@@ -80,17 +81,15 @@ export function setUp24HourRule(probot: Application) {
         pr.labels = pr.labels.filter(l => l.name !== NEW_PR_LABEL);
         await addOrUpdateAPIReviewCheck(github, pr);
       } catch {
-        // Ignore the error here, it's a race condition between the Cron jobb and GitHub webhooks
+        // Ignore the error here, it's a race condition between the Cron job and GitHub webhooks
       }
     }
   };
 
   probot.on(['pull_request.opened', 'pull_request.unlabeled'], async context => {
-    const pr = context.payload.pull_request;
+    const { pull_request: pr, repository } = context.payload;
 
-    probot.log(
-      `24-hour rule received PR: ${context.payload.repository.full_name}#${pr.number} checking now`,
-    );
+    probot.log(`24-hour rule received PR: ${repository.full_name}#${pr.number} checking now`);
 
     await applyLabelToPR(
       context.github,
