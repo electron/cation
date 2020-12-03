@@ -1,5 +1,10 @@
 import { Application, Context } from 'probot';
-import { API_REVIEW_CHECK_NAME, REVIEW_LABELS, SEMVER_LABELS } from './constants';
+import {
+  API_REVIEW_ACTIONS,
+  API_REVIEW_CHECK_NAME,
+  REVIEW_LABELS,
+  SEMVER_LABELS,
+} from './constants';
 import { CheckRunStatus } from './enums';
 import { isAPIReviewRequired } from './utils/check-utils';
 import { getEnvVar } from './utils/env-util';
@@ -83,6 +88,23 @@ async function addOrUpdateCheck(
         title: checkTitles[currentReviewLabel.name],
         summary: checkSummary,
       },
+      actions: [
+        {
+          label: 'API LGTM',
+          description: 'Approves this API change',
+          identifier: API_REVIEW_ACTIONS.LGTM,
+        },
+        {
+          label: 'Request API Changes',
+          description: 'Mark this API as needing changes',
+          identifier: API_REVIEW_ACTIONS.REQUEST_CHANGES,
+        },
+        {
+          label: 'Decline API Change',
+          description: 'Declines this API change',
+          identifier: API_REVIEW_ACTIONS.DECLINE,
+        },
+      ],
     });
   } else if (currentReviewLabel.name === REVIEW_LABELS.APPROVED) {
     return updateCheck({
@@ -111,6 +133,23 @@ async function addOrUpdateCheck(
 export function setupAPIReviewStateManagement(probot: Application) {
   probot.on(['pull_request.synchronize', 'pull_request.opened'], async context => {
     await addOrUpdateCheck(context.octokit, context.payload.pull_request);
+  });
+
+  probot.on('check_run.requested_action', async context => {
+    // Validate sender
+
+    // GitHub plz...
+    switch ((context.payload as any).requested_action.identifier) {
+      case API_REVIEW_ACTIONS.LGTM:
+        probot.log('lgtm');
+        break;
+      case API_REVIEW_ACTIONS.REQUEST_CHANGES:
+        probot.log('req changes');
+        break;
+      case API_REVIEW_ACTIONS.DECLINE:
+        probot.log('decline');
+        break;
+    }
   });
 
   probot.on('pull_request.labeled', async context => {
