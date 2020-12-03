@@ -216,11 +216,25 @@ export function setupAPIReviewStateManagement(probot: Application) {
         });
         break;
       }
-      // Only allow chair of WG to do this bit
       case ApiReviewAction.DECLINE: {
-        userApprovalState = await addOrUpdateCheck(context.octokit, fullPR.data as any, {
-          declined: [sender],
+        const { data: maintainers } = await context.github.teams.listMembersInOrg({
+          org: context.payload.repository.owner.login,
+          team_slug: API_WORKING_GROUP,
+          role: 'maintainer',
         });
+
+        const teamMaintainer = maintainers[0].login;
+
+        // Only allow the API WG chair to decline an API on behalf of the WG.
+        if (sender !== teamMaintainer) {
+          probot.log(
+            `User ${sender} tried to decline an API - only the Chair ${teamMaintainer} can do this`,
+          );
+        } else {
+          userApprovalState = await addOrUpdateCheck(context.octokit, fullPR.data as any, {
+            declined: [sender],
+          });
+        }
         break;
       }
     }
