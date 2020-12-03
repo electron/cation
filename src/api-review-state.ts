@@ -141,7 +141,7 @@ export async function addOrUpdateAPIReviewCheck(
         },
         {
           label: 'Request API Changes',
-          description: 'Mark this API as needing changes',
+          description: 'Marks this API as needing changes',
           identifier: `${ApiReviewAction.REQUEST_CHANGES}|${pr.number}`,
         },
         {
@@ -181,46 +181,52 @@ export function setupAPIReviewStateManagement(probot: Application) {
   });
 
   probot.on('check_run.requested_action', async context => {
+    const {
+      repository,
+      requested_action,
+      sender: { login: initiator },
+    } = context.payload;
+
     const { data } = await context.github.teams.listMembersInOrg({
-      org: context.payload.repository.owner.login,
+      org: repository.owner.login,
       team_slug: API_WORKING_GROUP,
     });
 
     const members = data.map(m => m.login);
-    const sender = context.payload.sender.login;
 
-    if (!members.includes(sender)) {
-      probot.log(`${sender} is not a member of the API Working Group and cannot review this PR.`);
+    if (!members.includes(initiator)) {
+      probot.log(
+        `${initiator} is not a member of the API Working Group and cannot review this PR.`,
+      );
       return;
     }
 
-    // GitHub plz...
-    const [ident, prNumber] = (context.payload as any).requested_action.identifier.split('|');
+    const [id, prNumber] = requested_action!.identifier.split('|');
     let userApprovalState: ReturnType<typeof addOrUpdateAPIReviewCheck> extends Promise<infer T>
       ? T
       : unknown;
     const fullPR = await context.octokit.pulls.get({
-      owner: context.payload.repository.owner.login,
-      repo: context.payload.repository.name,
-      pull_number: prNumber,
+      owner: repository.owner.login,
+      repo: repository.name,
+      pull_number: parseInt(prNumber, 10),
     });
 
-    switch (ident) {
+    switch (id) {
       case ApiReviewAction.LGTM: {
         userApprovalState = await addOrUpdateAPIReviewCheck(context.octokit, fullPR.data as any, {
-          approved: [sender],
+          approved: [initiator],
         });
         break;
       }
       case ApiReviewAction.REQUEST_CHANGES: {
         userApprovalState = await addOrUpdateAPIReviewCheck(context.octokit, fullPR.data as any, {
-          requestedChanges: [sender],
+          requestedChanges: [initiator],
         });
         break;
       }
       case ApiReviewAction.DECLINE: {
         const { data: maintainers } = await context.github.teams.listMembersInOrg({
-          org: context.payload.repository.owner.login,
+          org: repository.owner.login,
           team_slug: API_WORKING_GROUP,
           role: 'maintainer',
         });
@@ -228,13 +234,13 @@ export function setupAPIReviewStateManagement(probot: Application) {
         const teamMaintainer = maintainers[0].login;
 
         // Only allow the API WG chair to decline an API on behalf of the WG.
-        if (sender !== teamMaintainer) {
+        if (initiator !== teamMaintainer) {
           probot.log(
-            `User ${sender} tried to decline an API - only the Chair ${teamMaintainer} can do this`,
+            `User ${initiator} tried to decline an API - only the Chair ${teamMaintainer} can do this`,
           );
         } else {
           userApprovalState = await addOrUpdateAPIReviewCheck(context.octokit, fullPR.data as any, {
-            declined: [sender],
+            declined: [initiator],
           });
         }
         break;
@@ -281,7 +287,12 @@ export function setupAPIReviewStateManagement(probot: Application) {
   });
 
   probot.on('pull_request.labeled', async context => {
-    const { label, pull_request: pr } = context.payload;
+    const {
+      label,
+      pull_request: pr,
+      repository,
+      sender: { login: initiator },
+    } = context.payload;
 
     if (!label) {
       throw new Error('Something went wrong - label does not exist.');
@@ -292,7 +303,7 @@ export function setupAPIReviewStateManagement(probot: Application) {
     if ([SEMVER_LABELS.MINOR, SEMVER_LABELS.MAJOR].includes(label.name)) {
       probot.log(
         'Received a semver-minor or semver-major PR:',
-        `${context.payload.repository.full_name}#${pr.number}`,
+        `${repository.full_name}#${pr.number}`,
         "Adding the 'api-review/requested 🗳' label",
       );
 
@@ -303,11 +314,9 @@ export function setupAPIReviewStateManagement(probot: Application) {
         }),
       );
     } else if (Object.values(REVIEW_LABELS).includes(label.name)) {
-      const sender = context.payload.sender.login;
-
       // Humans can only add the 'api-review/requested 🗳' manually.
-      if (sender !== getEnvVar('BOT_USER_NAME') && label.name !== REVIEW_LABELS.REQUESTED) {
-        probot.log(`${sender} tried to add ${label.name} - this is not permitted.`);
+      if (initiator !== getEnvVar('BOT_USER_NAME') && label.name !== REVIEW_LABELS.REQUESTED) {
+        probot.log(`${initiator} tried to add ${label.name} - this is not permitted.`);
         // Remove the label. Bad human.
         await context.github.issues.removeLabel(
           context.repo({
@@ -323,7 +332,11 @@ export function setupAPIReviewStateManagement(probot: Application) {
   });
 
   probot.on('pull_request.unlabeled', async context => {
-    const { label, pull_request: pr } = context.payload;
+    const {
+      label,
+      pull_request: pr,
+      sender: { login: initiator },
+    } = context.payload;
 
     if (!label) {
       throw new Error('Something went wrong - label does not exist.');
@@ -336,9 +349,8 @@ export function setupAPIReviewStateManagement(probot: Application) {
       if (label.name === REVIEW_LABELS.REQUESTED && !isAPIReviewRequired(pr)) {
         // Check will be removed by addOrUpdateCheck
       } else {
-        const sender = context.payload.sender.login;
-        if (sender !== getEnvVar('BOT_USER_NAME')) {
-          probot.log(`${sender} tried to remove ${label.name} - this is not permitted.`);
+        if (initiator !== getEnvVar('BOT_USER_NAME')) {
+          probot.log(`${initiator} tried to remove ${label.name} - this is not permitted.`);
 
           // Put the label back. Bad human.
           await context.github.issues.addLabels(
