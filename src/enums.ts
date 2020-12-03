@@ -13,6 +13,6 @@ export enum LogLevel {
 
 export enum ApiReviewAction {
   LGTM = 'lgtm',
-  REQUEST_CHANGES = 'request-changes',
+  REQUEST_CHANGES = 'r-changes',
   DECLINE = 'decline',
 }
