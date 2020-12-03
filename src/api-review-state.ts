@@ -21,7 +21,7 @@ export function setupAPIReviewStateManagement(probot: Application) {
         "Adding the 'api-review/requested 🗳' label",
       );
 
-      context.github.issues.addLabels(
+      await context.github.issues.addLabels(
         context.repo({
           issue_number: pr.number,
           labels: [REVIEW_LABELS.REQUESTED],
@@ -79,7 +79,7 @@ export function setupAPIReviewStateManagement(probot: Application) {
         probot.log(`${sender} tried to remove ${label.name} - this is not permitted.`);
 
         // Put the label back. Bad human.
-        context.github.issues.addLabels(
+        await context.github.issues.addLabels(
           context.repo({
             issue_number: pr.number,
             labels: [label.name],
