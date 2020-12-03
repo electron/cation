@@ -21,7 +21,7 @@ const checkTitles = {
 const CHECK_JSON_START = '<!-- || ';
 const CHECK_JSON_END = ' || -->';
 
-async function addOrUpdateCheck(
+export async function addOrUpdateAPIReviewCheck(
   octokit: Context['octokit'],
   pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
   userChanges: {
@@ -177,7 +177,7 @@ async function addOrUpdateCheck(
 
 export function setupAPIReviewStateManagement(probot: Application) {
   probot.on(['pull_request.synchronize', 'pull_request.opened'], async context => {
-    await addOrUpdateCheck(context.octokit, context.payload.pull_request);
+    await addOrUpdateAPIReviewCheck(context.octokit, context.payload.pull_request);
   });
 
   probot.on('check_run.requested_action', async context => {
@@ -196,7 +196,7 @@ export function setupAPIReviewStateManagement(probot: Application) {
 
     // GitHub plz...
     const [ident, prNumber] = (context.payload as any).requested_action.identifier.split('|');
-    let userApprovalState: ReturnType<typeof addOrUpdateCheck> extends Promise<infer T>
+    let userApprovalState: ReturnType<typeof addOrUpdateAPIReviewCheck> extends Promise<infer T>
       ? T
       : unknown;
     const fullPR = await context.octokit.pulls.get({
@@ -207,13 +207,13 @@ export function setupAPIReviewStateManagement(probot: Application) {
 
     switch (ident) {
       case ApiReviewAction.LGTM: {
-        userApprovalState = await addOrUpdateCheck(context.octokit, fullPR.data as any, {
+        userApprovalState = await addOrUpdateAPIReviewCheck(context.octokit, fullPR.data as any, {
           approved: [sender],
         });
         break;
       }
       case ApiReviewAction.REQUEST_CHANGES: {
-        userApprovalState = await addOrUpdateCheck(context.octokit, fullPR.data as any, {
+        userApprovalState = await addOrUpdateAPIReviewCheck(context.octokit, fullPR.data as any, {
           requestedChanges: [sender],
         });
         break;
@@ -233,7 +233,7 @@ export function setupAPIReviewStateManagement(probot: Application) {
             `User ${sender} tried to decline an API - only the Chair ${teamMaintainer} can do this`,
           );
         } else {
-          userApprovalState = await addOrUpdateCheck(context.octokit, fullPR.data as any, {
+          userApprovalState = await addOrUpdateAPIReviewCheck(context.octokit, fullPR.data as any, {
             declined: [sender],
           });
         }
@@ -319,7 +319,7 @@ export function setupAPIReviewStateManagement(probot: Application) {
       }
     }
 
-    await addOrUpdateCheck(context.octokit, pr);
+    await addOrUpdateAPIReviewCheck(context.octokit, pr);
   });
 
   probot.on('pull_request.unlabeled', async context => {
@@ -351,7 +351,7 @@ export function setupAPIReviewStateManagement(probot: Application) {
         }
       }
 
-      await addOrUpdateCheck(context.octokit, pr);
+      await addOrUpdateAPIReviewCheck(context.octokit, pr);
     }
   });
 }
