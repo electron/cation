@@ -48,7 +48,6 @@ async function addOrUpdateCheck(
       status: 'completed',
       check_run_id: checkRun.id,
       conclusion: CheckRunStatus.NEUTRAL,
-      completed_at: new Date().toISOString(),
     });
   };
 
@@ -85,13 +84,13 @@ async function addOrUpdateCheck(
   const parsedUsers: Required<typeof users> = users as any;
 
   const approved = parsedUsers.approved.length
-    ? `##### Approved\n\n${parsedUsers.approved.map(u => `* @${u}\n`)}\n`
+    ? `#### Approved\n\n${parsedUsers.approved.map(u => `* @${u} \n `)}\n`
     : '';
   const requestedChanges = parsedUsers.requestedChanges.length
-    ? `##### Requested Changes\n\n${parsedUsers.requestedChanges.map(u => `* @${u}\n`)}\n`
+    ? `#### Requested Changes\n\n${parsedUsers.requestedChanges.map(u => `* @${u} \n `)}\n`
     : '';
   const declined = parsedUsers.declined.length
-    ? `##### Declined\n\n${parsedUsers.declined.map(u => `* @${u}\n`)}\n`
+    ? `#### Declined\n\n${parsedUsers.declined.map(u => `* @${u} \n `)}\n`
     : '';
   checkSummary = `${CHECK_JSON_START} ${JSON.stringify(
     parsedUsers,
@@ -103,7 +102,10 @@ async function addOrUpdateCheck(
       'baseUrl' | 'headers' | 'mediaType' | 'owner' | 'repo' | 'name' | 'head_sha'
     >,
   ) => {
-    if (checkRun) {
+    if (
+      checkRun &&
+      (checkRun.status === opts.status || !opts.status || opts.status === 'completed')
+    ) {
       await octokit.checks.update({
         owner: pr.head.repo.owner.login,
         repo: pr.head.repo.name,
@@ -239,8 +241,29 @@ export function setupAPIReviewStateManagement(probot: Application) {
       }
     }
 
+    const addExclusiveLabel = async (newLabel: string) => {
+      const currentLabel = fullPR.data.labels.find(l =>
+        Object.values(REVIEW_LABELS).includes(l.name),
+      );
+      if (currentLabel && currentLabel.name !== newLabel) {
+        await context.octokit.issues.removeLabel(
+          context.repo({
+            issue_number: fullPR.data.number,
+            name: currentLabel.name,
+          }),
+        );
+      }
+      if (!currentLabel || currentLabel.name !== newLabel) {
+        await context.octokit.issues.addLabels(
+          context.repo({
+            issue_number: fullPR.data.number,
+            labels: [newLabel],
+          }),
+        );
+      }
+    };
     if (userApprovalState && userApprovalState.declined.length > 0) {
-      // We declined...
+      await addExclusiveLabel(REVIEW_LABELS.DECLINED);
       return;
     }
 
@@ -250,9 +273,9 @@ export function setupAPIReviewStateManagement(probot: Application) {
         userApprovalState.declined.length === 0 &&
         userApprovalState.requestedChanges.length === 0
       ) {
-        // We good...
+        await addExclusiveLabel(REVIEW_LABELS.APPROVED);
       } else {
-        // We pending..
+        await addExclusiveLabel(REVIEW_LABELS.REQUESTED);
       }
     }
   });

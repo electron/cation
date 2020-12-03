@@ -60,7 +60,7 @@ export function setUp24HourRule(probot: Application) {
     if (!pr) throw new Error('Unable to find PR');
 
     if (shouldHaveLabel) {
-      probot.log('Found PR:', `${repoOwner}/${repoName}#${pr.number}`, 'should add label.');
+      probot.log(`Found PR: ${repoOwner}/${repoName}#${pr.number} should add label.`);
       await github.issues.addLabels({
         issue_number: pr.number,
         labels: [NEW_PR_LABEL],
@@ -68,7 +68,7 @@ export function setUp24HourRule(probot: Application) {
         owner: repoOwner,
       });
     } else {
-      probot.log('Found PR:', `${repoOwner}/${repoName}#${pr.number}`, 'should remove label.');
+      probot.log(`Found PR: ${repoOwner}/${repoName}#${pr.number} should remove label.`);
 
       try {
         await github.issues.removeLabel({
@@ -87,9 +87,7 @@ export function setUp24HourRule(probot: Application) {
     const pr = context.payload.pull_request;
 
     probot.log(
-      '24-hour rule received PR:',
-      `${context.payload.repository.full_name}#${pr.number}`,
-      'checking now',
+      `24-hour rule received PR: ${context.payload.repository.full_name}#${pr.number} checking now`,
     );
 
     await applyLabelToPR(
@@ -111,7 +109,7 @@ export function setUp24HourRule(probot: Application) {
       try {
         await runCron(probot, install.id);
       } catch (err) {
-        probot.log('Failed to run cron for install:', install.id, err);
+        probot.log(`Failed to run cron for install: ${install.id} ${err}`);
       }
     }
 
@@ -123,7 +121,7 @@ export function setUp24HourRule(probot: Application) {
     const repos = await github.apps.listReposAccessibleToInstallation({});
 
     for (const repo of repos.data.repositories) {
-      probot.log('Running 24 hour cron job on repo:', `${repo.owner.login}/${repo.name}`);
+      probot.log(`Running 24 hour cron job on repo: ${repo.owner.login}/${repo.name}`);
       let page = 0;
       const prs = [];
       let lastPRCount = -1;
@@ -131,7 +129,7 @@ export function setUp24HourRule(probot: Application) {
         lastPRCount = prs.length;
         prs.push(
           ...(
-            await github.pullRequests.list({
+            await github.pulls.list({
               owner: repo.owner.login,
               repo: repo.name,
               per_page: 100,
@@ -143,10 +141,16 @@ export function setUp24HourRule(probot: Application) {
         page++;
       } while (lastPRCount < prs.length);
 
-      probot.log('Found', prs.length, 'prs for repo:', `${repo.owner.login}/${repo.name}`);
+      probot.log(`Found ${prs.length} prs for repo: ${repo.owner.login}/${repo.name}`);
 
       for (const pr of prs) {
-        await applyLabelToPR(github, pr, repo.owner.login, repo.name, shouldPRHaveLabel(pr));
+        await applyLabelToPR(
+          github,
+          pr as any,
+          repo.owner.login,
+          repo.name,
+          shouldPRHaveLabel(pr as any),
+        );
       }
     }
   }
