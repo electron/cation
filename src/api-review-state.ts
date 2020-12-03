@@ -17,9 +17,17 @@ const checkTitles = {
   [REVIEW_LABELS.REQUESTED]: 'Pending',
 };
 
+const CHECK_JSON_START = '<!-- || ';
+const CHECK_JSON_END = ' || -->';
+
 async function addOrUpdateCheck(
   octokit: Context['octokit'],
   pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
+  userChanges: {
+    approved?: string[];
+    requestedChanges?: string[];
+    declined?: string[];
+  } = {},
 ) {
   const currentReviewLabel = pr.labels.find(l => Object.values(REVIEW_LABELS).includes(l.name));
 
@@ -54,7 +62,39 @@ async function addOrUpdateCheck(
     return;
   }
 
-  const checkSummary = checkRun ? checkRun.output.summary : '';
+  let checkSummary = checkRun
+    ? checkRun.output.summary
+    : `${CHECK_JSON_START} {} ${CHECK_JSON_END}`;
+  const users: typeof userChanges = JSON.parse(
+    checkSummary
+      .split(CHECK_JSON_START)[1]
+      .split(CHECK_JSON_END)[0]
+      .trim(),
+  );
+  users.approved = (users.approved || [])
+    .concat(userChanges.approved || [])
+    .filter(u => !userChanges.declined?.includes(u) && !userChanges.requestedChanges?.includes(u));
+  users.declined = (users.declined || [])
+    .concat(userChanges.declined || [])
+    .filter(u => !userChanges.approved?.includes(u) && !userChanges.requestedChanges?.includes(u));
+  users.requestedChanges = (users.requestedChanges || [])
+    .concat(userChanges.requestedChanges || [])
+    .filter(u => !userChanges.approved?.includes(u) && !userChanges.declined?.includes(u));
+
+  const parsedUsers: Required<typeof users> = users as any;
+
+  const approved = parsedUsers.approved.length
+    ? `##### Approved\n\n${parsedUsers.approved.map(u => `* @${u}\n`)}\n`
+    : '';
+  const requestedChanges = parsedUsers.requestedChanges.length
+    ? `##### Requested Changes\n\n${parsedUsers.requestedChanges.map(u => `* @${u}\n`)}\n`
+    : '';
+  const declined = parsedUsers.declined.length
+    ? `##### Declined\n\n${parsedUsers.declined.map(u => `* @${u}\n`)}\n`
+    : '';
+  checkSummary = `${CHECK_JSON_START} ${JSON.stringify(
+    parsedUsers,
+  )} ${CHECK_JSON_END}\n${approved}${requestedChanges}${declined}`;
 
   const updateCheck = async (
     opts: Omit<
@@ -92,17 +132,17 @@ async function addOrUpdateCheck(
         {
           label: 'API LGTM',
           description: 'Approves this API change',
-          identifier: ApiReviewAction.LGTM,
+          identifier: `${ApiReviewAction.LGTM}|${pr.number}`,
         },
         {
           label: 'Request API Changes',
           description: 'Mark this API as needing changes',
-          identifier: ApiReviewAction.REQUEST_CHANGES,
+          identifier: `${ApiReviewAction.REQUEST_CHANGES}|${pr.number}`,
         },
         {
           label: 'Decline API Change',
           description: 'Declines this API change',
-          identifier: ApiReviewAction.DECLINE,
+          identifier: `${ApiReviewAction.DECLINE}|${pr.number}`,
         },
       ],
     });
@@ -152,16 +192,42 @@ export function setupAPIReviewStateManagement(probot: Application) {
     // TODO(codebytere): make Octokit aware of the requested_action parameter.
     const reviewAction: ApiReviewAction = (context.payload as any).requested_action.identifier;
 
-    switch (reviewAction) {
-      case ApiReviewAction.LGTM:
-        probot.log('lgtm');
+    // GitHub plz...
+    const [ident, prNumber] = (context.payload as any).requested_action.identifier.split('|');
+    switch (ident) {
+      case ApiReviewAction.LGTM: {
+        const fullPR = await context.octokit.pulls.get({
+          owner: context.payload.repository.owner.login,
+          repo: context.payload.repository.name,
+          pull_number: prNumber,
+        });
+        await addOrUpdateCheck(context.octokit, fullPR.data as any, {
+          approved: [context.payload.sender.login],
+        });
         break;
-      case ApiReviewAction.REQUEST_CHANGES:
-        probot.log('req changes');
+      }
+      case ApiReviewAction.REQUEST_CHANGES: {
+        const fullPR = await context.octokit.pulls.get({
+          owner: context.payload.repository.owner.login,
+          repo: context.payload.repository.name,
+          pull_number: prNumber,
+        });
+        await addOrUpdateCheck(context.octokit, fullPR.data as any, {
+          requestedChanges: [context.payload.sender.login],
+        });
         break;
-      case ApiReviewAction.DECLINE:
-        probot.log('decline');
+      }
+      case ApiReviewAction.DECLINE: {
+        const fullPR = await context.octokit.pulls.get({
+          owner: context.payload.repository.owner.login,
+          repo: context.payload.repository.name,
+          pull_number: prNumber,
+        });
+        await addOrUpdateCheck(context.octokit, fullPR.data as any, {
+          declined: [context.payload.sender.login],
+        });
         break;
+      }
     }
   });
 
