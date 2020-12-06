@@ -19,9 +19,11 @@ export function setUp24HourRule(probot: Application) {
   const getMinimumOpenTime = (pr: EventPayloads.WebhookPayloadPullRequestPullRequest): number => {
     if (!pr) throw new Error('Unable to find PR');
 
-    if (pr.labels.some((l: any) => l.name === SEMVER_LABELS.MAJOR)) return MINIMUM_MAJOR_OPEN_TIME;
-    if (pr.labels.some((l: any) => l.name === SEMVER_LABELS.MINOR)) return MINIMUM_MINOR_OPEN_TIME;
-    if (pr.labels.some((l: any) => l.name === SEMVER_LABELS.PATCH)) return MINIMUM_PATCH_OPEN_TIME;
+    const hasLabel = (label: string) => pr.labels.some((l: any) => l.name === label);
+
+    if (hasLabel(SEMVER_LABELS.MAJOR)) return MINIMUM_MAJOR_OPEN_TIME;
+    if (hasLabel(SEMVER_LABELS.MINOR)) return MINIMUM_MINOR_OPEN_TIME;
+    if (hasLabel(SEMVER_LABELS.PATCH)) return MINIMUM_PATCH_OPEN_TIME;
 
     // If it's not labeled yet, assume it is semver/major and do not remove the label.
     return MINIMUM_MAJOR_OPEN_TIME;
@@ -86,19 +88,28 @@ export function setUp24HourRule(probot: Application) {
     }
   };
 
-  probot.on(['pull_request.opened', 'pull_request.unlabeled'], async context => {
-    const { pull_request: pr, repository } = context.payload;
+  probot.on(
+    ['pull_request.opened', 'pull_request.unlabeled', 'pull_request.labeled'],
+    async context => {
+      const { action, label, pull_request: pr, repository } = context.payload;
 
-    probot.log(`24-hour rule received PR: ${repository.full_name}#${pr.number} checking now`);
+      // We only care about user labels adds for new-pr and semver labels.
+      if (label && action === 'pull_request.labeled') {
+        const relevantLabels = [NEW_PR_LABEL, ...Object.keys(SEMVER_LABELS), ...EXCLUDE_LABELS];
+        if (!relevantLabels.includes(label.name)) return;
+      }
 
-    await applyLabelToPR(
-      context.github,
-      pr,
-      context.repo({}).owner,
-      context.repo({}).repo,
-      shouldPRHaveLabel(pr),
-    );
-  });
+      probot.log(`24-hour rule received PR: ${repository.full_name}#${pr.number} checking now`);
+
+      await applyLabelToPR(
+        context.github,
+        pr,
+        context.repo({}).owner,
+        context.repo({}).repo,
+        shouldPRHaveLabel(pr),
+      );
+    },
+  );
 
   runInterval();
 
