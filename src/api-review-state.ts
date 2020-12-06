@@ -244,7 +244,7 @@ export function setupAPIReviewStateManagement(probot: Application) {
             `User ${initiator} tried to decline an API - only the Chair ${teamMaintainer} can do this`,
           );
         } else {
-          userApprovalState = await addOrUpdateAPIReviewCheck(context.octokit, fullPR.data as any, {
+          userApprovalState = await addOrUpdateAPIReviewCheck(context.octokit, pr as any, {
             declined: [initiator],
           });
         }
@@ -253,13 +253,11 @@ export function setupAPIReviewStateManagement(probot: Application) {
     }
 
     const addExclusiveLabel = async (newLabel: string) => {
-      const currentLabel = fullPR.data.labels.find(l =>
-        Object.values(REVIEW_LABELS).includes(l.name),
-      );
+      const currentLabel = pr.labels.find(l => Object.values(REVIEW_LABELS).includes(l.name));
       if (currentLabel && currentLabel.name !== newLabel) {
         await context.octokit.issues.removeLabel(
           context.repo({
-            issue_number: fullPR.data.number,
+            issue_number: pr.number,
             name: currentLabel.name,
           }),
         );
@@ -267,7 +265,7 @@ export function setupAPIReviewStateManagement(probot: Application) {
       if (!currentLabel || currentLabel.name !== newLabel) {
         await context.octokit.issues.addLabels(
           context.repo({
-            issue_number: fullPR.data.number,
+            issue_number: pr.number,
             labels: [newLabel],
           }),
         );
@@ -278,7 +276,7 @@ export function setupAPIReviewStateManagement(probot: Application) {
       return;
     }
 
-    if (userApprovalState && !fullPR.data.labels.some(l => l.name === NEW_PR_LABEL)) {
+    if (userApprovalState && !pr.labels.some(l => l.name === NEW_PR_LABEL)) {
       if (
         userApprovalState.approved.length >= 2 &&
         userApprovalState.declined.length === 0 &&
