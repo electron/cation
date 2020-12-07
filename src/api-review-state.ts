@@ -127,10 +127,11 @@ export async function addOrUpdateAPIReviewCheck(
   };
 
   if (currentReviewLabel.name === REVIEW_LABELS.REQUESTED) {
+    const lgtmCount = parsedUsers.approved.length;
     return updateCheck({
       status: 'in_progress',
       output: {
-        title: checkTitles[currentReviewLabel.name],
+        title: `${checkTitles[currentReviewLabel.name]} (${lgtmCount}/2 LGTMs)`,
         summary: checkSummary,
       },
       actions: [
