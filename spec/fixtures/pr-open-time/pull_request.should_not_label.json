@@ -37,7 +37,7 @@
   "merged_at": null,
   "merge_commit_sha": null,
   "assignee": null,
-  "labels": [ ],
+  "labels": [],
   "milestone": null,
   "draft": false,
   "commits_url": "https://api.github.com/repos/electron/electron/pulls/26876/commits",

@@ -65,8 +65,6 @@ export const applyLabelToPR = async (
   repoName: string,
   shouldHaveLabel: boolean,
 ) => {
-  if (!pr) throw new Error('Unable to find PR');
-
   if (shouldHaveLabel) {
     log(
       'applyLabelToPR',
@@ -114,7 +112,7 @@ export function setUp24HourRule(probot: Probot) {
       const { action, label, pull_request: pr, repository } = context.payload;
 
       // We only care about user labels adds for new-pr and semver labels.
-      if (action === 'pull_request.labeled' && labelShouldBeChecked(label!)) return;
+      if (action === 'pull_request.labeled' && !labelShouldBeChecked(label!)) return;
 
       probot.log(`24-hour rule received PR: ${repository.full_name}#${pr.number} checking now`);
 

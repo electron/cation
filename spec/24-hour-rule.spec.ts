@@ -67,10 +67,14 @@ describe('pr open time', () => {
   });
 
   it('correctly determines whether to exclude some PRs from labels', () => {
-    const payload = require('./fixtures/pr-open-time/pull_request.should_label.json');
+    const noLabelPayload = require('./fixtures/pr-open-time/pull_request.should_not_label.json');
+    const yesLabelPayload = require('./fixtures/pr-open-time/pull_request.should_label.json');
 
-    const shouldLabel = shouldPRHaveLabel(payload);
-    expect(shouldLabel).toEqual(false);
+    // Set created_at to yesterday.
+    yesLabelPayload.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
+
+    expect(shouldPRHaveLabel(noLabelPayload)).toEqual(false);
+    expect(shouldPRHaveLabel(yesLabelPayload)).toEqual(true);
   });
 
   it('correctly determines whether a label if relevant to the decision tree', () => {
@@ -166,11 +170,31 @@ describe('pr open time', () => {
       labelShouldBeChecked({
         id: 12345,
         node_id: 'id',
-        url: `https://api.github.com/repos/electron/electron/labels/random`,
+        url: 'https://api.github.com/repos/electron/electron/labels/random',
         name: 'random',
         color: '6ac2dd',
         default: false,
       }),
     ).toEqual(false);
+  });
+
+  it(`can add a ${NEW_PR_LABEL} label to a pull request`, async () => {
+    const payload = require('./fixtures/pr-open-time/pull_request.opened.json');
+
+    // Set created_at to yesterday.
+    payload.pull_request.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
+
+    nock('https://api.github.com')
+      .post(`/repos/electron/electron/issues/${payload.number}/labels`, body => {
+        expect(body).toEqual([NEW_PR_LABEL]);
+        return true;
+      })
+      .reply(200);
+
+    await robot.receive({
+      id: '123-456',
+      name: 'pull_request',
+      payload,
+    });
   });
 });
