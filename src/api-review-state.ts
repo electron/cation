@@ -1,4 +1,4 @@
-import { Application, Context } from 'probot';
+import { Application, Context, Probot } from 'probot';
 import {
   API_REVIEW_CHECK_NAME,
   API_WORKING_GROUP,
@@ -176,19 +176,19 @@ export async function addOrUpdateAPIReviewCheck(
   throw new Error('Unreachable ??');
 }
 
-export function setupAPIReviewStateManagement(probot: Application) {
-  probot.on(['pull_request.synchronize', 'pull_request.opened'], async context => {
+export function setupAPIReviewStateManagement(probot: Probot) {
+  probot.on(['pull_request.synchronize', 'pull_request.opened'], async (context: Context) => {
     await addOrUpdateAPIReviewCheck(context.octokit, context.payload.pull_request);
   });
 
-  probot.on('check_run.requested_action', async context => {
+  probot.on('check_run.requested_action', async (context: Context) => {
     const {
       repository,
       requested_action,
       sender: { login: initiator },
     } = context.payload;
 
-    const { data } = await context.github.teams.listMembersInOrg({
+    const { data } = await context.octokit.teams.listMembersInOrg({
       org: repository.owner.login,
       team_slug: API_WORKING_GROUP,
     });
@@ -231,7 +231,7 @@ export function setupAPIReviewStateManagement(probot: Application) {
         break;
       }
       case ApiReviewAction.DECLINE: {
-        const { data: maintainers } = await context.github.teams.listMembersInOrg({
+        const { data: maintainers } = await context.octokit.teams.listMembersInOrg({
           org: repository.owner.login,
           team_slug: API_WORKING_GROUP,
           role: 'maintainer',
@@ -311,7 +311,7 @@ export function setupAPIReviewStateManagement(probot: Application) {
         "Adding the 'api-review/requested 🗳' label",
       );
 
-      await context.github.issues.addLabels(
+      await context.octokit.issues.addLabels(
         context.repo({
           issue_number: pr.number,
           labels: [REVIEW_LABELS.REQUESTED],
@@ -322,7 +322,7 @@ export function setupAPIReviewStateManagement(probot: Application) {
       if (initiator !== getEnvVar('BOT_USER_NAME') && label.name !== REVIEW_LABELS.REQUESTED) {
         probot.log(`${initiator} tried to add ${label.name} - this is not permitted.`);
         // Remove the label. Bad human.
-        await context.github.issues.removeLabel(
+        await context.octokit.issues.removeLabel(
           context.repo({
             issue_number: pr.number,
             name: label.name,
@@ -357,7 +357,7 @@ export function setupAPIReviewStateManagement(probot: Application) {
           probot.log(`${initiator} tried to remove ${label.name} - this is not permitted.`);
 
           // Put the label back. Bad human.
-          await context.github.issues.addLabels(
+          await context.octokit.issues.addLabels(
             context.repo({
               issue_number: pr.number,
               labels: [label.name],

@@ -1,4 +1,4 @@
-import { Application, Context } from 'probot';
+import { Context, Probot } from 'probot';
 
 import {
   NEW_PR_LABEL,
@@ -15,7 +15,7 @@ import { addOrUpdateAPIReviewCheck } from './api-review-state';
 
 const CHECK_INTERVAL = 1000 * 60 * 5;
 
-export function setUp24HourRule(probot: Application) {
+export function setUp24HourRule(probot: Probot) {
   const getMinimumOpenTime = (pr: EventPayloads.WebhookPayloadPullRequestPullRequest): number => {
     if (!pr) throw new Error('Unable to find PR');
 
@@ -128,7 +128,7 @@ export function setUp24HourRule(probot: Application) {
     setTimeout(runInterval, CHECK_INTERVAL);
   }
 
-  async function runCron(probot: Application, installId: number) {
+  async function runCron(probot: Probot, installId: number) {
     const github = await probot.auth(installId);
     const repos = await github.apps.listReposAccessibleToInstallation({});
 
