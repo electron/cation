@@ -5,7 +5,12 @@ const ALL_SEMVER_LABELS = [SEMVER_LABELS.MAJOR, SEMVER_LABELS.MINOR, SEMVER_LABE
 
 export function setupSemverLabelEnforcement(probot: Application) {
   probot.on(
-    ['pull_request.opened', 'pull_request.unlabeled', 'pull_request.labeled', 'pull_request.synchronize'],
+    [
+      'pull_request.opened',
+      'pull_request.unlabeled',
+      'pull_request.labeled',
+      'pull_request.synchronize',
+    ],
     async context => {
       const { pull_request: pr, repository } = context.payload;
 
