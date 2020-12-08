@@ -95,7 +95,7 @@ export function setUp24HourRule(probot: Probot) {
 
       // We only care about user labels adds for new-pr and semver labels.
       if (label && action === 'pull_request.labeled') {
-        const relevantLabels = [NEW_PR_LABEL, ...Object.keys(SEMVER_LABELS), ...EXCLUDE_LABELS];
+        const relevantLabels = [NEW_PR_LABEL, ...Object.values(SEMVER_LABELS), ...EXCLUDE_LABELS];
         if (!relevantLabels.includes(label.name)) return;
       }
 
