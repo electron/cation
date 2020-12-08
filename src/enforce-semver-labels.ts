@@ -1,9 +1,9 @@
-import { Application } from 'probot';
+import { Probot } from 'probot';
 import { SEMVER_LABELS } from './constants';
 
 const ALL_SEMVER_LABELS = [SEMVER_LABELS.MAJOR, SEMVER_LABELS.MINOR, SEMVER_LABELS.PATCH];
 
-export function setupSemverLabelEnforcement(probot: Application) {
+export function setupSemverLabelEnforcement(probot: Probot) {
   probot.on(
     [
       'pull_request.opened',
@@ -23,7 +23,7 @@ export function setupSemverLabelEnforcement(probot: Application) {
       const semverLabels = pr.labels.filter((l: any) => ALL_SEMVER_LABELS.includes(l.name));
       if (semverLabels.length === 0) {
         // Pending check -- not enough
-        await context.github.checks.create(
+        await context.octokit.checks.create(
           context.repo({
             name: 'Semver Label Enforcement',
             head_sha: pr.head.sha,
@@ -36,7 +36,7 @@ export function setupSemverLabelEnforcement(probot: Application) {
         );
       } else if (semverLabels.length > 1) {
         // Pending check -- too many
-        await context.github.checks.create(
+        await context.octokit.checks.create(
           context.repo({
             name: 'Semver Label Enforcement',
             head_sha: pr.head.sha,
@@ -49,7 +49,7 @@ export function setupSemverLabelEnforcement(probot: Application) {
         );
       } else {
         // Pass check
-        await context.github.checks.create(
+        await context.octokit.checks.create(
           context.repo({
             name: 'Semver Label Enforcement',
             head_sha: pr.head.sha,
