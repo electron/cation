@@ -10,6 +10,8 @@ export const NEW_PR_LABEL = 'new-pr 🌱';
 export const BACKPORT_LABEL = 'backport';
 export const BACKPORT_SKIP_LABEL = 'backport-check-skip';
 export const FAST_TRACK_LABEL = 'fast-track 🚅';
+
+export const SEMVER_NONE_LABEL = 'semver/none';
 export const SEMVER_LABELS = {
   PATCH: 'semver/patch',
   MINOR: 'semver/minor',
