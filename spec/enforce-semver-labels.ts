@@ -1,8 +1,6 @@
 import { Probot } from 'probot';
 import * as nock from 'nock';
 
-process.env.DISABLE_WEBHOOK_EVENT_CHECK = 'true';
-
 import { setupSemverLabelEnforcement } from '../src/enforce-semver-labels';
 
 const handler = async ({ app }: { app: Probot }) => {
