@@ -1,6 +1,5 @@
 import { Probot } from 'probot';
 import * as nock from 'nock';
-import { ApplicationFunction } from 'probot/lib/types';
 
 process.env.DISABLE_WEBHOOK_EVENT_CHECK = 'true';
 
