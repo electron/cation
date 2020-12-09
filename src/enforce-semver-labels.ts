@@ -1,7 +1,12 @@
 import { Probot } from 'probot';
-import { SEMVER_LABELS } from './constants';
+import { SEMVER_LABELS, SEMVER_NONE_LABEL } from './constants';
 
-const ALL_SEMVER_LABELS = [SEMVER_LABELS.MAJOR, SEMVER_LABELS.MINOR, SEMVER_LABELS.PATCH];
+const ALL_SEMVER_LABELS = [
+  SEMVER_LABELS.MAJOR,
+  SEMVER_LABELS.MINOR,
+  SEMVER_LABELS.PATCH,
+  SEMVER_NONE_LABEL,
+];
 
 export function setupSemverLabelEnforcement(probot: Probot) {
   probot.on(
