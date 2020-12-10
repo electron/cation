@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@octokit/rest": "^18.0.10",
+    "@sentry/node": "^5.29.0",
     "probot": "^10.17.2",
     "semver": "^5.7.1"
   },
