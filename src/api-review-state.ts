@@ -11,6 +11,7 @@ import { isAPIReviewRequired } from './utils/check-utils';
 import { getEnvVar } from './utils/env-util';
 import { EventPayloads } from '@octokit/webhooks';
 import { Endpoints } from '@octokit/types';
+import { removeLabel } from './utils/label-utils';
 
 const checkTitles = {
   [REVIEW_LABELS.APPROVED]: 'Approved',
@@ -256,12 +257,11 @@ export function setupAPIReviewStateManagement(probot: Probot) {
     const addExclusiveLabel = async (newLabel: string) => {
       const currentLabel = pr.labels.find(l => Object.values(REVIEW_LABELS).includes(l.name));
       if (currentLabel && currentLabel.name !== newLabel) {
-        await context.octokit.issues.removeLabel(
-          context.repo({
-            issue_number: pr.number,
-            name: currentLabel.name,
-          }),
-        );
+        await removeLabel(context.octokit, {
+          ...context.repo({}),
+          prNumber: pr.number,
+          name: currentLabel.name,
+        });
       }
       if (!currentLabel || currentLabel.name !== newLabel) {
         await context.octokit.issues.addLabels(
@@ -322,12 +322,11 @@ export function setupAPIReviewStateManagement(probot: Probot) {
       if (initiator !== getEnvVar('BOT_USER_NAME') && label.name !== REVIEW_LABELS.REQUESTED) {
         probot.log(`${initiator} tried to add ${label.name} - this is not permitted.`);
         // Remove the label. Bad human.
-        await context.octokit.issues.removeLabel(
-          context.repo({
-            issue_number: pr.number,
-            name: label.name,
-          }),
-        );
+        await removeLabel(context.octokit, {
+          ...context.repo({}),
+          prNumber: pr.number,
+          name: label.name,
+        });
         return;
       }
     }
