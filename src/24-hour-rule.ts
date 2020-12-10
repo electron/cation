@@ -12,7 +12,7 @@ import {
 } from './constants';
 import { EventPayloads } from '@octokit/webhooks';
 import { addOrUpdateAPIReviewCheck } from './api-review-state';
-import { log } from '../src/utils/log-util';
+import { log } from './utils/log-util';
 import { LogLevel } from './enums';
 
 const CHECK_INTERVAL = 1000 * 60 * 5;
