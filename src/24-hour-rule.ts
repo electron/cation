@@ -13,6 +13,7 @@ import {
 import { EventPayloads } from '@octokit/webhooks';
 import { addOrUpdateAPIReviewCheck } from './api-review-state';
 import { log } from './utils/log-util';
+import { removeLabel } from './utils/label-utils';
 import { LogLevel } from './enums';
 
 const CHECK_INTERVAL = 1000 * 60 * 5;
@@ -85,12 +86,13 @@ export const applyLabelToPR = async (
     );
 
     try {
-      await github.issues.removeLabel({
+      await removeLabel(github, {
         owner: repoOwner,
         repo: repoName,
-        issue_number: pr.number,
+        prNumber: pr.number,
         name: NEW_PR_LABEL,
       });
+
       pr.labels = pr.labels.filter(l => l.name !== NEW_PR_LABEL);
       await addOrUpdateAPIReviewCheck(github, pr);
     } catch {
