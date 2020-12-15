@@ -81,6 +81,9 @@ export async function addOrUpdateAPIReviewCheck(
   users.requestedChanges = (users.requestedChanges || [])
     .concat(userChanges.requestedChanges || [])
     .filter(u => !userChanges.approved?.includes(u) && !userChanges.declined?.includes(u));
+  users.approved = [...new Set(users.approved)];
+  users.declined = [...new Set(users.declined)];
+  users.requestedChanges = [...new Set(users.requestedChanges)];
 
   const parsedUsers: Required<typeof users> = users as any;
 
