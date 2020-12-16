@@ -41,9 +41,7 @@ export const shouldPRHaveLabel = (
   const prefix = pr.title.split(':')[0];
   const backportMatch = pr.title.match(/[bB]ackport/);
   const backportInTitle = backportMatch && backportMatch[0];
-  const hasExcludedLabel = pr.labels.some((l: any) => {
-    return EXCLUDE_LABELS.includes(l.name) && prefix !== 'feat';
-  });
+  const hasExcludedLabel = pr.labels.some((label: any) => EXCLUDE_LABELS.includes(label.name));
 
   if (
     EXCLUDE_PREFIXES.includes(prefix) ||
