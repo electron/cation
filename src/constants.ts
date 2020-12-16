@@ -1,9 +1,10 @@
+export const ONE_HOUR = 1000 * 60 * 60;
 // 24 Hour Minimum Time
-export const MINIMUM_PATCH_OPEN_TIME = 1000 * 60 * 60 * 24;
+export const MINIMUM_PATCH_OPEN_TIME = ONE_HOUR * 24;
 // 168 Hour Minimum Time
-export const MINIMUM_MINOR_OPEN_TIME = 1000 * 60 * 60 * 24 * 7;
+export const MINIMUM_MINOR_OPEN_TIME = ONE_HOUR * 24 * 7;
 // 168 Hour Minimum Time
-export const MINIMUM_MAJOR_OPEN_TIME = 1000 * 60 * 60 * 24 * 7;
+export const MINIMUM_MAJOR_OPEN_TIME = ONE_HOUR * 24 * 7;
 
 // backport type labels
 export const NEW_PR_LABEL = 'new-pr 🌱';
