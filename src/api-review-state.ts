@@ -2,6 +2,7 @@ import { Application, Context, Probot } from 'probot';
 import {
   API_REVIEW_CHECK_NAME,
   API_WORKING_GROUP,
+  EXCLUDE_LABELS,
   NEW_PR_LABEL,
   REVIEW_LABELS,
   SEMVER_LABELS,
@@ -305,9 +306,12 @@ export function setupAPIReviewStateManagement(probot: Probot) {
       throw new Error('Something went wrong - label does not exist.');
     }
 
-    // If a PR is semver-minor or semver-major, automatically
-    // add the 'api-review/requested 🗳' label.
-    if ([SEMVER_LABELS.MINOR, SEMVER_LABELS.MAJOR].includes(label.name)) {
+    const isSemverMajorMinor = [SEMVER_LABELS.MINOR, SEMVER_LABELS.MAJOR].includes(label.name);
+    const shouldExclude = pr.labels.some(l => EXCLUDE_LABELS.includes(l.name));
+
+    // If a PR is semver-minor or semver-major and the PR does not have an
+    // exclusion label, automatically add the 'api-review/requested 🗳' label.
+    if (isSemverMajorMinor && !shouldExclude) {
       probot.log(
         'Received a semver-minor or semver-major PR:',
         `${repository.full_name}#${pr.number}`,
