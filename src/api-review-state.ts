@@ -88,13 +88,13 @@ export async function addOrUpdateAPIReviewCheck(
   const parsedUsers: Required<typeof users> = users as any;
 
   const approved = parsedUsers.approved.length
-    ? `#### Approved\n\n${parsedUsers.approved.map(u => `* @${u} \n `)}\n`
+    ? `#### Approved\n\n${parsedUsers.approved.map(u => `* @${u}`).join('\n')}\n`
     : '';
   const requestedChanges = parsedUsers.requestedChanges.length
-    ? `#### Requested Changes\n\n${parsedUsers.requestedChanges.map(u => `* @${u} \n `)}\n`
+    ? `#### Requested Changes\n\n${parsedUsers.requestedChanges.map(u => `* @${u}`).join('\n')}\n`
     : '';
   const declined = parsedUsers.declined.length
-    ? `#### Declined\n\n${parsedUsers.declined.map(u => `* @${u} \n `)}\n`
+    ? `#### Declined\n\n${parsedUsers.declined.map(u => `* @${u}`).join('\n')}\n`
     : '';
   checkSummary = `${CHECK_JSON_START} ${JSON.stringify(
     parsedUsers,
