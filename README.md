@@ -20,8 +20,8 @@ The bot is also responsible for ensuring that any given PR is open for an amount
 
 Timespans:
 * `semver/major` - 168 hours (7 days)
-* `semver/major` - 168 hours (7 days)
-* `semver/major` - 24 hours (1 day)
+* `semver/minor` - 168 hours (7 days)
+* `semver/patch` - 24 hours (1 day)
 * `semver/none` - 24 hours (1 days), but in some cases (depending on the PR and its goals) there is no minimum time.
 
 Backport PRs (PRs to a release branch that is not `master`) do not require a minimum time, and a `fast-track` label may be optionally applied to a PR to indicate that it is intended to bypass the expected minimum time if sufficient reason exists to do so.
