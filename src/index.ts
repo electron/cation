@@ -12,13 +12,13 @@ import { setupSemverLabelEnforcement } from './enforce-semver-labels';
 import { setupAPIReviewStateManagement } from './api-review-state';
 
 const probotHandler = async ({ app }: { app: Probot }) => {
-  app.on('error', event => {
-    for (const error of event.errors) {
+  app.on('error', errorEvent => {
+    for (const error of Array.from(errorEvent)) {
       if (process.env.SENTRY_DSN) {
         Sentry.captureException(error, {
           req: error.request,
           extra: {
-            event: error.event,
+            event: errorEvent.event,
             status: error.status,
           },
         } as any);
