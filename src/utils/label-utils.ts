@@ -1,7 +1,6 @@
 import { Context } from 'probot';
 import { log } from './log-util';
 import { LogLevel } from '../enums';
-import { Octokit } from '@octokit/rest';
 
 export const addLabels = async (
   octokit: Context['octokit'],
@@ -56,16 +55,16 @@ export const removeLabel = async (
 };
 
 export const getLabelsForPR = async (
-  context: Context['octokit'],
+  octokit: Context['octokit'],
   data: {
     prNumber: number;
     owner: string;
     repo: string;
   },
-): Promise<string[]> => {
+) => {
   log('getLabelsForPR', LogLevel.INFO, `Fetching all labels for #${data.prNumber}`);
 
-  const { data: labels } = await context.octokit.issues.listLabelsOnIssue({
+  const { data: labels } = await octokit.issues.listLabelsOnIssue({
     owner: data.owner,
     repo: data.repo,
     issue_number: data.prNumber,
@@ -73,7 +72,7 @@ export const getLabelsForPR = async (
     page: 1,
   });
 
-  return labels.map((l: any) => l.name);
+  return labels.map(l => l.name);
 };
 
 export const labelExistsOnPR = async (

@@ -118,7 +118,7 @@ export function setUp24HourRule(probot: Probot) {
       probot.log(`24-hour rule received PR: ${repository.full_name}#${pr.number} checking now`);
 
       await applyLabelToPR(
-        context.github,
+        context.octokit,
         pr,
         context.repo({}).owner,
         context.repo({}).repo,
