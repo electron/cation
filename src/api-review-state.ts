@@ -1,8 +1,10 @@
-import { Application, Context, Probot } from 'probot';
+import { Context, Probot } from 'probot';
 import {
   API_REVIEW_CHECK_NAME,
   API_WORKING_GROUP,
   EXCLUDE_LABELS,
+  MINIMUM_MINOR_OPEN_TIME,
+  MINIMUM_PATCH_OPEN_TIME,
   NEW_PR_LABEL,
   REVIEW_LABELS,
   SEMVER_LABELS,
@@ -131,12 +133,28 @@ export async function addOrUpdateAPIReviewCheck(
     return parsedUsers;
   };
 
+  const getPRReadyDate = (pr: EventPayloads.WebhookPayloadPullRequestPullRequest) => {
+    let readyTime = new Date(pr.created_at).getTime();
+    const isMajorMinor = pr.labels.some((l: any) =>
+      [SEMVER_LABELS.MINOR, SEMVER_LABELS.MAJOR].includes(l.name),
+    );
+    if (isMajorMinor) {
+      readyTime += MINIMUM_MINOR_OPEN_TIME;
+    } else {
+      readyTime += MINIMUM_PATCH_OPEN_TIME;
+    }
+
+    return new Date(readyTime).toISOString().split('T')[0];
+  };
+
   if (currentReviewLabel.name === REVIEW_LABELS.REQUESTED) {
     const lgtmCount = parsedUsers.approved.length;
     return updateCheck({
       status: 'in_progress',
       output: {
-        title: `${checkTitles[currentReviewLabel.name]} (${lgtmCount}/2 LGTMs)`,
+        title: `${
+          checkTitles[currentReviewLabel.name]
+        } (${lgtmCount}/2 LGTMs - ready on ${getPRReadyDate(pr)})`,
         summary: checkSummary,
       },
       actions: [
