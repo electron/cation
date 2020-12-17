@@ -13,7 +13,7 @@ import {
 import { EventPayloads } from '@octokit/webhooks';
 import { addOrUpdateAPIReviewCheck } from './api-review-state';
 import { log } from './utils/log-util';
-import { removeLabel } from './utils/label-utils';
+import { addLabels, removeLabel } from './utils/label-utils';
 import { LogLevel } from './enums';
 
 const CHECK_INTERVAL = 1000 * 60 * 5;
@@ -68,10 +68,11 @@ export const applyLabelToPR = async (
     log(
       'applyLabelToPR',
       LogLevel.INFO,
-      `Found PR ${repoOwner}/${repoName}#${pr.number} - should add label.`,
+      `Found PR ${repoOwner}/${repoName}#${pr.number} - should ensure ${NEW_PR_LABEL} label exists.`,
     );
-    await github.issues.addLabels({
-      issue_number: pr.number,
+
+    await addLabels(github, {
+      prNumber: pr.number,
       labels: [NEW_PR_LABEL],
       repo: repoName,
       owner: repoOwner,
@@ -80,7 +81,7 @@ export const applyLabelToPR = async (
     log(
       'applyLabelToPR',
       LogLevel.INFO,
-      `Found PR ${repoOwner}/${repoName}#${pr.number} - should remove label.`,
+      `Found PR ${repoOwner}/${repoName}#${pr.number} - should ensure ${NEW_PR_LABEL} label does not exist.`,
     );
 
     try {
