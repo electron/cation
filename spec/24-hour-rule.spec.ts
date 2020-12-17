@@ -16,6 +16,7 @@ import {
   MINIMUM_PATCH_OPEN_TIME,
   NEW_PR_LABEL,
   SEMVER_LABELS,
+  SEMVER_NONE_LABEL,
 } from '../src/constants';
 
 const handler = async ({ app }: { app: Probot }) => {
@@ -57,6 +58,13 @@ describe('pr open time', () => {
     const minTime = getMinimumOpenTime(payload);
 
     expect(minTime).toEqual(MINIMUM_MAJOR_OPEN_TIME);
+  });
+
+  it('correctly returns the time for a semver-none label', async () => {
+    const payload = require('./fixtures/pr-open-time/pull_request.semver-none.json');
+    const minTime = getMinimumOpenTime(payload);
+
+    expect(minTime).toEqual(MINIMUM_PATCH_OPEN_TIME);
   });
 
   it('correctly returns the time for a missing semver label', async () => {
@@ -126,8 +134,8 @@ describe('pr open time', () => {
       labelShouldBeChecked({
         id: 12345,
         node_id: 'id',
-        url: 'https://api.github.com/repos/electron/electron/labels/semver/minor',
-        name: 'semver/minor',
+        url: `https://api.github.com/repos/electron/electron/labels/${SEMVER_NONE_LABEL}`,
+        name: SEMVER_NONE_LABEL,
         color: '6ac2dd',
         default: false,
       }),
