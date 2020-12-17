@@ -185,6 +185,10 @@ describe('pr open time', () => {
     payload.pull_request.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
 
     nock('https://api.github.com')
+      .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+      .reply(200, [{ name: 'one' }, { name: 'two' }]);
+
+    nock('https://api.github.com')
       .post(`/repos/electron/electron/issues/${payload.number}/labels`, body => {
         expect(body).toEqual([NEW_PR_LABEL]);
         return true;

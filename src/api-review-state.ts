@@ -12,7 +12,7 @@ import { isAPIReviewRequired } from './utils/check-utils';
 import { getEnvVar } from './utils/env-util';
 import { EventPayloads } from '@octokit/webhooks';
 import { Endpoints } from '@octokit/types';
-import { removeLabel } from './utils/label-utils';
+import { addLabels, removeLabel } from './utils/label-utils';
 
 const checkTitles = {
   [REVIEW_LABELS.APPROVED]: 'Approved',
@@ -268,12 +268,11 @@ export function setupAPIReviewStateManagement(probot: Probot) {
         });
       }
       if (!currentLabel || currentLabel.name !== newLabel) {
-        await context.octokit.issues.addLabels(
-          context.repo({
-            issue_number: pr.number,
-            labels: [newLabel],
-          }),
-        );
+        await addLabels(context.octokit, {
+          ...context.repo({}),
+          prNumber: pr.number,
+          labels: [newLabel],
+        });
       }
     };
     if (userApprovalState && userApprovalState.declined.length > 0) {
@@ -318,12 +317,11 @@ export function setupAPIReviewStateManagement(probot: Probot) {
         "Adding the 'api-review/requested 🗳' label",
       );
 
-      await context.octokit.issues.addLabels(
-        context.repo({
-          issue_number: pr.number,
-          labels: [REVIEW_LABELS.REQUESTED],
-        }),
-      );
+      await addLabels(context.octokit, {
+        ...context.repo({}),
+        prNumber: pr.number,
+        labels: [REVIEW_LABELS.REQUESTED],
+      });
     } else if (Object.values(REVIEW_LABELS).includes(label.name)) {
       // Humans can only add the 'api-review/requested 🗳' manually.
       if (initiator !== getEnvVar('BOT_USER_NAME') && label.name !== REVIEW_LABELS.REQUESTED) {
@@ -363,12 +361,11 @@ export function setupAPIReviewStateManagement(probot: Probot) {
           probot.log(`${initiator} tried to remove ${label.name} - this is not permitted.`);
 
           // Put the label back. Bad human.
-          await context.octokit.issues.addLabels(
-            context.repo({
-              issue_number: pr.number,
-              labels: [label.name],
-            }),
-          );
+          await addLabels(context.octokit, {
+            ...context.repo({}),
+            prNumber: pr.number,
+            labels: [label.name],
+          });
           return;
         }
       }
