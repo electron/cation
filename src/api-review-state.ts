@@ -343,7 +343,9 @@ export function setupAPIReviewStateManagement(probot: Probot) {
     } else if (Object.values(REVIEW_LABELS).includes(label.name)) {
       // Humans can only add the 'api-review/requested 🗳' manually.
       if (initiator !== getEnvVar('BOT_USER_NAME') && label.name !== REVIEW_LABELS.REQUESTED) {
-        probot.log(`${initiator} tried to add ${label.name} - this is not permitted.`);
+        probot.log(
+          `${initiator} tried to add ${label.name} to PR #${pr.number} - this is not permitted.`,
+        );
         // Remove the label. Bad human.
         await removeLabel(context.octokit, {
           ...context.repo({}),
@@ -376,7 +378,9 @@ export function setupAPIReviewStateManagement(probot: Probot) {
         // Check will be removed by addOrUpdateCheck
       } else {
         if (initiator !== getEnvVar('BOT_USER_NAME')) {
-          probot.log(`${initiator} tried to remove ${label.name} - this is not permitted.`);
+          probot.log(
+            `${initiator} tried to remove ${label.name} from PR #${pr.number} - this is not permitted.`,
+          );
 
           // Put the label back. Bad human.
           await addLabels(context.octokit, {
