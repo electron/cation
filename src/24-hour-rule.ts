@@ -9,6 +9,7 @@ import {
   MINIMUM_MAJOR_OPEN_TIME,
   MINIMUM_PATCH_OPEN_TIME,
   MINIMUM_MINOR_OPEN_TIME,
+  SEMVER_NONE_LABEL,
 } from './constants';
 import { EventPayloads } from '@octokit/webhooks';
 import { addOrUpdateAPIReviewCheck } from './api-review-state';
@@ -27,7 +28,7 @@ export const getMinimumOpenTime = (
 
   if (hasLabel(SEMVER_LABELS.MAJOR)) return MINIMUM_MAJOR_OPEN_TIME;
   if (hasLabel(SEMVER_LABELS.MINOR)) return MINIMUM_MINOR_OPEN_TIME;
-  if (hasLabel(SEMVER_LABELS.PATCH)) return MINIMUM_PATCH_OPEN_TIME;
+  if (hasLabel(SEMVER_LABELS.PATCH) || hasLabel(SEMVER_NONE_LABEL)) return MINIMUM_PATCH_OPEN_TIME;
 
   // If it's not labeled yet, assume it is semver/major and do not remove the label.
   return MINIMUM_MAJOR_OPEN_TIME;
@@ -102,7 +103,12 @@ export const applyLabelToPR = async (
 
 // Returns whether or not a label is relevant to the new-pr decision tree.
 export const labelShouldBeChecked = (label: EventPayloads.WebhookPayloadPullRequestLabel) => {
-  const relevantLabels = [NEW_PR_LABEL, ...Object.values(SEMVER_LABELS), ...EXCLUDE_LABELS];
+  const relevantLabels = [
+    NEW_PR_LABEL,
+    SEMVER_NONE_LABEL,
+    ...Object.values(SEMVER_LABELS),
+    ...EXCLUDE_LABELS,
+  ];
   return relevantLabels.includes(label.name);
 };
 
