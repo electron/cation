@@ -6,6 +6,8 @@ import {
   MINIMUM_MINOR_OPEN_TIME,
   MINIMUM_PATCH_OPEN_TIME,
   NEW_PR_LABEL,
+  OWNER,
+  REPO,
   REVIEW_LABELS,
   SEMVER_LABELS,
 } from './constants';
@@ -15,6 +17,10 @@ import { getEnvVar } from './utils/env-util';
 import { EventPayloads } from '@octokit/webhooks';
 import { Endpoints } from '@octokit/types';
 import { addLabels, removeLabel } from './utils/label-utils';
+
+type APIApprovalState = ReturnType<typeof addOrUpdateAPIReviewCheck> extends Promise<infer T>
+  ? T
+  : unknown;
 
 const checkTitles = {
   [REVIEW_LABELS.APPROVED]: 'Approved',
@@ -199,6 +205,49 @@ export async function addOrUpdateAPIReviewCheck(
   throw new Error('Unreachable ??');
 }
 
+export async function checkPRReadyForMerge(
+  octokit: Context['octokit'],
+  pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
+  userApprovalState: APIApprovalState,
+) {
+  const addExclusiveLabel = async (newLabel: string) => {
+    const currentLabel = pr.labels.find(l => Object.values(REVIEW_LABELS).includes(l.name));
+    if (currentLabel && currentLabel.name !== newLabel) {
+      await removeLabel(octokit, {
+        owner: OWNER,
+        repo: REPO,
+        prNumber: pr.number,
+        name: currentLabel.name,
+      });
+    }
+    if (!currentLabel || currentLabel.name !== newLabel) {
+      await addLabels(octokit, {
+        owner: OWNER,
+        repo: REPO,
+        prNumber: pr.number,
+        labels: [newLabel],
+      });
+    }
+  };
+
+  if (userApprovalState && userApprovalState.declined.length > 0) {
+    await addExclusiveLabel(REVIEW_LABELS.DECLINED);
+    return;
+  }
+
+  if (userApprovalState && !pr.labels.some(l => l.name === NEW_PR_LABEL)) {
+    if (
+      userApprovalState.approved.length >= 2 &&
+      userApprovalState.declined.length === 0 &&
+      userApprovalState.requestedChanges.length === 0
+    ) {
+      await addExclusiveLabel(REVIEW_LABELS.APPROVED);
+    } else {
+      await addExclusiveLabel(REVIEW_LABELS.REQUESTED);
+    }
+  }
+}
+
 export function setupAPIReviewStateManagement(probot: Probot) {
   probot.on(['pull_request.synchronize', 'pull_request.opened'], async (context: Context) => {
     await addOrUpdateAPIReviewCheck(context.octokit, context.payload.pull_request);
@@ -209,7 +258,7 @@ export function setupAPIReviewStateManagement(probot: Probot) {
       repository,
       requested_action,
       sender: { login: initiator },
-    } = context.payload;
+    }: EventPayloads.WebhookPayloadCheckRun = context.payload;
 
     const { data } = await context.octokit.teams.listMembersInOrg({
       org: repository.owner.login,
@@ -225,10 +274,9 @@ export function setupAPIReviewStateManagement(probot: Probot) {
       return;
     }
 
+    let userApprovalState: APIApprovalState;
+
     const [id, prNumber] = requested_action!.identifier.split('|');
-    let userApprovalState: ReturnType<typeof addOrUpdateAPIReviewCheck> extends Promise<infer T>
-      ? T
-      : unknown;
     const { data: pr } = await context.octokit.pulls.get({
       owner: repository.owner.login,
       repo: repository.name,
@@ -276,39 +324,7 @@ export function setupAPIReviewStateManagement(probot: Probot) {
       }
     }
 
-    const addExclusiveLabel = async (newLabel: string) => {
-      const currentLabel = pr.labels.find(l => Object.values(REVIEW_LABELS).includes(l.name));
-      if (currentLabel && currentLabel.name !== newLabel) {
-        await removeLabel(context.octokit, {
-          ...context.repo({}),
-          prNumber: pr.number,
-          name: currentLabel.name,
-        });
-      }
-      if (!currentLabel || currentLabel.name !== newLabel) {
-        await addLabels(context.octokit, {
-          ...context.repo({}),
-          prNumber: pr.number,
-          labels: [newLabel],
-        });
-      }
-    };
-    if (userApprovalState && userApprovalState.declined.length > 0) {
-      await addExclusiveLabel(REVIEW_LABELS.DECLINED);
-      return;
-    }
-
-    if (userApprovalState && !pr.labels.some(l => l.name === NEW_PR_LABEL)) {
-      if (
-        userApprovalState.approved.length >= 2 &&
-        userApprovalState.declined.length === 0 &&
-        userApprovalState.requestedChanges.length === 0
-      ) {
-        await addExclusiveLabel(REVIEW_LABELS.APPROVED);
-      } else {
-        await addExclusiveLabel(REVIEW_LABELS.REQUESTED);
-      }
-    }
+    checkPRReadyForMerge(context.octokit, pr as any, userApprovalState);
   });
 
   probot.on('pull_request.labeled', async context => {
@@ -317,7 +333,7 @@ export function setupAPIReviewStateManagement(probot: Probot) {
       pull_request: pr,
       repository,
       sender: { login: initiator },
-    } = context.payload;
+    }: EventPayloads.WebhookPayloadPullRequest = context.payload;
 
     if (!label) {
       throw new Error('Something went wrong - label does not exist.');
@@ -364,7 +380,7 @@ export function setupAPIReviewStateManagement(probot: Probot) {
       label,
       pull_request: pr,
       sender: { login: initiator },
-    } = context.payload;
+    }: EventPayloads.WebhookPayloadPullRequest = context.payload;
 
     if (!label) {
       throw new Error('Something went wrong - label does not exist.');

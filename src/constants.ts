@@ -19,6 +19,9 @@ export const SEMVER_LABELS = {
   MAJOR: 'semver/major',
 };
 
+export const OWNER = process.env.OWNER || 'electron';
+export const REPO = process.env.REPO || 'electron';
+
 export const API_REVIEW_PREFIX = 'api-review/';
 
 export const REVIEW_LABELS = {
