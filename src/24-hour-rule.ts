@@ -14,7 +14,7 @@ import {
 import { EventPayloads } from '@octokit/webhooks';
 import { addOrUpdateAPIReviewCheck, checkPRReadyForMerge } from './api-review-state';
 import { log } from './utils/log-util';
-import { addLabels, removeLabel } from './utils/label-utils';
+import { addLabels, labelExistsOnPR, removeLabel } from './utils/label-utils';
 import { LogLevel } from './enums';
 
 const CHECK_INTERVAL = 1000 * 60 * 5;
@@ -179,10 +179,16 @@ export function setUp24HourRule(probot: Probot) {
 
       for (const pr of prs) {
         const shouldLabel = shouldPRHaveLabel(pr as any);
+        const labelExists = await labelExistsOnPR(octokit, {
+          owner: repo.owner.login,
+          repo: repo.name,
+          prNumber: pr.number,
+          name: NEW_PR_LABEL,
+        });
 
         // We also need to ensure that API review labels are updated when the requisite
         // waiting period expires.
-        if (!shouldLabel) {
+        if (labelExists && !shouldLabel) {
           const approvalState = await addOrUpdateAPIReviewCheck(octokit, pr as any, {});
           await checkPRReadyForMerge(octokit, pr as any, approvalState);
         }
