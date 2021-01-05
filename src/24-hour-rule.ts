@@ -12,9 +12,9 @@ import {
   SEMVER_NONE_LABEL,
 } from './constants';
 import { EventPayloads } from '@octokit/webhooks';
-import { addOrUpdateAPIReviewCheck } from './api-review-state';
+import { addOrUpdateAPIReviewCheck, checkPRReadyForMerge } from './api-review-state';
 import { log } from './utils/log-util';
-import { addLabels, removeLabel } from './utils/label-utils';
+import { addLabels, labelExistsOnPR, removeLabel } from './utils/label-utils';
 import { LogLevel } from './enums';
 
 const CHECK_INTERVAL = 1000 * 60 * 5;
@@ -151,8 +151,8 @@ export function setUp24HourRule(probot: Probot) {
   }
 
   async function runCron(probot: Probot, installId: number) {
-    const github = await probot.auth(installId);
-    const { data } = await github.apps.listReposAccessibleToInstallation({});
+    const octokit = await probot.auth(installId);
+    const { data } = await octokit.apps.listReposAccessibleToInstallation({});
 
     for (const repo of data.repositories) {
       probot.log(`Running 24 hour cron job on repo: ${repo.owner.login}/${repo.name}`);
@@ -163,7 +163,7 @@ export function setUp24HourRule(probot: Probot) {
         lastPRCount = prs.length;
         prs.push(
           ...(
-            await github.pulls.list({
+            await octokit.pulls.list({
               owner: repo.owner.login,
               repo: repo.name,
               per_page: 100,
@@ -178,13 +178,22 @@ export function setUp24HourRule(probot: Probot) {
       probot.log(`Found ${prs.length} prs for repo: ${repo.owner.login}/${repo.name}`);
 
       for (const pr of prs) {
-        await applyLabelToPR(
-          github,
-          pr as any,
-          repo.owner.login,
-          repo.name,
-          shouldPRHaveLabel(pr as any),
-        );
+        const shouldLabel = shouldPRHaveLabel(pr as any);
+        const labelExists = await labelExistsOnPR(octokit, {
+          owner: repo.owner.login,
+          repo: repo.name,
+          prNumber: pr.number,
+          name: NEW_PR_LABEL,
+        });
+
+        // We also need to ensure that API review labels are updated when the requisite
+        // waiting period expires.
+        if (labelExists && !shouldLabel) {
+          const approvalState = await addOrUpdateAPIReviewCheck(octokit, pr as any, {});
+          await checkPRReadyForMerge(octokit, pr as any, approvalState);
+        }
+
+        await applyLabelToPR(octokit, pr as any, repo.owner.login, repo.name, shouldLabel);
       }
     }
   }
