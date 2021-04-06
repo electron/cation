@@ -57,6 +57,7 @@ export async function addOrUpdateAPIReviewCheck(
       repo: pr.head.repo.name,
       name: API_REVIEW_CHECK_NAME,
       status: 'completed',
+      title: 'PR no longer requires API Review',
       check_run_id: checkRun.id,
       conclusion: CheckRunStatus.NEUTRAL,
     });
