@@ -9,7 +9,8 @@
     "start": "probot run ./lib/index.js",
     "postinstall": "tsc",
     "prettier:write": "prettier --write \"src/**/*.{ts,tsx}\"",
-    "test": "jest"
+    "test": "jest",
+    "coverage": "jest --silent --coverage"
   },
   "repository": {
     "type": "git",

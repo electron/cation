@@ -4,3 +4,5 @@ lib
 .env
 .vscode
 .envrc
+coverage
+.DS_Store
