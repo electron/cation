@@ -3,7 +3,6 @@ import {
   API_REVIEW_CHECK_NAME,
   API_WORKING_GROUP,
   EXCLUDE_LABELS,
-  MASTER_BRANCH,
   MINIMUM_MINOR_OPEN_TIME,
   MINIMUM_PATCH_OPEN_TIME,
   NEW_PR_LABEL,
@@ -343,7 +342,8 @@ export function setupAPIReviewStateManagement(probot: Probot) {
 
     const isSemverMajorMinor = [SEMVER_LABELS.MINOR, SEMVER_LABELS.MAJOR].includes(label.name);
     const shouldExclude =
-      pr.labels.some(l => EXCLUDE_LABELS.includes(l.name)) || pr.base.ref !== MASTER_BRANCH;
+      pr.labels.some(l => EXCLUDE_LABELS.includes(l.name)) ||
+      pr.base.ref !== pr.base.repo.default_branch;
 
     // If a PR is semver-minor or semver-major and the PR does not have an
     // exclusion label, automatically add the 'api-review/requested 🗳' label.
