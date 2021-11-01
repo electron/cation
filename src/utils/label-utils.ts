@@ -42,16 +42,21 @@ export const removeLabel = async (
 
   // If the issue does not have the label, don't try remove it.
   const labelExists = await labelExistsOnPR(octokit, data);
-  if (!labelExists) {
-    log('removeLabel', LogLevel.INFO, `Determined label does not exist on #${data.prNumber}.`);
+  if (labelExists) {
+    await octokit.issues.removeLabel({
+      owner: data.owner,
+      repo: data.repo,
+      issue_number: data.prNumber,
+      name: data.name,
+    });
+    log('removeLabel', LogLevel.INFO, `Successfully removed ${data.name} from #${data.prNumber}.`);
+  } else {
+    log(
+      'removeLabel',
+      LogLevel.INFO,
+      `Determined ${data.name} does not exist on #${data.prNumber}.`,
+    );
   }
-
-  return octokit.issues.removeLabel({
-    owner: data.owner,
-    repo: data.repo,
-    issue_number: data.prNumber,
-    name: data.name,
-  });
 };
 
 export const getLabelsForPR = async (
@@ -71,6 +76,8 @@ export const getLabelsForPR = async (
     per_page: 100,
     page: 1,
   });
+
+  log('getLabelsForPR', LogLevel.INFO, `Found ${labels.length} labels for #${data.prNumber}`);
 
   return labels.map(l => l.name);
 };

@@ -31,6 +31,9 @@ const checkTitles = {
 const CHECK_JSON_START = '<!-- || ';
 const CHECK_JSON_END = ' || -->';
 
+const isBot = (user: string) => user === getEnvVar('BOT_USER_NAME');
+const isReviewLabel = (label: string) => Object.values(REVIEW_LABELS).includes(label);
+
 export async function addOrUpdateAPIReviewCheck(
   octokit: Context['octokit'],
   pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
@@ -328,6 +331,22 @@ export function setupAPIReviewStateManagement(probot: Probot) {
     checkPRReadyForMerge(context.octokit, pr as any, userApprovalState);
   });
 
+  /**
+   * If a potential API PR is labeled, there are several decision trees we
+   * can potentially take, outlined as follows:
+   *
+   *  - Semver Labels:
+   *    - If a semver-major or semver-minor PR is opened, API review is requisite.
+   *      The api-review-requested label must be added.
+   *    - If a semver-patch label is added, do not add any api-review-{state} labels and
+   *      remove them if they exist.
+   *  - Exclusion Labels:
+   *    - If an exclusion label is added, then this PR is exempt from API review. Do not add any
+   *      api-review-{state} labels and remove them if they have previously been added.
+   *  - api-review-{state} labels
+   *    - If any api-review-{state} label besides api-review-requested is added, remove it.
+   *      API approval is controlled solely by cation.
+   */
   probot.on('pull_request.labeled', async context => {
     const {
       label,
@@ -340,14 +359,15 @@ export function setupAPIReviewStateManagement(probot: Probot) {
       throw new Error('Something went wrong - label does not exist.');
     }
 
-    const isSemverMajorMinor = [SEMVER_LABELS.MINOR, SEMVER_LABELS.MAJOR].includes(label.name);
+    const isSemverMajorMinorLabel = [SEMVER_LABELS.MINOR, SEMVER_LABELS.MAJOR].includes(label.name);
     const shouldExclude =
       pr.labels.some(l => EXCLUDE_LABELS.includes(l.name)) ||
-      pr.base.ref !== pr.base.repo.default_branch;
+      pr.base.ref !== pr.base.repo.default_branch ||
+      label.name === SEMVER_LABELS.PATCH;
 
     // If a PR is semver-minor or semver-major and the PR does not have an
     // exclusion label, automatically add the 'api-review/requested 🗳' label.
-    if (isSemverMajorMinor && !shouldExclude) {
+    if (isSemverMajorMinorLabel && !shouldExclude) {
       probot.log(
         'Received a semver-minor or semver-major PR:',
         `${repository.full_name}#${pr.number}`,
@@ -359,18 +379,19 @@ export function setupAPIReviewStateManagement(probot: Probot) {
         prNumber: pr.number,
         labels: [REVIEW_LABELS.REQUESTED],
       });
-    } else if (Object.values(REVIEW_LABELS).includes(label.name)) {
+    } else if (isReviewLabel(label.name)) {
       // Humans can only add the 'api-review/requested 🗳' manually.
-      if (initiator !== getEnvVar('BOT_USER_NAME') && label.name !== REVIEW_LABELS.REQUESTED) {
+      if (!isBot(initiator) && label.name !== REVIEW_LABELS.REQUESTED) {
         probot.log(
           `${initiator} tried to add ${label.name} to PR #${pr.number} - this is not permitted.`,
         );
-        // Remove the label. Bad human.
+
         await removeLabel(context.octokit, {
           ...context.repo({}),
           prNumber: pr.number,
           name: label.name,
         });
+
         return;
       }
     } else if (shouldExclude) {
@@ -386,6 +407,15 @@ export function setupAPIReviewStateManagement(probot: Probot) {
     await addOrUpdateAPIReviewCheck(context.octokit, pr);
   });
 
+  /**
+   * If a PR is unlabeled, we want to ensure solely that a human
+   * did not remove an api-review state label other than api-review-requested.
+   *
+   * If they remove a semver-minor or semver-major label to replace it with a
+   * semver-patch label, we'll let that get handled when they add the semver-patch
+   * label.
+   *
+   */
   probot.on('pull_request.unlabeled', async context => {
     const {
       label,
@@ -399,22 +429,22 @@ export function setupAPIReviewStateManagement(probot: Probot) {
 
     // We want to prevent tampering with api-review/* labels other than
     // request labels - the bot should control the full review lifecycle.
-    if (Object.values(REVIEW_LABELS).includes(label.name)) {
+    if (isReviewLabel(label.name)) {
       // The 'api-review/requested 🗳' label can be removed if it does not violate requirements.
       if (label.name === REVIEW_LABELS.REQUESTED && !isAPIReviewRequired(pr)) {
         // Check will be removed by addOrUpdateCheck
       } else {
-        if (initiator !== getEnvVar('BOT_USER_NAME')) {
+        if (!isBot(initiator)) {
           probot.log(
             `${initiator} tried to remove ${label.name} from PR #${pr.number} - this is not permitted.`,
           );
 
-          // Put the label back. Bad human.
           await addLabels(context.octokit, {
             ...context.repo({}),
             prNumber: pr.number,
             labels: [label.name],
           });
+
           return;
         }
       }
