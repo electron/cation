@@ -182,7 +182,7 @@ export function setUp24HourRule(probot: Probot) {
 
         // Ensure that API review labels are updated after waiting period.
         if (!shouldLabel) {
-          const approvalState = await addOrUpdateAPIReviewCheck(octokit, pr as any, {});
+          const approvalState = await addOrUpdateAPIReviewCheck(octokit, pr as any);
           await checkPRReadyForMerge(octokit, pr as any, approvalState);
         }
 

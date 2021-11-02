@@ -45,6 +45,6 @@
     "semver": "^5.7.1"
   },
   "lint-staged": {
-    "*.{ts}": "prettier --write"
+    "./**/*.{ts}": "prettier --write"
   }
 }
