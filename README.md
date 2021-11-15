@@ -38,7 +38,7 @@ Even changes that seem trivial can often be made more consistent and future-proo
 
 In accordance with the above goals, this bot performs several bookkeeping duties. When a new PR is opened which is either `semver/minor` or `semver/major`, it will automatically add an `api-review/requested 🗳` label to the PR. To add clarity to whether a review is occurring in a given Electron governance member's capacity as a member of the API WG, this bot then adds a GitHub Check on the PR which will update as members of the API WG indicate their approval statuses.
 
-Members of the API Working Group must indicate their approval by leaving a PR Review containing `API LGTM`. This must not necessarily be a full approval with the GitHub API since approval by the API is primarily about the API shape and design. Both a PR review that comments and includes an LGTM indication or which is an approval with LGTM are sufficient.
+Members of the API Working Group must indicate their approval by leaving a comment via a PR Review containing `API LGTM`. This may not necessarily be a full approval with the GitHub API since approval by the API is primarily about the API shape and design. Both a PR review that comments and includes an LGTM indication or which is an approval with LGTM are sufficient.
 
 <img width="849" alt="Screen Shot 2021-11-02 at 10 46 57 AM" src="https://user-images.githubusercontent.com/2036040/139823875-af7ae01e-8c08-4733-82d0-153dced69b63.png">
 
