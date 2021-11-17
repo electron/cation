@@ -9,9 +9,10 @@ import {
   OWNER,
   REPO,
   REVIEW_LABELS,
+  REVIEW_STATUS,
   SEMVER_LABELS,
 } from './constants';
-import { ApiReviewAction, CheckRunStatus } from './enums';
+import { CheckRunStatus } from './enums';
 import { isAPIReviewRequired } from './utils/check-utils';
 import { getEnvVar } from './utils/env-util';
 import { EventPayloads } from '@octokit/webhooks';
@@ -33,30 +34,37 @@ const CHECK_JSON_END = ' || -->';
 
 const isBot = (user: string) => user === getEnvVar('BOT_USER_NAME');
 const isReviewLabel = (label: string) => Object.values(REVIEW_LABELS).includes(label);
+const isSemverMajorMinorLabel = (label: string) =>
+  [SEMVER_LABELS.MINOR, SEMVER_LABELS.MAJOR].includes(label);
+
+/**
+ * Determines the PR readiness date depending on its semver label.
+ *
+ * @param {EventPayloads.WebhookPayloadPullRequestPullRequest)} pr
+ * @returns a date corresponding to the time that must elapse before a PR requiring
+ *          API review is ready to be merged according to its semver label.
+ */
+const getPRReadyDate = (pr: EventPayloads.WebhookPayloadPullRequestPullRequest) => {
+  let readyTime = new Date(pr.created_at).getTime();
+  const isMajorMinor = pr.labels.some((l: any) => isSemverMajorMinorLabel(l.name));
+
+  readyTime += isMajorMinor ? MINIMUM_MINOR_OPEN_TIME : MINIMUM_PATCH_OPEN_TIME;
+
+  return new Date(readyTime).toISOString().split('T')[0];
+};
 
 export async function addOrUpdateAPIReviewCheck(
   octokit: Context['octokit'],
   pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
-  userChanges: {
-    approved?: string[];
-    requestedChanges?: string[];
-    declined?: string[];
-  } = {},
 ) {
-  const currentReviewLabel = pr.labels.find(l => Object.values(REVIEW_LABELS).includes(l.name));
-
-  const { data: allChecks } = await octokit.checks.listForRef({
-    ref: pr.head.sha,
-    per_page: 100,
-    owner: pr.head.repo.owner.login,
-    repo: pr.head.repo.name,
-  });
+  const owner = pr.head.repo.owner.login;
+  const repo = pr.head.repo.name;
 
   const resetToNeutral = async () => {
     if (!checkRun) return;
     return await octokit.checks.update({
-      owner: pr.head.repo.owner.login,
-      repo: pr.head.repo.name,
+      owner,
+      repo,
       name: API_REVIEW_CHECK_NAME,
       status: 'completed',
       title: 'PR no longer requires API Review',
@@ -65,54 +73,55 @@ export async function addOrUpdateAPIReviewCheck(
     });
   };
 
-  const checkRun = allChecks.check_runs.find(run => run.name === API_REVIEW_CHECK_NAME);
+  // We do not care about PRs without an API review label of any kind.
+  const currentReviewLabel = pr.labels.find(l => Object.values(REVIEW_LABELS).includes(l.name));
   if (!currentReviewLabel) {
     await resetToNeutral();
     return;
   }
 
-  if (!pr.labels.some(l => [SEMVER_LABELS.MAJOR, SEMVER_LABELS.MINOR].includes(l.name))) {
+  // Fetch the latest API Review check for the PR.
+  const checkRun = (
+    await octokit.checks.listForRef({
+      ref: pr.head.sha,
+      per_page: 100,
+      owner,
+      repo,
+    })
+  ).data.check_runs.find(run => run.name === API_REVIEW_CHECK_NAME);
+
+  // Fetch members of the API Working Group.
+  const members = (
+    await octokit.teams.listMembersInOrg({
+      org: owner,
+      team_slug: API_WORKING_GROUP,
+    })
+  ).data.map(m => m.login);
+
+  // Filter reviews by those from members of the API Working Group.
+  const reviews = (
+    await octokit.pulls.listReviews({
+      owner,
+      repo,
+      pull_number: pr.number,
+    })
+  ).data.filter(review => members.includes(review.user.login));
+
+  // If the PR is semver-patch, it does not need API review.
+  if (!pr.labels.some(l => isSemverMajorMinorLabel(l.name))) {
     await resetToNeutral();
     return;
   }
 
-  let checkSummary = checkRun
-    ? checkRun.output.summary
-    : `${CHECK_JSON_START} {} ${CHECK_JSON_END}`;
-  const users: typeof userChanges = JSON.parse(
-    checkSummary
-      .split(CHECK_JSON_START)[1]
-      .split(CHECK_JSON_END)[0]
-      .trim(),
-  );
-  users.approved = (users.approved || [])
-    .concat(userChanges.approved || [])
-    .filter(u => !userChanges.declined?.includes(u) && !userChanges.requestedChanges?.includes(u));
-  users.declined = (users.declined || [])
-    .concat(userChanges.declined || [])
-    .filter(u => !userChanges.approved?.includes(u) && !userChanges.requestedChanges?.includes(u));
-  users.requestedChanges = (users.requestedChanges || [])
-    .concat(userChanges.requestedChanges || [])
-    .filter(u => !userChanges.approved?.includes(u) && !userChanges.declined?.includes(u));
-  users.approved = [...new Set(users.approved)];
-  users.declined = [...new Set(users.declined)];
-  users.requestedChanges = [...new Set(users.requestedChanges)];
+  const users = {
+    approved: reviews.filter(review => review.body.match(/API LGTM/gi)).map(r => r.user.login),
+    declined: reviews.filter(review => review.body.match(/API DECLINED/gi)).map(r => r.user.login),
+    requestedChanges: reviews
+      .filter(review => review.state === REVIEW_STATUS.CHANGES_REQUESTED)
+      .map(r => r.user.login),
+  };
 
-  const parsedUsers: Required<typeof users> = users as any;
-
-  const approved = parsedUsers.approved.length
-    ? `#### Approved\n\n${parsedUsers.approved.map(u => `* @${u}`).join('\n')}\n`
-    : '';
-  const requestedChanges = parsedUsers.requestedChanges.length
-    ? `#### Requested Changes\n\n${parsedUsers.requestedChanges.map(u => `* @${u}`).join('\n')}\n`
-    : '';
-  const declined = parsedUsers.declined.length
-    ? `#### Declined\n\n${parsedUsers.declined.map(u => `* @${u}`).join('\n')}\n`
-    : '';
-  checkSummary = `${CHECK_JSON_START} ${JSON.stringify(
-    parsedUsers,
-  )} ${CHECK_JSON_END}\n${approved}${requestedChanges}${declined}`;
-
+  // Update the GitHub Check with appropriate API review information.
   const updateCheck = async (
     opts: Omit<
       Endpoints['POST /repos/{owner}/{repo}/check-runs']['parameters'],
@@ -140,50 +149,30 @@ export async function addOrUpdateAPIReviewCheck(
       });
     }
 
-    return parsedUsers;
+    return users;
   };
 
-  const getPRReadyDate = (pr: EventPayloads.WebhookPayloadPullRequestPullRequest) => {
-    let readyTime = new Date(pr.created_at).getTime();
-    const isMajorMinor = pr.labels.some((l: any) =>
-      [SEMVER_LABELS.MINOR, SEMVER_LABELS.MAJOR].includes(l.name),
-    );
-    if (isMajorMinor) {
-      readyTime += MINIMUM_MINOR_OPEN_TIME;
-    } else {
-      readyTime += MINIMUM_PATCH_OPEN_TIME;
-    }
+  const approved = users.approved.length
+    ? `#### Approved\n\n${users.approved.map(u => `* @${u}`).join('\n')}\n`
+    : '';
+  const requestedChanges = users.requestedChanges.length
+    ? `#### Requested Changes\n\n${users.requestedChanges.map(u => `* @${u}`).join('\n')}\n`
+    : '';
+  const declined = users.declined.length
+    ? `#### Declined\n\n${users.declined.map(u => `* @${u}`).join('\n')}\n`
+    : '';
 
-    return new Date(readyTime).toISOString().split('T')[0];
-  };
+  const checkSummary = `${approved}${requestedChanges}${declined}`;
 
   if (currentReviewLabel.name === REVIEW_LABELS.REQUESTED) {
-    const lgtmCount = parsedUsers.approved.length;
     return updateCheck({
       status: 'in_progress',
       output: {
-        title: `${
-          checkTitles[currentReviewLabel.name]
-        } (${lgtmCount}/2 LGTMs - ready on ${getPRReadyDate(pr)})`,
+        title: `${checkTitles[currentReviewLabel.name]} (${
+          users.approved.length
+        }/2 LGTMs - ready on ${getPRReadyDate(pr)})`,
         summary: checkSummary,
       },
-      actions: [
-        {
-          label: 'API LGTM',
-          description: 'Approves this API change',
-          identifier: `${ApiReviewAction.LGTM}|${pr.number}`,
-        },
-        {
-          label: 'Request API Changes',
-          description: 'Marks this API as needing changes',
-          identifier: `${ApiReviewAction.REQUEST_CHANGES}|${pr.number}`,
-        },
-        {
-          label: 'Decline API Change',
-          description: 'Declines this API change',
-          identifier: `${ApiReviewAction.DECLINE}|${pr.number}`,
-        },
-      ],
     });
   } else if (currentReviewLabel.name === REVIEW_LABELS.APPROVED) {
     return updateCheck({
@@ -204,17 +193,23 @@ export async function addOrUpdateAPIReviewCheck(
       },
     });
   }
-
-  // a bunch of other if checks
-  throw new Error('Unreachable ??');
 }
 
+/**
+ * Determines whether or not a PR is ready for merge depending on API WG Reviews.
+ *
+ * @param {Context['octokit']} octokit
+ * @param {EventPayloads.WebhookPayloadPullRequestPullRequest} pr
+ * @param {APIApprovalState} userApprovalState How many users have
+ *        approved/declined/requested changes for the PR.
+ */
 export async function checkPRReadyForMerge(
   octokit: Context['octokit'],
   pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
   userApprovalState: APIApprovalState,
 ) {
-  const addExclusiveLabel = async (newLabel: string) => {
+  // Add or review an API review label.
+  const updateAPIReviewLabel = async (newLabel: string) => {
     const currentLabel = pr.labels.find(l => Object.values(REVIEW_LABELS).includes(l.name));
     if (currentLabel && currentLabel.name !== newLabel) {
       await removeLabel(octokit, {
@@ -234,21 +229,16 @@ export async function checkPRReadyForMerge(
     }
   };
 
-  if (userApprovalState && userApprovalState.declined.length > 0) {
-    await addExclusiveLabel(REVIEW_LABELS.DECLINED);
-    return;
-  }
+  const isNewPR = pr.labels.some(l => l.name === NEW_PR_LABEL);
+  if (!userApprovalState || isNewPR) return;
 
-  if (userApprovalState && !pr.labels.some(l => l.name === NEW_PR_LABEL)) {
-    if (
-      userApprovalState.approved.length >= 2 &&
-      userApprovalState.declined.length === 0 &&
-      userApprovalState.requestedChanges.length === 0
-    ) {
-      await addExclusiveLabel(REVIEW_LABELS.APPROVED);
-    } else {
-      await addExclusiveLabel(REVIEW_LABELS.REQUESTED);
-    }
+  const { approved, declined, requestedChanges } = userApprovalState;
+  if (declined.length > 0) {
+    await updateAPIReviewLabel(REVIEW_LABELS.DECLINED);
+  } else if (approved.length >= 2 && requestedChanges.length === 0) {
+    await updateAPIReviewLabel(REVIEW_LABELS.APPROVED);
+  } else {
+    await updateAPIReviewLabel(REVIEW_LABELS.REQUESTED);
   }
 }
 
@@ -257,78 +247,10 @@ export function setupAPIReviewStateManagement(probot: Probot) {
     await addOrUpdateAPIReviewCheck(context.octokit, context.payload.pull_request);
   });
 
-  probot.on('check_run.requested_action', async (context: Context) => {
-    const {
-      repository,
-      requested_action,
-      sender: { login: initiator },
-    }: EventPayloads.WebhookPayloadCheckRun = context.payload;
-
-    const { data } = await context.octokit.teams.listMembersInOrg({
-      org: repository.owner.login,
-      team_slug: API_WORKING_GROUP,
-    });
-
-    const members = data.map(m => m.login);
-
-    if (!members.includes(initiator)) {
-      probot.log(
-        `${initiator} is not a member of the API Working Group and cannot review this PR.`,
-      );
-      return;
-    }
-
-    let userApprovalState: APIApprovalState;
-
-    const [id, prNumber] = requested_action!.identifier.split('|');
-    const { data: pr } = await context.octokit.pulls.get({
-      owner: repository.owner.login,
-      repo: repository.name,
-      pull_number: parseInt(prNumber, 10),
-    });
-
-    switch (id) {
-      case ApiReviewAction.LGTM: {
-        // The author of the PR should not be able to LGTM their own API.
-        if (initiator === pr.user.login) {
-          probot.log(`User ${initiator} tried to LGTM their own API - this is not permitted.`);
-        } else {
-          userApprovalState = await addOrUpdateAPIReviewCheck(context.octokit, pr as any, {
-            approved: [initiator],
-          });
-        }
-        break;
-      }
-      case ApiReviewAction.REQUEST_CHANGES: {
-        userApprovalState = await addOrUpdateAPIReviewCheck(context.octokit, pr as any, {
-          requestedChanges: [initiator],
-        });
-        break;
-      }
-      case ApiReviewAction.DECLINE: {
-        const { data: maintainers } = await context.octokit.teams.listMembersInOrg({
-          org: repository.owner.login,
-          team_slug: API_WORKING_GROUP,
-          role: 'maintainer',
-        });
-
-        const teamMaintainer = maintainers[0].login;
-
-        // Only allow the API WG chair to decline an API on behalf of the WG.
-        if (initiator !== teamMaintainer) {
-          probot.log(
-            `User ${initiator} tried to decline an API - only the Chair ${teamMaintainer} can do this`,
-          );
-        } else {
-          userApprovalState = await addOrUpdateAPIReviewCheck(context.octokit, pr as any, {
-            declined: [initiator],
-          });
-        }
-        break;
-      }
-    }
-
-    checkPRReadyForMerge(context.octokit, pr as any, userApprovalState);
+  probot.on('pull_request_review.submitted', async (context: Context) => {
+    const pr = context.payload.pull_request;
+    const state = await addOrUpdateAPIReviewCheck(context.octokit, pr);
+    checkPRReadyForMerge(context.octokit, pr, state);
   });
 
   /**
@@ -359,7 +281,6 @@ export function setupAPIReviewStateManagement(probot: Probot) {
       throw new Error('Something went wrong - label does not exist.');
     }
 
-    const isSemverMajorMinorLabel = [SEMVER_LABELS.MINOR, SEMVER_LABELS.MAJOR].includes(label.name);
     const shouldExclude =
       pr.labels.some(l => EXCLUDE_LABELS.includes(l.name)) ||
       pr.base.ref !== pr.base.repo.default_branch ||
@@ -367,7 +288,7 @@ export function setupAPIReviewStateManagement(probot: Probot) {
 
     // If a PR is semver-minor or semver-major and the PR does not have an
     // exclusion label, automatically add the 'api-review/requested 🗳' label.
-    if (isSemverMajorMinorLabel && !shouldExclude) {
+    if (isSemverMajorMinorLabel(label.name) && !shouldExclude) {
       probot.log(
         'Received a semver-minor or semver-major PR:',
         `${repository.full_name}#${pr.number}`,

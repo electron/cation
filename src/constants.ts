@@ -30,6 +30,12 @@ export const REVIEW_LABELS = {
   DECLINED: 'api-review/declined ❌',
 };
 
+export const REVIEW_STATUS = {
+  APPROVED: 'APPROVED',
+  CHANGES_REQUESTED: 'CHANGES_REQUESTED',
+  COMMENTED: 'COMMENTED',
+};
+
 export const API_REVIEW_CHECK_NAME = 'API Review';
 
 export const API_WORKING_GROUP = 'wg-api';
