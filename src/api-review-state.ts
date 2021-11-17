@@ -60,6 +60,16 @@ export async function addOrUpdateAPIReviewCheck(
   const owner = pr.head.repo.owner.login;
   const repo = pr.head.repo.name;
 
+  // Fetch the latest API Review check for the PR.
+  const checkRun = (
+    await octokit.checks.listForRef({
+      ref: pr.head.sha,
+      per_page: 100,
+      owner,
+      repo,
+    })
+  ).data.check_runs.find(run => run.name === API_REVIEW_CHECK_NAME);
+
   const resetToNeutral = async () => {
     if (!checkRun) return;
     return await octokit.checks.update({
@@ -79,16 +89,6 @@ export async function addOrUpdateAPIReviewCheck(
     await resetToNeutral();
     return;
   }
-
-  // Fetch the latest API Review check for the PR.
-  const checkRun = (
-    await octokit.checks.listForRef({
-      ref: pr.head.sha,
-      per_page: 100,
-      owner,
-      repo,
-    })
-  ).data.check_runs.find(run => run.name === API_REVIEW_CHECK_NAME);
 
   // Fetch members of the API Working Group.
   const members = (
