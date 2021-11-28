@@ -1,4 +1,4 @@
-import { Probot } from 'probot';
+import { Context, Probot } from 'probot';
 import * as nock from 'nock';
 
 import {
@@ -25,6 +25,7 @@ const handler = async ({ app }: { app: Probot }) => {
 
 describe('pr open time', () => {
   let robot: Probot;
+  let moctokit: any;
 
   beforeEach(() => {
     nock.disableNetConnect();
@@ -36,8 +37,18 @@ describe('pr open time', () => {
       id: 690857,
     });
 
+    moctokit = {
+      issues : {
+        listEventsForTimeline: jest.fn().mockReturnValue({ data: [] }),
+      },
+    } as any as Context['octokit'];
+
     robot.load(handler);
   });
+
+  afterEach(() => {
+    nock.cleanAll()
+  })
 
   it('correctly returns the time for a semver-patch label', async () => {
     const payload = require('./fixtures/pr-open-time/pull_request.semver-patch.json');
@@ -74,15 +85,18 @@ describe('pr open time', () => {
     expect(minTime).toEqual(MINIMUM_MAJOR_OPEN_TIME);
   });
 
-  it('correctly determines whether to exclude some PRs from labels', () => {
+  it('correctly determines whether to exclude some PRs from labels', async () => {
     const noLabelPayload = require('./fixtures/pr-open-time/pull_request.should_not_label.json');
     const yesLabelPayload = require('./fixtures/pr-open-time/pull_request.should_label.json');
 
     // Set created_at to yesterday.
     yesLabelPayload.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
 
-    expect(shouldPRHaveLabel(noLabelPayload)).toEqual(false);
-    expect(shouldPRHaveLabel(yesLabelPayload)).toEqual(true);
+    const yesLabel = await shouldPRHaveLabel(moctokit, yesLabelPayload);
+    const noLabel = await shouldPRHaveLabel(moctokit, noLabelPayload);
+
+    expect(yesLabel).toEqual(true);
+    expect(noLabel).toEqual(false);
   });
 
   it('correctly determines whether a label if relevant to the decision tree', () => {
@@ -191,6 +205,43 @@ describe('pr open time', () => {
 
     // Set created_at to yesterday.
     payload.pull_request.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
+  
+    nock('https://api.github.com')
+      .get(`/repos/electron/electron/issues/${payload.number}/timeline`)
+      .reply(200, []);
+
+    nock('https://api.github.com')
+      .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+      .reply(200, [{ name: 'one' }, { name: 'two' }]);
+
+    nock('https://api.github.com')
+      .post(`/repos/electron/electron/issues/${payload.number}/labels`, body => {
+        expect(body).toEqual([NEW_PR_LABEL]);
+        return true;
+      })
+      .reply(200);
+
+    await robot.receive({
+      id: '123-456',
+      name: 'pull_request',
+      payload,
+    });
+  });
+
+  it(`takes draft status into account when adding a ${NEW_PR_LABEL} label`, async () => {
+    const payload = require('./fixtures/pr-open-time/pull_request.opened.json');
+
+    // Set created_at to 5 days ago.
+    const msInADay = 1638370929101;
+    payload.pull_request.created_at = new Date(+new Date() - msInADay * 5);
+  
+    nock('https://api.github.com')
+      .get(`/repos/electron/electron/issues/${payload.number}/timeline`)
+      .reply(200, [{
+        actor_name: 'codebytere',
+        created_at: new Date(+new Date() - 1000 * 60 * 60 * 24 * 2),
+        type: 'ready_for_review'
+      }]);
 
     nock('https://api.github.com')
       .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
