@@ -63,10 +63,10 @@ export const getPROpenedTime = async (
 
   // Filter out all except 'Ready For Review' events.
   const readyForReviewEvents = events
+    .filter(e => e.event === 'ready_for_review')
     .sort(({ created_at: cA }, { created_at: cB }) => {
       return new Date(cB).getTime() - new Date(cA).getTime();
-    })
-    .filter(e => e.event === 'ready_for_review');
+    });
 
   // If this PR was a draft PR previously, set its opened time as a function
   // of when it was most recently marked ready for review instead of when it was opened,
@@ -159,7 +159,6 @@ export function setUp24HourRule(probot: Probot) {
   probot.on(
     ['pull_request.opened', 'pull_request.unlabeled', 'pull_request.labeled'],
     async context => {
-      probot.log('context.octokit', context.octokit);
       const { action, label, pull_request: pr, repository } = context.payload;
 
       // We only care about user labels adds for new-pr and semver labels.
