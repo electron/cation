@@ -14,11 +14,18 @@ import {
 import { EventPayloads } from '@octokit/webhooks';
 import { addOrUpdateAPIReviewCheck, checkPRReadyForMerge } from './api-review-state';
 import { log } from './utils/log-util';
-import { addLabels, labelExistsOnPR, removeLabel } from './utils/label-utils';
+import { addLabels, removeLabel } from './utils/label-utils';
+import { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods';
 import { LogLevel } from './enums';
 
 const CHECK_INTERVAL = 1000 * 60 * 5;
 
+/**
+ *
+ * @param {EventPayloads.WebhookPayloadPullRequestPullRequest} pr
+ * @returns {number} a number representing the minimum open time for the PR
+ * based on  its semantic prefix in milliseconds
+ */
 export const getMinimumOpenTime = (
   pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
 ): number => {
@@ -34,9 +41,45 @@ export const getMinimumOpenTime = (
   return MINIMUM_MAJOR_OPEN_TIME;
 };
 
-export const shouldPRHaveLabel = (
+/**
+ *
+ * @param {Context['github']}  github An Octokit instance
+ * @param {EventPayloads.WebhookPayloadPullRequestPullRequest} pr
+ * @returns {number} a number representing the that cation should use as the
+ * open time for the PR in milliseconds, taking draft status into account.
+ */
+export const getPROpenedTime = async (
+  github: Context['octokit'],
   pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
-): boolean => {
+): Promise<number> => {
+  const [owner, repo] = pr.base.repo.full_name.split('/');
+
+  // Fetch PR timeline events.
+  const { data: events } = (await github.issues.listEventsForTimeline({
+    owner,
+    repo,
+    issue_number: pr.number,
+  })) as RestEndpointMethodTypes['issues']['listEventsForTimeline']['response'];
+
+  // Filter out all except 'Ready For Review' events.
+  const readyForReviewEvents = events
+    .filter(e => e.event === 'ready_for_review')
+    .sort(({ created_at: cA }, { created_at: cB }) => {
+      return new Date(cB).getTime() - new Date(cA).getTime();
+    });
+
+  // If this PR was a draft PR previously, set its opened time as a function
+  // of when it was most recently marked ready for review instead of when it was opened,
+  // otherwise return the PR open date.
+  return readyForReviewEvents.length > 0
+    ? new Date(readyForReviewEvents[0].created_at).getTime()
+    : new Date(pr.created_at).getTime();
+};
+
+export const shouldPRHaveLabel = async (
+  github: Context['octokit'],
+  pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
+): Promise<boolean> => {
   log('shouldPRHaveLabel', LogLevel.INFO, `Checking whether #${pr.number} should have label.`);
 
   const prefix = pr.title.split(':')[0];
@@ -52,7 +95,7 @@ export const shouldPRHaveLabel = (
   )
     return false;
 
-  const created = new Date(pr.created_at).getTime();
+  const created = await getPROpenedTime(github, pr);
   const now = Date.now();
 
   return now - created < getMinimumOpenTime(pr);
@@ -61,34 +104,34 @@ export const shouldPRHaveLabel = (
 export const applyLabelToPR = async (
   github: Context['octokit'],
   pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
-  repoOwner: string,
-  repoName: string,
   shouldHaveLabel: boolean,
 ) => {
+  const [owner, repo] = pr.base.repo.full_name.split('/');
+
   if (shouldHaveLabel) {
     log(
       'applyLabelToPR',
       LogLevel.INFO,
-      `Found PR ${repoOwner}/${repoName}#${pr.number} - should ensure ${NEW_PR_LABEL} label exists.`,
+      `Found PR ${owner}/${repo}#${pr.number} - should ensure ${NEW_PR_LABEL} label exists.`,
     );
 
     await addLabels(github, {
       prNumber: pr.number,
       labels: [NEW_PR_LABEL],
-      repo: repoName,
-      owner: repoOwner,
+      repo,
+      owner,
     });
   } else {
     log(
       'applyLabelToPR',
       LogLevel.INFO,
-      `Found PR ${repoOwner}/${repoName}#${pr.number} - should ensure ${NEW_PR_LABEL} label does not exist.`,
+      `Found PR ${owner}/${repo}#${pr.number} - should ensure ${NEW_PR_LABEL} label does not exist.`,
     );
 
     try {
       await removeLabel(github, {
-        owner: repoOwner,
-        repo: repoName,
+        owner,
+        repo,
         prNumber: pr.number,
         name: NEW_PR_LABEL,
       });
@@ -123,13 +166,9 @@ export function setUp24HourRule(probot: Probot) {
 
       probot.log(`24-hour rule received PR: ${repository.full_name}#${pr.number} checking now`);
 
-      await applyLabelToPR(
-        context.octokit,
-        pr,
-        context.repo({}).owner,
-        context.repo({}).repo,
-        shouldPRHaveLabel(pr),
-      );
+      const shouldLabel = await shouldPRHaveLabel(context.octokit, pr);
+
+      await applyLabelToPR(context.octokit, pr, shouldLabel);
     },
   );
 
@@ -178,7 +217,7 @@ export function setUp24HourRule(probot: Probot) {
       probot.log(`Found ${prs.length} prs for repo: ${repo.owner.login}/${repo.name}`);
 
       for (const pr of prs) {
-        const shouldLabel = shouldPRHaveLabel(pr as any);
+        const shouldLabel = await shouldPRHaveLabel(octokit, pr as any);
 
         // Ensure that API review labels are updated after waiting period.
         if (!shouldLabel) {
@@ -186,7 +225,7 @@ export function setUp24HourRule(probot: Probot) {
           await checkPRReadyForMerge(octokit, pr as any, approvalState);
         }
 
-        await applyLabelToPR(octokit, pr as any, repo.owner.login, repo.name, shouldLabel);
+        await applyLabelToPR(octokit, pr as any, shouldLabel);
       }
     }
   }
