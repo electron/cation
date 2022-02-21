@@ -10,6 +10,7 @@ import { Probot } from 'probot';
 import { setUp24HourRule } from './24-hour-rule';
 import { setupSemverLabelEnforcement } from './enforce-semver-labels';
 import { setupAPIReviewStateManagement } from './api-review-state';
+import { addBasicPRLabels } from './add-triage-labels';
 
 const probotHandler = async ({ app }: { app: Probot }) => {
   app.on('error', errorEvent => {
@@ -28,6 +29,7 @@ const probotHandler = async ({ app }: { app: Probot }) => {
   setUp24HourRule(app);
   setupSemverLabelEnforcement(app);
   setupAPIReviewStateManagement(app);
+  addBasicPRLabels(app);
 };
 
 module.exports = probotHandler;

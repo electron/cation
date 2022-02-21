@@ -9,13 +9,7 @@ const ALL_SEMVER_LABELS = [
 ];
 
 export function setupSemverLabelEnforcement(probot: Probot) {
-  probot.on(
-    [
-      'pull_request.opened',
-      'pull_request.unlabeled',
-      'pull_request.labeled',
-      'pull_request.synchronize',
-    ],
+  probot.on(['pull_request.opened', 'pull_request.edited'],
     async context => {
       const { pull_request: pr, repository } = context.payload;
 
