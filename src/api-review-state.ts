@@ -29,9 +29,6 @@ const checkTitles = {
   [REVIEW_LABELS.REQUESTED]: 'Pending',
 };
 
-const CHECK_JSON_START = '<!-- || ';
-const CHECK_JSON_END = ' || -->';
-
 const isBot = (user: string) => user === getEnvVar('BOT_USER_NAME');
 const isReviewLabel = (label: string) => Object.values(REVIEW_LABELS).includes(label);
 const isSemverMajorMinorLabel = (label: string) =>
