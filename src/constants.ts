@@ -12,8 +12,9 @@ export const BACKPORT_LABEL = 'backport';
 export const BACKPORT_SKIP_LABEL = 'backport-check-skip';
 export const FAST_TRACK_LABEL = 'fast-track 🚅';
 
-export const DOCUMENTATION_LABEL = 'documentation 📓'; 
+export const DOCUMENTATION_LABEL = 'documentation 📓';
 
+export const SEMVER_PREFIX = 'semver/';
 export const SEMVER_NONE_LABEL = 'semver/none';
 export const SEMVER_LABELS = {
   PATCH: 'semver/patch',
