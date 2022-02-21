@@ -19,24 +19,22 @@ export function addBasicPRLabels(probot: Probot) {
     // Respect existing semver labels.
     if (hasSemverLabel) return;
 
-    const getSemanticPrefix = (title: string) => title.split(':')[0];
+    const semanticPrefix = pr.title.split(':')[0];
 
     // Label Docs PRs as Semver-Patch PRs.
-    const isDocsPR = getSemanticPrefix(pr.title) === SEMANTIC_PREFIXES.DOCS;
+    const isDocsPR = semanticPrefix === SEMANTIC_PREFIXES.DOCS;
+    const isCIPR = semanticPrefix === SEMANTIC_PREFIXES.CI;
+    const isTestPR = semanticPrefix === SEMANTIC_PREFIXES.TEST;
+    const isBuildPR = semanticPrefix === SEMANTIC_PREFIXES.BUILD;
+
     if (isDocsPR) {
       await addLabels(context.octokit, {
         ...context.repo({}),
         prNumber: pr.number,
         labels: [SEMVER_LABELS.PATCH, DOCUMENTATION_LABEL],
       });
-    }
-
-    const isCIPR = getSemanticPrefix(pr.title) === SEMANTIC_PREFIXES.CI;
-    const isTestPR = getSemanticPrefix(pr.title) === SEMANTIC_PREFIXES.TEST;
-    const isBuildPR = getSemanticPrefix(pr.title) === SEMANTIC_PREFIXES.BUILD;
-
-    // CI, Test, and Build PRs do not affect Semver.
-    if (isCIPR || isTestPR || isBuildPR) {
+    } else if (isCIPR || isTestPR || isBuildPR) {
+      // CI, Test, and Build PRs do not affect Semver.
       await addLabels(context.octokit, {
         ...context.repo({}),
         prNumber: pr.number,
