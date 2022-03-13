@@ -6,7 +6,7 @@ import {
   SEMVER_NONE_LABEL,
   SEMVER_PREFIX,
 } from './constants';
-import { addLabels, labelExistsOnPR } from './utils/label-utils';
+import { addLabels } from './utils/label-utils';
 
 export function addBasicPRLabels(probot: Probot) {
   probot.on(['pull_request.opened', 'pull_request.edited'], async context => {
