@@ -30,8 +30,8 @@ const checkTitles = {
 };
 
 const isBot = (user: string) => user === getEnvVar('BOT_USER_NAME');
-const isReviewLabel = (label: string) => Object.values(REVIEW_LABELS).includes(label);
-const isSemverMajorMinorLabel = (label: string) =>
+export const isReviewLabel = (label: string) => Object.values(REVIEW_LABELS).includes(label);
+export const isSemverMajorMinorLabel = (label: string) =>
   [SEMVER_LABELS.MINOR, SEMVER_LABELS.MAJOR].includes(label);
 
 /**
@@ -41,7 +41,7 @@ const isSemverMajorMinorLabel = (label: string) =>
  * @returns a date corresponding to the time that must elapse before a PR requiring
  *          API review is ready to be merged according to its semver label.
  */
-const getPRReadyDate = (pr: EventPayloads.WebhookPayloadPullRequestPullRequest) => {
+export const getPRReadyDate = (pr: EventPayloads.WebhookPayloadPullRequestPullRequest) => {
   let readyTime = new Date(pr.created_at).getTime();
   const isMajorMinor = pr.labels.some((l: any) => isSemverMajorMinorLabel(l.name));
 
