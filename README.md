@@ -24,11 +24,11 @@ Timespans:
 * `semver/patch` - 24 hours (1 day)
 * `semver/none` - 24 hours (1 days), but in some cases (depending on the PR and its goals) there is no minimum time.
 
-Backport PRs (PRs to a release branch that is not `master`) do not require a minimum time, and a `fast-track` label may be optionally applied to a PR to indicate that it is intended to bypass the expected minimum time if sufficient reason exists to do so.
+Backport PRs (PRs to a release branch that is not `main`) do not require a minimum time, and a `fast-track` label may be optionally applied to a PR to indicate that it is intended to bypass the expected minimum time if sufficient reason exists to do so.
 
 ## API Review
 
-The final function of this bot is to control the API review lifecycle on behalf of the [API Working Group](https://github.com/electron/governance/tree/master/wg-api).
+The final function of this bot is to control the API review lifecycle on behalf of the [API Working Group](https://github.com/electron/governance/tree/main/wg-api).
 
 This group's review is mandated on all API changes, and their goal is twofold:
  1. To guide Electron’s API surface towards a more ergonomic and usable design.
