@@ -6,11 +6,14 @@ import {
   SEMVER_NONE_LABEL,
   SEMVER_PREFIX,
 } from './constants';
-import { addLabels, labelExistsOnPR } from './utils/label-utils';
+import { addLabels } from './utils/label-utils';
 
 export function addBasicPRLabels(probot: Probot) {
   probot.on(['pull_request.opened', 'pull_request.edited'], async context => {
     const { pull_request: pr } = context.payload;
+
+    // Only add triage labels to the default branch.
+    if (pr.base.ref !== pr.base.repo.default_branch) return;
 
     const hasSemverLabel = pr.labels.some((l: any) => {
       l.name.startsWith(SEMVER_PREFIX);

@@ -15,7 +15,13 @@
     "updated_at": "2020-12-08T01:24:55Z",
     "closed_at": null,
     "merged_at": null,
-    "labels": []
+    "labels": [],
+    "base": {
+      "ref": "main",
+      "repo": {
+        "default_branch": "main"
+      }
+    }
   },
   "repository": {
     "id": 9384267,
