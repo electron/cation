@@ -37,7 +37,7 @@ export const isSemverMajorMinorLabel = (label: string) =>
 /**
  * Determines the PR readiness date depending on its semver label.
  *
- * @param {EventPayloads.WebhookPayloadPullRequestPullRequest)} pr
+ * @param {EventPayloads.WebhookPayloadPullRequestPullRequest} pr
  * @returns a date corresponding to the time that must elapse before a PR requiring
  *          API review is ready to be merged according to its semver label.
  */
@@ -57,8 +57,8 @@ export async function addOrUpdateAPIReviewCheck(
   const owner = pr.head.repo.owner.login;
   const repo = pr.head.repo.name;
 
-  // Fetch the latest API Review check for the PR.
-  const checkRun = (
+// Fetch the latest API Review check for the PR.
+ const checkRun = (
     await octokit.checks.listForRef({
       ref: pr.head.sha,
       per_page: 100,

@@ -156,7 +156,7 @@ export const labelShouldBeChecked = (label: EventPayloads.WebhookPayloadPullRequ
 };
 
 export function setUp24HourRule(probot: Probot) {
-  probot.on(
+ probot.on(
     ['pull_request.opened', 'pull_request.unlabeled', 'pull_request.labeled'],
     async context => {
       const { action, label, pull_request: pr, repository } = context.payload;
@@ -174,7 +174,7 @@ export function setUp24HourRule(probot: Probot) {
 
   runInterval();
 
-  async function runInterval() {
+async function runInterval() {
     probot.log('Running 24 hour rule check');
     const github = await probot.auth();
     const { data: installs } = await github.apps.listInstallations({});
@@ -189,7 +189,7 @@ export function setUp24HourRule(probot: Probot) {
     setTimeout(runInterval, CHECK_INTERVAL);
   }
 
-  async function runCron(probot: Probot, installId: number) {
+ async function runCron(probot: Probot, installId: number) {
     const octokit = await probot.auth(installId);
     const { data } = await octokit.apps.listReposAccessibleToInstallation({});
 
