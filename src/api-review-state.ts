@@ -54,12 +54,11 @@ export async function addOrUpdateAPIReviewCheck(
   octokit: Context['octokit'],
   pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
 ) {
-  
   const owner = pr.head.repo.owner.login;
   const repo = pr.head.repo.name;
 
-// Fetch the latest API Review check for the PR.
- const checkRun = (
+  // Fetch the latest API Review check for the PR.
+  const checkRun = (
     await octokit.checks.listForRef({
       ref: pr.head.sha,
       per_page: 100,
@@ -84,8 +83,6 @@ export async function addOrUpdateAPIReviewCheck(
   // We do not care about PRs without an API review label of any kind.
   const currentReviewLabel = pr.labels.find(l => Object.values(REVIEW_LABELS).includes(l.name));
   if (!currentReviewLabel) {
-    
-    
     await resetToNeutral();
     return;
   }
