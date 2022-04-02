@@ -1,4 +1,4 @@
-import { Context, Probot } from 'probot';
+import {Probot } from 'probot';
 import * as nock from 'nock';
 
 import {
@@ -6,11 +6,9 @@ import {
     isSemverMajorMinorLabel,
     getPRReadyDate,
     setupAPIReviewStateManagement,
-    addOrUpdateAPIReviewCheck
 } from '../src/api-review-state'
 import {
     SEMVER_LABELS,
-    SEMVER_NONE_LABEL,
     REVIEW_LABELS,
     MINIMUM_MINOR_OPEN_TIME,
     MINIMUM_PATCH_OPEN_TIME,
@@ -39,9 +37,8 @@ describe('api review',()=>{
 
 
    })
-   afterEach(() => {
-    nock.cleanAll()
-  })
+   
+ 
   it('should returns true for review lables',()=>{
      expect(isReviewLabel(REVIEW_LABELS.APPROVED)).toEqual(true)
      expect(isReviewLabel(REVIEW_LABELS.DECLINED)).toEqual(true)
@@ -125,4 +122,34 @@ describe('api review',()=>{
       
   
     })      
+
+ it(`correctly update api review lables when pr review is submitted`, async()=>{
+  const payload = require('./fixtures/api-review-state/pull_request_review.submitted.json');
+
+  nock('https://api.github.com')
+    .get(`/repos/electron/electron/commits/${payload.pull_request.head.sha}/check-runs?per_page=100`)
+    .reply(200, { check_runs: [] });
+
+    nock('https://api.github.com')
+    .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+    .reply(200, []);
+
+  nock('https://api.github.com')
+    .post(`/repos/electron/electron/issues/${payload.number}/labels`, body => {
+      expect(body).toEqual([REVIEW_LABELS.REQUESTED]);
+      return true;
+    })
+    .reply(200);
+
+  
+    await robot.receive({
+      id: '123-456',
+      name: 'pull_request_review',
+      payload,
+    });
+
+
+
+
+ })   
 })
