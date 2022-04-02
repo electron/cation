@@ -16,19 +16,7 @@
       "node_id": "MDQ6VXNlcjY2MzQ1OTI=",
       "avatar_url": "https://avatars3.githubusercontent.com/u/6634592?v=4",
       "gravatar_id": "",
-      "url": "https://api.github.com/users/MarshallOfSound",
-      "html_url": "https://github.com/MarshallOfSound",
-      "followers_url": "https://api.github.com/users/MarshallOfSound/followers",
-      "following_url": "https://api.github.com/users/MarshallOfSound/following{/other_user}",
-      "gists_url": "https://api.github.com/users/MarshallOfSound/gists{/gist_id}",
-      "starred_url": "https://api.github.com/users/MarshallOfSound/starred{/owner}{/repo}",
-      "subscriptions_url": "https://api.github.com/users/MarshallOfSound/subscriptions",
-      "organizations_url": "https://api.github.com/users/MarshallOfSound/orgs",
-      "repos_url": "https://api.github.com/users/MarshallOfSound/repos",
-      "events_url": "https://api.github.com/users/MarshallOfSound/events{/privacy}",
-      "received_events_url": "https://api.github.com/users/MarshallOfSound/received_events",
-      "type": "User",
-      "site_admin": false
+      "url": "https://api.github.com/users/MarshallOfSound"
     },
     "body": "* Ensure --fix output is actually written to disk\r\n* Cache bust on lint.js file changes\r\n* Ensure CI does not use the linting cache\r\n\r\nNotes: no-notes",
     "created_at": "2020-12-08T01:24:55Z",
@@ -48,30 +36,43 @@
         "description": "backwards-incompatible bug fixes"
       }
     ],
-    "base": {
+    "head": {
+      "label": "electron:fix-lint-js",
+      "ref": "fix-lint-js",
+      "sha": "c6b1b7168ab850a47f856c4a30f7a441bede1117",
+      "user": {
+        "login": "electron",
+        "id": 13409222
+      },
       "repo": {
-        "full_name": "electron/electron"
-      }
+          "id": 9384267,
+          "node_id": "MDEwOlJlcG9zaXRvcnk5Mzg0MjY3",
+          "name": "electron",
+          "full_name": "electron/electron",
+          "private": false,
+          "owner": {
+            "login": "electron",
+            "id": 13409222
+          }
+  },
+  "repository": {
+    "id": 9384267,
+    "node_id": "MDEwOlJlcG9zaXRvcnk5Mzg0MjY3",
+    "name": "electron",
+    "full_name": "electron/electron",
+    "private": false,
+    "owner": {
+      "login": "electron",
+      "id": 13409222
     },
-    "milestone": null,
-    "draft": false,
-    "commits_url": "https://api.github.com/repos/electron/electron/pulls/26876/commits",
-    "review_comments_url": "https://api.github.com/repos/electron/electron/pulls/26876/comments",
-    "review_comment_url": "https://api.github.com/repos/electron/electron/pulls/comments{/number}",
-    "comments_url": "https://api.github.com/repos/electron/electron/issues/26876/comments",
-    "statuses_url": "https://api.github.com/repos/electron/electron/statuses/578fd4af98861ef7e6374d7d1fa1ccca6bc7136d",
-    "author_association": "MEMBER",
-    "active_lock_reason": null,
-    "merged": false,
-    "mergeable": null,
-    "rebaseable": null,
-    "mergeable_state": "unknown",
-    "merged_by": null,
-    "comments": 0,
-    "review_comments": 0,
-    "maintainer_can_modify": false,
-    "commits": 1,
-    "additions": 12,
-    "deletions": 5,
-    "changed_files": 2
+    "license": {
+      "key": "mit",
+      "name": "MIT License",
+      "spdx_id": "MIT",
+      "url": "https://api.github.com/licenses/mit",
+      "node_id": "MDc6TGljZW5zZTEz"
+    }
+  }
+}
+   
   }

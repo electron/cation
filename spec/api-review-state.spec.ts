@@ -152,4 +152,50 @@ describe('api review',()=>{
 
 
  })   
+ it(`correctly removes ${REVIEW_LABELS.REQUESTED} label if pr contains exclusion labels `,async () => {
+     const payload = require('./fixtures/api-review-state/pull_request.labeled.exclusion_labels.json');
+
+     nock('https://api.github.com')
+     .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+     .reply(200, payload.pull_request.labels[2]);
+
+     nock('https://api.github.com')
+     .delete(`/repos/electron/electron/issues/${payload.number}/labels/${REVIEW_LABELS.REQUESTED}`,body => {
+       expect(body).toEqual([REVIEW_LABELS.REQUESTED]);
+       return true;
+     })
+
+  await robot.receive({
+    id: '123-456',
+    name: 'pull_request',
+    payload,
+  });
+
+  
+   
+ })
+
+it(`correctly adds ${REVIEW_LABELS.REQUESTED} label if pr contains semver-major/semver-minor lables and not contains exclusion labels`,async () => {
+    const payload = require('./fixtures/api-review-state/pull_request.semver-minor.json');
+
+    nock('https://api.github.com')
+    .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+    .reply(200, []);
+
+   nock('https://api.github.com')
+    .post(`/repos/electron/electron/issues/${payload.number}/labels`, body => {
+      expect(body).toEqual([REVIEW_LABELS.REQUESTED]);
+      return true;
+    })
+    .reply(200);
+
+  
+  await robot.receive({
+    id: '123-456',
+    name: 'pull_request',
+    payload,
+  });
+
+}) 
+
 })
