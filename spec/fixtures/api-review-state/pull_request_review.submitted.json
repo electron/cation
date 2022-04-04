@@ -1,4 +1,5 @@
 {   
+  "action":"submitted",
   "number": 26876,
     "pull_request": {
       "url": "https://api.github.com/repos/electron/electron/pulls/26876",

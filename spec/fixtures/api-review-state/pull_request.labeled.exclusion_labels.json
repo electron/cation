@@ -1,4 +1,5 @@
 {   
+  "action": "labeled",
     "number": 26876,
       "pull_request": {
         "url": "https://api.github.com/repos/electron/electron/pulls/26876",
@@ -22,15 +23,7 @@
         "merge_commit_sha": null,
         "assignee": null,
         "labels": [
-            {
-                "id": 1034512799,
-                "node_id": "MDU6TGFiZWwxMDM0NTEyNzk5",
-                "url": "https://api.github.com/repos/electron/electron/labels/semver/patch",
-                "name": "semver/patch",
-                "color": "6ac2dd",
-                "default": false,
-                "description": "backwards-compatible bug fixes"
-              },
+            
               {
                 "id": 865096932,
                 "node_id": "MDU6TGFiZWw4NjUwOTY5MzI=",
@@ -39,17 +32,8 @@
                 "color": "ddddde",
                 "default": false,
                 "description": "This is a backport PR"
-              },
-              {
-                "id": 1603621692,
-                "node_id": "MDU6TGFiZWwxNjAzNjIxNjky",
-                "url": "https://api.github.com/repos/electron/electron/labels/api-review/requested%20%F0%9F%97%B3",
-                "name": "api-review/requested 🗳",
-                "color": "c918ba",
-                "default": false,
-                "description": ""
-              }
-        ],
+              }],
+          
   
         "head": {
           "label": "electron:fix-lint-js",
@@ -89,5 +73,36 @@
         }
       }
     }
+  },
+  "repository": {
+    "id": 9384267,
+    "node_id": "MDEwOlJlcG9zaXRvcnk5Mzg0MjY3",
+    "name": "electron",
+    "full_name": "electron/electron",
+    "private": false,
+    "owner": {
+      "login": "electron",
+      "id": 13409222
+    },
+    "license": {
+      "key": "mit",
+      "name": "MIT License",
+      "spdx_id": "MIT",
+      "url": "https://api.github.com/licenses/mit",
+      "node_id": "MDc6TGljZW5zZTEz"
+    }
+  },
+  "label":   {
+    "id": 1034512799,
+    "node_id": "MDU6TGFiZWwxMDM0NTEyNzk5",
+    "url": "https://api.github.com/repos/electron/electron/labels/semver/patch",
+    "name": "semver/patch",
+    "color": "6ac2dd",
+    "default": false,
+    "description": "backwards-compatible bug fixes"
+  },
+  "sender":{
+    "login":"electron"
   }
+
   }

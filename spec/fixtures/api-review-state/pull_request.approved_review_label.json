@@ -1,5 +1,4 @@
-{ "action": "opened",
-  "number": 26876,
+{
     "pull_request": {
       "url": "https://api.github.com/repos/electron/electron/pulls/26876",
       "id": 534054584,
@@ -25,6 +24,24 @@
       "merge_commit_sha": null,
       "assignee": null,
       "labels": [
+        {
+            "id": 2020255394,
+            "node_id": "MDU6TGFiZWwyMDIwMjU1Mzk0",
+            "url": "https://api.github.com/repos/electron/electron/labels/api-review/approved%20%E2%9C%85",
+            "name": "api-review/approved ✅",
+            "color": "c918ba",
+            "default": false,
+            "description": ""
+          },
+          {
+            "id": 1034512799,
+            "node_id": "MDU6TGFiZWwxMDM0NTEyNzk5",
+            "url": "https://api.github.com/repos/electron/electron/labels/semver/major",
+            "name": "semver/minor",
+            "color": "6ac2dd",
+            "default": false,
+            "description": "backwards-incompatible bug fixes"
+          }
         
       ],
 
@@ -99,5 +116,4 @@
     }
   }
 }
-
 }

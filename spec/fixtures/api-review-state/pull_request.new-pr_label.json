@@ -1,5 +1,4 @@
-{ "action": "opened",
-  "number": 26876,
+{
     "pull_request": {
       "url": "https://api.github.com/repos/electron/electron/pulls/26876",
       "id": 534054584,
@@ -25,6 +24,15 @@
       "merge_commit_sha": null,
       "assignee": null,
       "labels": [
+        {
+            "id": 1243058793,
+            "node_id": "MDU6TGFiZWwxMjQzMDU4Nzkz",
+            "url": "https://api.github.com/repos/electron/electron/labels/new-pr%20%F0%9F%8C%B1",
+            "name": "new-pr 🌱",
+            "color": "8af297",
+            "default": false,
+            "description": "PR opened in the last 24 hours"
+          }
         
       ],
 
@@ -99,5 +107,4 @@
     }
   }
 }
-
 }
