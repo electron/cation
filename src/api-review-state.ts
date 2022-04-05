@@ -29,7 +29,7 @@ const checkTitles = {
   [REVIEW_LABELS.REQUESTED]: 'Pending',
 };
 
-const isBot = (user: string) => user === getEnvVar('BOT_USER_NAME');
+const isBot = (user: string) => user === getEnvVar('BOT_USER_NAME', 'bot');
 export const isReviewLabel = (label: string) => Object.values(REVIEW_LABELS).includes(label);
 export const isSemverMajorMinorLabel = (label: string) =>
   [SEMVER_LABELS.MINOR, SEMVER_LABELS.MAJOR].includes(label);

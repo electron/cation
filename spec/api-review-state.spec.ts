@@ -181,7 +181,7 @@ it('should correctly update api review label according to reviews by wg-api',asy
 
 })
 
-  it(`correctly update api review check when no ${REVIEW_LABELS} found`,async ()=>{
+it(`correctly update api review check when no ${REVIEW_LABELS} found`,async ()=>{
     const payload = require('./fixtures/api-review-state/pull_request.no_review_label.json');
 
     nock('https://api.github.com')
@@ -216,7 +216,7 @@ it('should correctly update api review label according to reviews by wg-api',asy
       
   
     })      
- it(`correctly update api review lables when pr review is submitted`, async()=>{
+it(`correctly update api review lables when pr review is submitted`, async()=>{
   const payload = require('./fixtures/api-review-state/pull_request_review.submitted.json');
 
   nock('https://api.github.com')
@@ -271,5 +271,28 @@ it(`correctly adds ${REVIEW_LABELS.REQUESTED} label if pr contains semver/major 
   });
 
 }) 
+
+it('correctly update api review check and api review label when pr is unlabeled', async()=>{
+
+  const payload = require('./fixtures/api-review-state/pull_request.unlabeled.json');
+
+  nock('https://api.github.com')
+  .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+  .reply(200,[]);
+
+ nock('https://api.github.com')
+  .post(`/repos/electron/electron/issues/${payload.number}/labels`, body => {
+    expect(body).toEqual([REVIEW_LABELS.APPROVED]);
+    return true;
+  })
+  .reply(200);
+
+await robot.receive({
+  id: '123-456',
+  name: 'pull_request',
+  payload,
+});
+  
+})
 
 })
