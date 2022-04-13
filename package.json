@@ -5,10 +5,10 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
-    "lint": "prettier --list-different \"src/**/*.{ts,tsx}\"",
+    "lint": "prettier --list-different \"src/**/*.ts\"",
     "start": "probot run ./lib/index.js",
     "postinstall": "tsc",
-    "prettier:write": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "prettier:write": "prettier --write \"src/**/*.ts\"",
     "test": "jest",
     "coverage": "jest --silent --coverage",
     "prepare": "husky install"
@@ -45,6 +45,6 @@
     "semver": "^5.7.1"
   },
   "lint-staged": {
-    "./**/*.{ts}": "prettier --write"
+    "src/**/*.ts": "prettier --write"
   }
 }
