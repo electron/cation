@@ -11,6 +11,7 @@ import { setUp24HourRule } from './24-hour-rule';
 import { setupSemverLabelEnforcement } from './enforce-semver-labels';
 import { setupAPIReviewStateManagement } from './api-review-state';
 import { addBasicPRLabels } from './add-triage-labels';
+import { addCardToProject } from './add-card-to-project';
 
 const probotHandler = async ({ app }: { app: Probot }) => {
   app.on('error', errorEvent => {
@@ -30,6 +31,7 @@ const probotHandler = async ({ app }: { app: Probot }) => {
   setupSemverLabelEnforcement(app);
   setupAPIReviewStateManagement(app);
   addBasicPRLabels(app);
+  addCardToProject(app);
 };
 
 module.exports = probotHandler;
