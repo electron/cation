@@ -54,3 +54,7 @@ export const API_WORKING_GROUP = 'wg-api';
 export const EXCLUDE_LABELS = [BACKPORT_LABEL, BACKPORT_SKIP_LABEL, FAST_TRACK_LABEL];
 export const EXCLUDE_PREFIXES = ['build', 'ci', 'test'];
 export const EXCLUDE_USERS = ['roller-bot[bot]', 'electron-bot'];
+
+// REGEX
+export const PROJECT_NAME_REGEX = /^[1-9]+[0-9]*-x-y$/;
+export const UNSORTED_COLUMN_ALT_NAME_REGEX = /^(s|(u|U)nsorted)$/;

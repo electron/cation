@@ -1,50 +1,67 @@
-import { Probot,Context } from 'probot';
+import { Probot, Context } from 'probot';
+import { PROJECT_NAME_REGEX, UNSORTED_COLUMN_ALT_NAME_REGEX } from './constants';
 import { LogLevel } from './enums';
 import { log } from './utils/log-util';
+import { EventPayloads } from '@octokit/webhooks';
 
 export function addCardToProject(probot: Probot) {
-    probot.on("issues.opened", async (context:Context['octokit']) => {
-        try {
-            const { payload, octokit } = context;
-            const repo = payload.repository.name;
-            const owner = payload.sender.login;
-            const issue_number = payload.issue.number;
+  probot.on('issues.labeled', async context => {
+    try {
+      const { payload, octokit } = context;
+      const { name: repo } = payload.repository;
+      const { login: owner } = payload.sender;
+      const { number: issueNumber } = payload.issue;
+      const { name: labelName } = payload.label || {};
 
-            const { data: projects } = await octokit.projects.listForRepo({ owner, repo, });
+      if (labelName == null) {
+        log('addCardToProject', LogLevel.ERROR, `No label found`);
+      }
 
-            const project_obj = projects.find(
-                // WARNING: This is just for trial.
-                // TODO: find a way to get issue is associated tags
-                (el:any) => el.name == "x-18-19"
-            );
-                    
-            if (!project_obj) {
-                // TODO: Create new project if it doesn't exist
-                throw new Error("No project found!");
-            }
+      if (!PROJECT_NAME_REGEX.test(labelName!)) {
+        throw new Error(`Label doesn't match a project label!`);
+      }
 
-            const project_id = project_obj.id;
+      const { data: projects } = await octokit.projects.listForRepo({ owner, repo });
 
-            const { data: project_columns } = await octokit.projects.listColumns({ project_id,});
+      const project = projects.find(
+        (project: EventPayloads.WebhookPayloadProjectProject) => project.name === labelName,
+      );
 
-            const unsorted_column = project_columns.find( (el:any) => el.name == "unsorted" );
+      if (!project) {
+        log(
+          'addCardToProject',
+          LogLevel.ERROR,
+          `Unable to find project board with name ${labelName}`,
+        );
+        throw new Error(`Unable to find project board with name ${labelName}`);
+      }
 
-            if (!unsorted_column) {
-                // TODO: Create "Unsorted column" if it doesnt exist
-                throw new Error("Unsorted column doesn't exist");
-            }
+      const { data: projectColumns } = await octokit.projects.listColumns({
+        project_id: project.id,
+      });
 
-            
-            await octokit.projects.createCard({
-                column_id: unsorted_column.id, // This is the id of the Unsorted Issues column, which you'll need to get
-                content_id: issue_number, // This is the issue number
-                content_type: "Issue", // This will always be issue since we're associating an issue
-            });
-           
-        } catch (err: any) {
-            // TODO: Change error message to something meaningful
-            log('addCardToProject', LogLevel.ERROR, `Something went wrong..`);
-        }
-    });
- 
+      const unsortedColumn = projectColumns.find(
+        (column: EventPayloads.WebhookPayloadProjectColumnProjectColumn) =>
+          UNSORTED_COLUMN_ALT_NAME_REGEX.test(column.name),
+      );
+
+      if (!unsortedColumn) {
+        log('addCardToProject', LogLevel.ERROR, `Unsorted column doesn't exist!`);
+        throw new Error("Unsorted column doesn't exist");
+      }
+
+      await octokit.projects.createCard({
+        column_id: unsortedColumn.id, // This is the id of the Unsorted Issues column, which you'll need to get
+        content_id: issueNumber, // This is the issue number
+        content_type: 'Issue', // This will always be issue since we're associating an issue
+      });
+    } catch (err) {
+      log(
+        'addCardToProject',
+        LogLevel.ERROR,
+        'Unable to associate issue with project board: ',
+        err,
+      );
+    }
+  });
 }
