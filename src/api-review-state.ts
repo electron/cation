@@ -102,7 +102,7 @@ export async function addOrUpdateAPIReviewCheck(
       repo,
       pull_number: pr.number,
     })
-  ).data.filter(review => members.includes(review.user.login));
+  ).data.filter(({ user }) => members.includes(user.login));
 
   const comments = (
     await octokit.issues.listComments({
@@ -110,7 +110,11 @@ export async function addOrUpdateAPIReviewCheck(
       repo,
       issue_number: pr.number,
     })
-  ).data.filter(comment => members.includes(comment.user.login));
+  ).data.filter(({ user }) => members.includes(user.login));
+
+  const allReviews = [
+    ...new Map([...comments, ...reviews].map(item => [item.user.id, item])).values(),
+  ];
 
   // If the PR is semver-patch, it does not need API review.
   if (!pr.labels.some(l => isSemverMajorMinorLabel(l.name))) {
@@ -119,12 +123,8 @@ export async function addOrUpdateAPIReviewCheck(
   }
 
   const users = {
-    approved: [...reviews, ...comments]
-      .filter(item => item.body.match(/API LGTM/gi))
-      .map(r => r.user.login),
-    declined: [...reviews, ...comments]
-      .filter(item => item.body.match(/API DECLINED/gi))
-      .map(r => r.user.login),
+    approved: allReviews.filter(r => r.body.match(/API LGTM/gi)),
+    declined: allReviews.filter(r => r.body.match(/API DECLINED/gi)),
     requestedChanges: reviews
       .filter(review => review.state === REVIEW_STATUS.CHANGES_REQUESTED)
       .map(r => r.user.login),
