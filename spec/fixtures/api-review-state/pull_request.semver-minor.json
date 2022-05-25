@@ -48,48 +48,22 @@
         "id": 13409222
       },
       "repo": {
-          "id": 9384267,
-          "node_id": "MDEwOlJlcG9zaXRvcnk5Mzg0MjY3",
-          "name": "electron",
-          "full_name": "electron/electron",
-          "private": false,
-          "owner": {
-            "login": "electron",
-            "id": 13409222
-          }
-  }
-},
-  "base": {
-    "label": "electron:master",
-    "ref": "master",
-    "sha": "c41b8d536b2d886abbe739374c0a46f99242a894",
-    "user": {
-      "login": "electron",
-      "id": 13409222,
-      "node_id": "MDEyOk9yZ2FuaXphdGlvbjEzNDA5MjIy",
-      "avatar_url": "https://avatars.githubusercontent.com/u/13409222?v=4",
-      "gravatar_id": "",
-      "url": "https://api.github.com/users/electron",
-      "html_url": "https://github.com/electron",
-      "followers_url": "https://api.github.com/users/electron/followers",
-      "following_url": "https://api.github.com/users/electron/following{/other_user}",
-      "gists_url": "https://api.github.com/users/electron/gists{/gist_id}",
-      "starred_url": "https://api.github.com/users/electron/starred{/owner}{/repo}",
-      "subscriptions_url": "https://api.github.com/users/electron/subscriptions",
-      "organizations_url": "https://api.github.com/users/electron/orgs",
-      "repos_url": "https://api.github.com/users/electron/repos",
-      "events_url": "https://api.github.com/users/electron/events{/privacy}",
-      "received_events_url": "https://api.github.com/users/electron/received_events",
-      "type": "Organization",
-      "site_admin": false
+        "id": 9384267,
+        "node_id": "MDEwOlJlcG9zaXRvcnk5Mzg0MjY3",
+        "name": "electron",
+        "full_name": "electron/electron",
+        "private": false,
+        "owner": {
+          "login": "electron",
+          "id": 13409222
+        }
+      }
     },
-    "repo": {
-      "id": 9384267,
-      "node_id": "MDEwOlJlcG9zaXRvcnk5Mzg0MjY3",
-      "name": "electron",
-      "full_name": "electron/electron",
-      "private": false,
-      "owner": {
+    "base": {
+      "label": "electron:master",
+      "ref": "master",
+      "sha": "c41b8d536b2d886abbe739374c0a46f99242a894",
+      "user": {
         "login": "electron",
         "id": 13409222,
         "node_id": "MDEyOk9yZ2FuaXphdGlvbjEzNDA5MjIy",
@@ -108,42 +82,64 @@
         "received_events_url": "https://api.github.com/users/electron/received_events",
         "type": "Organization",
         "site_admin": false
+      },
+      "repo": {
+        "id": 9384267,
+        "node_id": "MDEwOlJlcG9zaXRvcnk5Mzg0MjY3",
+        "name": "electron",
+        "full_name": "electron/electron",
+        "private": false,
+        "owner": {
+          "login": "electron",
+          "id": 13409222,
+          "node_id": "MDEyOk9yZ2FuaXphdGlvbjEzNDA5MjIy",
+          "avatar_url": "https://avatars.githubusercontent.com/u/13409222?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/electron",
+          "html_url": "https://github.com/electron",
+          "followers_url": "https://api.github.com/users/electron/followers",
+          "following_url": "https://api.github.com/users/electron/following{/other_user}",
+          "gists_url": "https://api.github.com/users/electron/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/electron/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/electron/subscriptions",
+          "organizations_url": "https://api.github.com/users/electron/orgs",
+          "repos_url": "https://api.github.com/users/electron/repos",
+          "events_url": "https://api.github.com/users/electron/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/electron/received_events",
+          "type": "Organization",
+          "site_admin": false
+        }
       }
     }
-  
-}
-},
-
-"repository": {
-  "id": 9384267,
-  "node_id": "MDEwOlJlcG9zaXRvcnk5Mzg0MjY3",
-  "name": "electron",
-  "full_name": "electron/electron",
-  "private": false,
-  "owner": {
-    "login": "electron",
-    "id": 13409222
   },
-  "license": {
-    "key": "mit",
-    "name": "MIT License",
-    "spdx_id": "MIT",
-    "url": "https://api.github.com/licenses/mit",
-    "node_id": "MDc6TGljZW5zZTEz"
+  "repository": {
+    "id": 9384267,
+    "node_id": "MDEwOlJlcG9zaXRvcnk5Mzg0MjY3",
+    "name": "electron",
+    "full_name": "electron/electron",
+    "private": false,
+    "owner": {
+      "login": "electron",
+      "id": 13409222
+    },
+    "license": {
+      "key": "mit",
+      "name": "MIT License",
+      "spdx_id": "MIT",
+      "url": "https://api.github.com/licenses/mit",
+      "node_id": "MDc6TGljZW5zZTEz"
+    }
+  },
+  "label": {
+    "id": 1034512799,
+    "node_id": "MDU6TGFiZWwxMDM0NTEyNzk5",
+    "url": "https://api.github.com/repos/electron/electron/labels/semver/major",
+    "name": "semver/minor",
+    "color": "6ac2dd",
+    "default": false,
+    "description": "backwards-incompatible bug fixes"
+  },
+  "sender": {
+    "login": "electron"
   }
-},
-"label":{
-  "id": 1034512799,
-  "node_id": "MDU6TGFiZWwxMDM0NTEyNzk5",
-  "url": "https://api.github.com/repos/electron/electron/labels/semver/major",
-  "name": "semver/minor",
-  "color": "6ac2dd",
-  "default": false,
-  "description": "backwards-incompatible bug fixes"
-},
-"sender":{
-  "login":"electron"
-}   
-
 }
-

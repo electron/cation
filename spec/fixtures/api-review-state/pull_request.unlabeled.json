@@ -1,64 +1,64 @@
 {
-    "action": "unlabeled",
+  "action": "unlabeled",
+  "number": 26876,
+  "pull_request": {
+    "url": "https://api.github.com/repos/electron/electron/pulls/26876",
+    "id": 534054584,
+    "node_id": "MDExOlB1bGxSZXF1ZXN0NTM0MDU0NTg0",
+    "html_url": "https://github.com/electron/electron/pull/26876",
+    "diff_url": "https://github.com/electron/electron/pull/26876.diff",
+    "patch_url": "https://github.com/electron/electron/pull/26876.patch",
+    "issue_url": "https://api.github.com/repos/electron/electron/issues/26876",
     "number": 26876,
-    "pull_request": {
-      "url": "https://api.github.com/repos/electron/electron/pulls/26876",
-      "id": 534054584,
-      "node_id": "MDExOlB1bGxSZXF1ZXN0NTM0MDU0NTg0",
-      "html_url": "https://github.com/electron/electron/pull/26876",
-      "diff_url": "https://github.com/electron/electron/pull/26876.diff",
-      "patch_url": "https://github.com/electron/electron/pull/26876.patch",
-      "issue_url": "https://api.github.com/repos/electron/electron/issues/26876",
-      "number": 26876,
-      "state": "open",
-      "locked": false,
-      "title": "chore: fix JS linting",
+    "state": "open",
+    "locked": false,
+    "title": "chore: fix JS linting",
+    "user": {
+      "login": "MarshallOfSound",
+      "id": 6634592,
+      "node_id": "MDQ6VXNlcjY2MzQ1OTI=",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/6634592?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/MarshallOfSound"
+    },
+    "body": "* Ensure --fix output is actually written to disk\r\n* Cache bust on lint.js file changes\r\n* Ensure CI does not use the linting cache\r\n\r\nNotes: no-notes",
+    "created_at": "2020-12-08T01:24:55Z",
+    "updated_at": "2020-12-08T01:24:55Z",
+    "closed_at": null,
+    "merged_at": null,
+    "merge_commit_sha": null,
+    "assignee": null,
+    "labels": [
+      {
+        "id": 1034512799,
+        "node_id": "MDU6TGFiZWwxMDM0NTEyNzk5",
+        "url": "https://api.github.com/repos/electron/electron/labels/semver/major",
+        "name": "semver/minor",
+        "color": "6ac2dd",
+        "default": false,
+        "description": "backwards-incompatible bug fixes"
+      }
+    ],
+    "head": {
+      "label": "electron:fix-lint-js",
+      "ref": "fix-lint-js",
+      "sha": "c6b1b7168ab850a47f856c4a30f7a441bede1117",
       "user": {
-        "login": "MarshallOfSound",
-        "id": 6634592,
-        "node_id": "MDQ6VXNlcjY2MzQ1OTI=",
-        "avatar_url": "https://avatars3.githubusercontent.com/u/6634592?v=4",
-        "gravatar_id": "",
-        "url": "https://api.github.com/users/MarshallOfSound"
+        "login": "electron",
+        "id": 13409222
       },
-      "body": "* Ensure --fix output is actually written to disk\r\n* Cache bust on lint.js file changes\r\n* Ensure CI does not use the linting cache\r\n\r\nNotes: no-notes",
-      "created_at": "2020-12-08T01:24:55Z",
-      "updated_at": "2020-12-08T01:24:55Z",
-      "closed_at": null,
-      "merged_at": null,
-      "merge_commit_sha": null,
-      "assignee": null,
-      "labels": [
-        {
-          "id": 1034512799,
-          "node_id": "MDU6TGFiZWwxMDM0NTEyNzk5",
-          "url": "https://api.github.com/repos/electron/electron/labels/semver/major",
-          "name": "semver/minor",
-          "color": "6ac2dd",
-          "default": false,
-          "description": "backwards-incompatible bug fixes"
-        }
-      ],
-      "head": {
-        "label": "electron:fix-lint-js",
-        "ref": "fix-lint-js",
-        "sha": "c6b1b7168ab850a47f856c4a30f7a441bede1117",
-        "user": {
+      "repo": {
+        "id": 9384267,
+        "node_id": "MDEwOlJlcG9zaXRvcnk5Mzg0MjY3",
+        "name": "electron",
+        "full_name": "electron/electron",
+        "private": false,
+        "owner": {
           "login": "electron",
           "id": 13409222
-        },
-        "repo": {
-            "id": 9384267,
-            "node_id": "MDEwOlJlcG9zaXRvcnk5Mzg0MjY3",
-            "name": "electron",
-            "full_name": "electron/electron",
-            "private": false,
-            "owner": {
-              "login": "electron",
-              "id": 13409222
-            }
-    }
-  },
+        }
+      }
+    },
     "base": {
       "label": "electron:master",
       "ref": "master",
@@ -110,10 +110,8 @@
           "site_admin": false
         }
       }
-    
-  }
+    }
   },
-  
   "repository": {
     "id": 9384267,
     "node_id": "MDEwOlJlcG9zaXRvcnk5Mzg0MjY3",
@@ -141,10 +139,7 @@
     "default": false,
     "description": ""
   },
-  "sender":{
-    "login":"electron"
-  }   
-  
+  "sender": {
+    "login": "electron"
   }
-  
-  
+}
