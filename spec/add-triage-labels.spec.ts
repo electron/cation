@@ -23,6 +23,7 @@ describe('add-triage-labels', () => {
 
     robot.load(handler);
   });
+  
 
   it('adds correct labels to documentation PRs', async () => {
     const payload = require('./fixtures/add-triage-labels/docs_pr_opened.json');
