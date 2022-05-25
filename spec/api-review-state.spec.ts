@@ -41,6 +41,7 @@ describe('api review', () => {
       issues: {
         addLabels: jest.fn().mockReturnValue({ data: [] }),
         listLabelsOnIssue: jest.fn().mockReturnValue({ data: [] }),
+        listComments: jest.fn().mockReturnValue({ data: [] }),
       },
       checks: {
         listForRef: jest.fn().mockReturnValue({ data: { check_runs: [] } }),
@@ -71,6 +72,7 @@ describe('api review', () => {
     expect(isSemverMajorMinorLabel(SEMVER_LABELS.MAJOR)).toEqual(true);
     expect(isSemverMajorMinorLabel(SEMVER_LABELS.MINOR)).toEqual(true);
   });
+
   it('should returns false for any other labels', () => {
     expect(isSemverMajorMinorLabel(SEMVER_LABELS.PATCH)).toEqual(false);
     expect(isReviewLabel(SEMVER_LABELS.MAJOR)).toEqual(false);
@@ -91,6 +93,7 @@ describe('api review', () => {
 
     expect(readyDate).toEqual(expectedDate);
   });
+
   it('correctly returns PR ready date when semver-major/semver-minor labels not found', async () => {
     const payload = require('./fixtures/api-review-state/pull_request.semver-patch.json');
 
@@ -124,6 +127,7 @@ describe('api review', () => {
 
     expect(users).toEqual(expectedUsers);
   });
+
   it(`should correctly update api review check for ${REVIEW_LABELS.APPROVED} label`, async () => {
     const payload = require('./fixtures/api-review-state/pull_request.approved_review_label.json');
 
@@ -136,6 +140,7 @@ describe('api review', () => {
 
     expect(users).toEqual(expectedUsers);
   });
+
   it(`should correctly update api review check for ${REVIEW_LABELS.DECLINED} label`, async () => {
     const payload = require('./fixtures/api-review-state/pull_request.declined_review_label.json');
 
@@ -154,6 +159,7 @@ describe('api review', () => {
     const response = await checkPRReadyForMerge(moctokit, payload.pull_request, undefined);
     expect(response).toEqual(undefined);
   });
+
   it('should correctly update api review label according to reviews by wg-api', async () => {
     const noReviewLabelPayload = require('./fixtures/api-review-state/pull_request.no_review_label.json');
 
@@ -218,7 +224,8 @@ describe('api review', () => {
       payload,
     });
   });
-  it(`correctly update api review lables when pr review is submitted`, async () => {
+
+  it('correctly update api review lables when pr review is submitted', async () => {
     const payload = require('./fixtures/api-review-state/pull_request_review.submitted.json');
 
     nock('https://api.github.com')

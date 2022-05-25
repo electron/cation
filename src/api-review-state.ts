@@ -123,8 +123,8 @@ export async function addOrUpdateAPIReviewCheck(
   }
 
   const users = {
-    approved: allReviews.filter((r) => r.body.match(/API LGTM/gi)),
-    declined: allReviews.filter((r) => r.body.match(/API DECLINED/gi)),
+    approved: allReviews.filter((r) => r.body.match(/API LGTM/gi)).map((r) => r.user.login),
+    declined: allReviews.filter((r) => r.body.match(/API DECLINED/gi)).map((r) => r.user.login),
     requestedChanges: reviews
       .filter((review) => review.state === REVIEW_STATUS.CHANGES_REQUESTED)
       .map((r) => r.user.login),
