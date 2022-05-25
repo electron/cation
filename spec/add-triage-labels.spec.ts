@@ -32,7 +32,7 @@ describe('add-triage-labels', () => {
       .reply(200, []);
 
     nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${payload.number}/labels`, body => {
+      .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
         expect(body).toEqual([SEMVER_LABELS.PATCH, DOCUMENTATION_LABEL]);
         return true;
       })
@@ -53,12 +53,12 @@ describe('add-triage-labels', () => {
       .reply(200, []);
 
     nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${payload.number}/labels`, body => {
+      .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
         expect(body).toEqual([SEMVER_NONE_LABEL]);
         return true;
       })
       .reply(200);
-    
+
     await robot.receive({
       id: '123-456',
       name: 'pull_request',
@@ -74,12 +74,12 @@ describe('add-triage-labels', () => {
       .reply(200, []);
 
     nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${payload.number}/labels`, body => {
+      .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
         expect(body).toEqual([SEMVER_NONE_LABEL]);
         return true;
       })
       .reply(200);
-    
+
     await robot.receive({
       id: '123-456',
       name: 'pull_request',
@@ -95,12 +95,12 @@ describe('add-triage-labels', () => {
       .reply(200, []);
 
     nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${payload.number}/labels`, body => {
+      .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
         expect(body).toEqual([SEMVER_NONE_LABEL]);
         return true;
       })
       .reply(200);
-    
+
     await robot.receive({
       id: '123-456',
       name: 'pull_request',

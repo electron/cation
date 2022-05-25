@@ -63,7 +63,7 @@ export const getPROpenedTime = async (
 
   // Filter out all except 'Ready For Review' events.
   const readyForReviewEvents = events
-    .filter(e => e.event === 'ready_for_review')
+    .filter((e) => e.event === 'ready_for_review')
     .sort(({ created_at: cA }, { created_at: cB }) => {
       return new Date(cB).getTime() - new Date(cA).getTime();
     });
@@ -136,7 +136,7 @@ export const applyLabelToPR = async (
         name: NEW_PR_LABEL,
       });
 
-      pr.labels = pr.labels.filter(l => l.name !== NEW_PR_LABEL);
+      pr.labels = pr.labels.filter((l) => l.name !== NEW_PR_LABEL);
       await addOrUpdateAPIReviewCheck(github, pr);
     } catch {
       // Ignore the error here, it's a race condition between the Cron job and GitHub webhooks
@@ -158,7 +158,7 @@ export const labelShouldBeChecked = (label: EventPayloads.WebhookPayloadPullRequ
 export function setUp24HourRule(probot: Probot) {
   probot.on(
     ['pull_request.opened', 'pull_request.unlabeled', 'pull_request.labeled'],
-    async context => {
+    async (context) => {
       const { action, label, pull_request: pr, repository } = context.payload;
 
       // We only care about user labels adds for new-pr and semver labels.

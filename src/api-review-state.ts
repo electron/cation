@@ -65,7 +65,7 @@ export async function addOrUpdateAPIReviewCheck(
       owner,
       repo,
     })
-  ).data.check_runs.find(run => run.name === API_REVIEW_CHECK_NAME);
+  ).data.check_runs.find((run) => run.name === API_REVIEW_CHECK_NAME);
 
   const resetToNeutral = async () => {
     if (!checkRun) return;
@@ -81,7 +81,7 @@ export async function addOrUpdateAPIReviewCheck(
   };
 
   // We do not care about PRs without an API review label of any kind.
-  const currentReviewLabel = pr.labels.find(l => Object.values(REVIEW_LABELS).includes(l.name));
+  const currentReviewLabel = pr.labels.find((l) => Object.values(REVIEW_LABELS).includes(l.name));
   if (!currentReviewLabel) {
     await resetToNeutral();
     return;
@@ -93,7 +93,7 @@ export async function addOrUpdateAPIReviewCheck(
       org: owner,
       team_slug: API_WORKING_GROUP,
     })
-  ).data.map(m => m.login);
+  ).data.map((m) => m.login);
 
   // Filter reviews by those from members of the API Working Group.
   const reviews = (
@@ -113,21 +113,21 @@ export async function addOrUpdateAPIReviewCheck(
   ).data.filter(({ user }) => members.includes(user.login));
 
   const allReviews = [
-    ...new Map([...comments, ...reviews].map(item => [item.user.id, item])).values(),
+    ...new Map([...comments, ...reviews].map((item) => [item.user.id, item])).values(),
   ];
 
   // If the PR is semver-patch, it does not need API review.
-  if (!pr.labels.some(l => isSemverMajorMinorLabel(l.name))) {
+  if (!pr.labels.some((l) => isSemverMajorMinorLabel(l.name))) {
     await resetToNeutral();
     return;
   }
 
   const users = {
-    approved: allReviews.filter(r => r.body.match(/API LGTM/gi)),
-    declined: allReviews.filter(r => r.body.match(/API DECLINED/gi)),
+    approved: allReviews.filter((r) => r.body.match(/API LGTM/gi)),
+    declined: allReviews.filter((r) => r.body.match(/API DECLINED/gi)),
     requestedChanges: reviews
-      .filter(review => review.state === REVIEW_STATUS.CHANGES_REQUESTED)
-      .map(r => r.user.login),
+      .filter((review) => review.state === REVIEW_STATUS.CHANGES_REQUESTED)
+      .map((r) => r.user.login),
   };
 
   // Update the GitHub Check with appropriate API review information.
@@ -162,13 +162,13 @@ export async function addOrUpdateAPIReviewCheck(
   };
 
   const approved = users.approved.length
-    ? `#### Approved\n\n${users.approved.map(u => `* @${u}`).join('\n')}\n`
+    ? `#### Approved\n\n${users.approved.map((u) => `* @${u}`).join('\n')}\n`
     : '';
   const requestedChanges = users.requestedChanges.length
-    ? `#### Requested Changes\n\n${users.requestedChanges.map(u => `* @${u}`).join('\n')}\n`
+    ? `#### Requested Changes\n\n${users.requestedChanges.map((u) => `* @${u}`).join('\n')}\n`
     : '';
   const declined = users.declined.length
-    ? `#### Declined\n\n${users.declined.map(u => `* @${u}`).join('\n')}\n`
+    ? `#### Declined\n\n${users.declined.map((u) => `* @${u}`).join('\n')}\n`
     : '';
 
   const checkSummary = `${approved}${requestedChanges}${declined}`;
@@ -219,7 +219,7 @@ export async function checkPRReadyForMerge(
 ) {
   // Add or review an API review label.
   const updateAPIReviewLabel = async (newLabel: string) => {
-    const currentLabel = pr.labels.find(l => Object.values(REVIEW_LABELS).includes(l.name));
+    const currentLabel = pr.labels.find((l) => Object.values(REVIEW_LABELS).includes(l.name));
     if (currentLabel && currentLabel.name !== newLabel) {
       await removeLabel(octokit, {
         owner: OWNER,
@@ -238,7 +238,7 @@ export async function checkPRReadyForMerge(
     }
   };
 
-  const isNewPR = pr.labels.some(l => l.name === NEW_PR_LABEL);
+  const isNewPR = pr.labels.some((l) => l.name === NEW_PR_LABEL);
   if (!userApprovalState || isNewPR) return;
 
   const { approved, declined, requestedChanges } = userApprovalState;
@@ -278,7 +278,7 @@ export function setupAPIReviewStateManagement(probot: Probot) {
    *    - If any api-review-{state} label besides api-review-requested is added, remove it.
    *      API approval is controlled solely by cation.
    */
-  probot.on('pull_request.labeled', async context => {
+  probot.on('pull_request.labeled', async (context) => {
     const {
       label,
       pull_request: pr,
@@ -291,7 +291,7 @@ export function setupAPIReviewStateManagement(probot: Probot) {
     }
 
     const shouldExclude =
-      pr.labels.some(l => EXCLUDE_LABELS.includes(l.name)) ||
+      pr.labels.some((l) => EXCLUDE_LABELS.includes(l.name)) ||
       pr.base.ref !== pr.base.repo.default_branch ||
       label.name === SEMVER_LABELS.PATCH;
 
@@ -346,7 +346,7 @@ export function setupAPIReviewStateManagement(probot: Probot) {
    * label.
    *
    */
-  probot.on('pull_request.unlabeled', async context => {
+  probot.on('pull_request.unlabeled', async (context) => {
     const {
       label,
       pull_request: pr,

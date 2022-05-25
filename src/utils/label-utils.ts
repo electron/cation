@@ -19,7 +19,7 @@ export const addLabels = async (
 
   // If the PR already has the label, don't try to add it.
   const existingLabels = await getLabelsForPR(octokit, data);
-  const labels = data.labels.filter(async label => !existingLabels.includes(label));
+  const labels = data.labels.filter(async (label) => !existingLabels.includes(label));
 
   await octokit.issues.addLabels({
     owner: data.owner,
@@ -79,7 +79,7 @@ export const getLabelsForPR = async (
 
   log('getLabelsForPR', LogLevel.INFO, `Found ${labels.length} labels for #${data.prNumber}`);
 
-  return labels.map(l => l.name);
+  return labels.map((l) => l.name);
 };
 
 export const labelExistsOnPR = async (
@@ -94,5 +94,5 @@ export const labelExistsOnPR = async (
   log('labelExistsOnPR', LogLevel.INFO, `Checking if ${data.name} exists on #${data.prNumber}`);
 
   const labels = await getLabelsForPR(octokit, data);
-  return labels.some(label => label === data.name);
+  return labels.some((label) => label === data.name);
 };

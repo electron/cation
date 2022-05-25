@@ -11,7 +11,7 @@ import { addLabels } from './utils/label-utils';
 import { log } from './utils/log-util';
 
 export function addBasicPRLabels(probot: Probot) {
-  probot.on(['pull_request.opened', 'pull_request.edited'], async context => {
+  probot.on(['pull_request.opened', 'pull_request.edited'], async (context) => {
     const { pull_request: pr } = context.payload;
 
     // Only add triage labels to the default branch.

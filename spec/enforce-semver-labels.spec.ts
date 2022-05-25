@@ -37,7 +37,7 @@ describe('semver-enforcement', () => {
     };
 
     nock('https://api.github.com')
-      .post('/repos/electron/electron/check-runs', body => {
+      .post('/repos/electron/electron/check-runs', (body) => {
         expect(body).toMatchObject(expected);
         return true;
       })
@@ -64,7 +64,7 @@ describe('semver-enforcement', () => {
     };
 
     nock('https://api.github.com')
-      .post('/repos/electron/electron/check-runs', body => {
+      .post('/repos/electron/electron/check-runs', (body) => {
         expect(body).toMatchObject(expected);
         return true;
       })
@@ -91,7 +91,7 @@ describe('semver-enforcement', () => {
     };
 
     nock('https://api.github.com')
-      .post('/repos/electron/electron/check-runs', body => {
+      .post('/repos/electron/electron/check-runs', (body) => {
         expect(body).toMatchObject(expected);
         return true;
       })

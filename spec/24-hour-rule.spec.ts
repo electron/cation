@@ -38,7 +38,7 @@ describe('pr open time', () => {
     });
 
     moctokit = {
-      issues : {
+      issues: {
         listEventsForTimeline: jest.fn().mockReturnValue({ data: [] }),
       },
     } as any as Context['octokit'];
@@ -47,8 +47,8 @@ describe('pr open time', () => {
   });
 
   afterEach(() => {
-    nock.cleanAll()
-  })
+    nock.cleanAll();
+  });
 
   it('correctly returns the time for a semver-patch label', async () => {
     const payload = require('./fixtures/pr-open-time/pull_request.semver-patch.json');
@@ -205,7 +205,7 @@ describe('pr open time', () => {
 
     // Set created_at to yesterday.
     payload.pull_request.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
-  
+
     nock('https://api.github.com')
       .get(`/repos/electron/electron/issues/${payload.number}/timeline`)
       .reply(200, []);
@@ -215,7 +215,7 @@ describe('pr open time', () => {
       .reply(200, [{ name: 'one' }, { name: 'two' }]);
 
     nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${payload.number}/labels`, body => {
+      .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
         expect(body).toEqual([NEW_PR_LABEL]);
         return true;
       })
@@ -234,21 +234,23 @@ describe('pr open time', () => {
     // Set created_at to 5 days ago.
     const msInADay = 1638370929101;
     payload.pull_request.created_at = new Date(+new Date() - msInADay * 5);
-  
+
     nock('https://api.github.com')
       .get(`/repos/electron/electron/issues/${payload.number}/timeline`)
-      .reply(200, [{
-        actor_name: 'codebytere',
-        created_at: new Date(+new Date() - 1000 * 60 * 60 * 24 * 2),
-        type: 'ready_for_review'
-      }]);
+      .reply(200, [
+        {
+          actor_name: 'codebytere',
+          created_at: new Date(+new Date() - 1000 * 60 * 60 * 24 * 2),
+          type: 'ready_for_review',
+        },
+      ]);
 
     nock('https://api.github.com')
       .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
       .reply(200, [{ name: 'one' }, { name: 'two' }]);
 
     nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${payload.number}/labels`, body => {
+      .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
         expect(body).toEqual([NEW_PR_LABEL]);
         return true;
       })

@@ -13,7 +13,7 @@ import { setupAPIReviewStateManagement } from './api-review-state';
 import { addBasicPRLabels } from './add-triage-labels';
 
 const probotHandler = async ({ app }: { app: Probot }) => {
-  app.on('error', errorEvent => {
+  app.on('error', (errorEvent) => {
     for (const error of Array.from(errorEvent)) {
       if (process.env.SENTRY_DSN) {
         Sentry.captureException(error, {
