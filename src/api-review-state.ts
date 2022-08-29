@@ -102,8 +102,11 @@ export async function addOrUpdateAPIReviewCheck(
       repo,
       pull_number: pr.number,
     })
-  ).data.filter(({ user }) => members.includes(user.login));
+  ).data.filter(({ user, body }) => {
+    return members.includes(user.login) && body.length !== 0;
+  });
 
+  // Filter comments by those from members of the API Working Group.
   const comments = (
     await octokit.issues.listComments({
       owner,
