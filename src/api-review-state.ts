@@ -17,7 +17,7 @@ import { CheckRunStatus } from './enums';
 import { isAPIReviewRequired } from './utils/check-utils';
 import { getEnvVar } from './utils/env-util';
 import { EventPayloads } from '@octokit/webhooks';
-import { Endpoints } from '@octokit/types';
+import { GetResponseDataTypeFromEndpointMethod, Endpoints } from '@octokit/types';
 import { addLabels, removeLabel } from './utils/label-utils';
 
 const debug = Debug('ApiReviewState');
@@ -59,6 +59,14 @@ export async function addOrUpdateAPIReviewCheck(
 ) {
   const owner = pr.head.repo.owner.login;
   const repo = pr.head.repo.name;
+
+  type ListReviewsItem = GetResponseDataTypeFromEndpointMethod<typeof octokit.pulls.listReviews>[0];
+
+  type ListCommentsItem = GetResponseDataTypeFromEndpointMethod<
+    typeof octokit.issues.listComments
+  >[0];
+
+  type CommentOrReview = ListReviewsItem | ListCommentsItem;
 
   // Fetch the latest API Review check for the PR.
   const checkRun = (
@@ -124,9 +132,37 @@ export async function addOrUpdateAPIReviewCheck(
 
   debug(`Found ${comments.length} API reviews from WG members`);
 
+  const lgtm = /API LGTM/gi;
+  const decline = /API DECLINED/gi;
+
+  // Combine reviews/comments and filter by recency.
   const allReviews = [
-    ...new Map([...comments, ...reviews].map((item) => [item.user.id, item])).values(),
+    ...[...comments, ...reviews]
+      .reduce((items, item) => {
+        if (!lgtm.test(item.body) && !decline.test(item.body)) return items;
+
+        const prev = items[item.user.id];
+        if (!prev) {
+          items[item.user.id] = item;
+          return items;
+        }
+
+        const isReview = (item: ListReviewsItem | ListCommentsItem): item is ListReviewsItem => {
+          return (item as ListReviewsItem).submitted_at !== undefined;
+        };
+
+        const prevDate = isReview(prev) ? new Date(prev.submitted_at) : new Date(prev.updated_at);
+        const currDate = isReview(item) ? new Date(item.submitted_at) : new Date(item.updated_at);
+        if (prevDate.getTime() < currDate.getTime()) {
+          items[item.user.id] = item;
+        }
+
+        return items;
+      }, [] as CommentOrReview[])
+      .values(),
   ];
+
+  debug(`Found ${allReviews.length} relevant reviews from WG members`);
 
   // If the PR is semver-patch, it does not need API review.
   if (!pr.labels.some((l) => isSemverMajorMinorLabel(l.name))) {
@@ -135,12 +171,10 @@ export async function addOrUpdateAPIReviewCheck(
     return;
   }
 
-  const approved = allReviews.filter((r) => r.body.match(/API LGTM/gi)).map((r) => r.user.login);
+  const approved = allReviews.filter((r) => r.body.match(lgtm)).map((r) => r.user.login);
   debug(`PR ${pr.number} has ${approved.length} API LGTMs`);
 
-  const declined = allReviews
-    .filter((r) => r.body.match(/API DECLINED/gi))
-    .map((r) => r.user.login);
+  const declined = allReviews.filter((r) => r.body.match(decline)).map((r) => r.user.login);
   debug(`PR ${pr.number} has ${declined.length} API DECLINEDs`);
 
   const requestedChanges = reviews
