@@ -17,7 +17,7 @@ import { CheckRunStatus } from './enums';
 import { isAPIReviewRequired } from './utils/check-utils';
 import { getEnvVar } from './utils/env-util';
 import { EventPayloads } from '@octokit/webhooks';
-import { Endpoints } from '@octokit/types';
+import { GetResponseDataTypeFromEndpointMethod, Endpoints } from '@octokit/types';
 import { addLabels, removeLabel } from './utils/label-utils';
 
 const debug = Debug('ApiReviewState');
@@ -60,6 +60,14 @@ export async function addOrUpdateAPIReviewCheck(
   const owner = pr.head.repo.owner.login;
   const repo = pr.head.repo.name;
 
+  type ListReviewsItem = GetResponseDataTypeFromEndpointMethod<typeof octokit.pulls.listReviews>[0];
+
+  type ListCommentsItem = GetResponseDataTypeFromEndpointMethod<
+    typeof octokit.issues.listComments
+  >[0];
+
+  type CommentOrReview = ListReviewsItem[] | ListCommentsItem[];
+
   // Fetch the latest API Review check for the PR.
   const checkRun = (
     await octokit.checks.listForRef({
@@ -101,7 +109,7 @@ export async function addOrUpdateAPIReviewCheck(
   debug(`Fetched ${members.length} API Review WG members`);
 
   // Filter reviews by those from members of the API Working Group.
-  const reviews = (
+  const reviews: CommentOrReview = (
     await octokit.pulls.listReviews({
       owner,
       repo,
@@ -114,7 +122,7 @@ export async function addOrUpdateAPIReviewCheck(
   debug(`Found ${reviews.length} API reviews from WG members`);
 
   // Filter comments by those from members of the API Working Group.
-  const comments = (
+  const comments: CommentOrReview = (
     await octokit.issues.listComments({
       owner,
       repo,
@@ -124,9 +132,33 @@ export async function addOrUpdateAPIReviewCheck(
 
   debug(`Found ${comments.length} API reviews from WG members`);
 
+  // Combine reviews/comments and filter by recency.
   const allReviews = [
-    ...new Map([...comments, ...reviews].map((item) => [item.user.id, item])).values(),
+    ...[...comments, ...reviews]
+      .reduce((hash, item) => {
+        const prev = hash[item.user.id];
+
+        if (!prev) {
+          hash[item.user.id] = item;
+          return hash;
+        }
+
+        const isReview = (item: ListReviewsItem | ListCommentsItem): item is ListReviewsItem => {
+          return (item as ListReviewsItem).submitted_at !== undefined;
+        };
+
+        const prevDate = isReview(prev) ? new Date(prev.submitted_at) : new Date(prev.updated_at);
+        const currDate = isReview(item) ? new Date(item.submitted_at) : new Date(item.updated_at);
+        if (prevDate.getTime() < currDate.getTime()) {
+          hash[item.user.id] = item;
+        }
+
+        return hash;
+      }, {} as CommentOrReview)
+      .values(),
   ];
+
+  debug(`Found ${allReviews.length} relevant reviews from WG members`);
 
   // If the PR is semver-patch, it does not need API review.
   if (!pr.labels.some((l) => isSemverMajorMinorLabel(l.name))) {
