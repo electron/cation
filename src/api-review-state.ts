@@ -1,4 +1,5 @@
 import { Context, Probot } from 'probot';
+import Debug from 'debug';
 import {
   API_REVIEW_CHECK_NAME,
   API_WORKING_GROUP,
@@ -18,6 +19,8 @@ import { getEnvVar } from './utils/env-util';
 import { EventPayloads } from '@octokit/webhooks';
 import { Endpoints } from '@octokit/types';
 import { addLabels, removeLabel } from './utils/label-utils';
+
+const debug = Debug('ApiReviewState');
 
 type APIApprovalState = ReturnType<typeof addOrUpdateAPIReviewCheck> extends Promise<infer T>
   ? T
@@ -95,6 +98,8 @@ export async function addOrUpdateAPIReviewCheck(
     })
   ).data.map((m) => m.login);
 
+  debug(`Fetched ${members.length} API Review WG members`);
+
   // Filter reviews by those from members of the API Working Group.
   const reviews = (
     await octokit.pulls.listReviews({
@@ -106,6 +111,8 @@ export async function addOrUpdateAPIReviewCheck(
     return members.includes(user.login) && body.length !== 0;
   });
 
+  debug(`Found ${reviews.length} API reviews from WG members`);
+
   // Filter comments by those from members of the API Working Group.
   const comments = (
     await octokit.issues.listComments({
@@ -115,23 +122,33 @@ export async function addOrUpdateAPIReviewCheck(
     })
   ).data.filter(({ user }) => members.includes(user.login));
 
+  debug(`Found ${comments.length} API reviews from WG members`);
+
   const allReviews = [
     ...new Map([...comments, ...reviews].map((item) => [item.user.id, item])).values(),
   ];
 
   // If the PR is semver-patch, it does not need API review.
   if (!pr.labels.some((l) => isSemverMajorMinorLabel(l.name))) {
+    debug('Determined this PR is semver-patch and does not need review');
     await resetToNeutral();
     return;
   }
 
-  const users = {
-    approved: allReviews.filter((r) => r.body.match(/API LGTM/gi)).map((r) => r.user.login),
-    declined: allReviews.filter((r) => r.body.match(/API DECLINED/gi)).map((r) => r.user.login),
-    requestedChanges: reviews
-      .filter((review) => review.state === REVIEW_STATUS.CHANGES_REQUESTED)
-      .map((r) => r.user.login),
-  };
+  const approved = allReviews.filter((r) => r.body.match(/API LGTM/gi)).map((r) => r.user.login);
+  debug(`PR ${pr.number} has ${approved.length} API LGTMs`);
+
+  const declined = allReviews
+    .filter((r) => r.body.match(/API DECLINED/gi))
+    .map((r) => r.user.login);
+  debug(`PR ${pr.number} has ${declined.length} API DECLINEDs`);
+
+  const requestedChanges = reviews
+    .filter((review) => review.state === REVIEW_STATUS.CHANGES_REQUESTED)
+    .map((r) => r.user.login);
+  debug(`PR ${pr.number} has ${requestedChanges.length} change requests`);
+
+  const users = { approved, declined, requestedChanges };
 
   // Update the GitHub Check with appropriate API review information.
   const updateCheck = async (
@@ -164,19 +181,20 @@ export async function addOrUpdateAPIReviewCheck(
     return users;
   };
 
-  const approved = users.approved.length
+  const approvedString = users.approved.length
     ? `#### Approved\n\n${users.approved.map((u) => `* @${u}`).join('\n')}\n`
     : '';
-  const requestedChanges = users.requestedChanges.length
+  const requestedChangesString = users.requestedChanges.length
     ? `#### Requested Changes\n\n${users.requestedChanges.map((u) => `* @${u}`).join('\n')}\n`
     : '';
-  const declined = users.declined.length
+  const declinedString = users.declined.length
     ? `#### Declined\n\n${users.declined.map((u) => `* @${u}`).join('\n')}\n`
     : '';
 
-  const checkSummary = `${approved}${requestedChanges}${declined}`;
+  const checkSummary = `${approvedString}${requestedChangesString}${declinedString}`;
 
   if (currentReviewLabel.name === REVIEW_LABELS.REQUESTED) {
+    debug(`Marking Check for ${pr.number} as API requested`);
     return updateCheck({
       status: 'in_progress',
       output: {
@@ -187,6 +205,7 @@ export async function addOrUpdateAPIReviewCheck(
       },
     });
   } else if (currentReviewLabel.name === REVIEW_LABELS.APPROVED) {
+    debug(`Marking Check for ${pr.number} as API LGTM`);
     return updateCheck({
       status: 'completed',
       conclusion: 'success',
@@ -196,6 +215,7 @@ export async function addOrUpdateAPIReviewCheck(
       },
     });
   } else if (currentReviewLabel.name === REVIEW_LABELS.DECLINED) {
+    debug(`Marking Check for ${pr.number} as API DECLINED`);
     return updateCheck({
       status: 'completed',
       conclusion: 'failure',
