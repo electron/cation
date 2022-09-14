@@ -66,7 +66,7 @@ export async function addOrUpdateAPIReviewCheck(
     typeof octokit.issues.listComments
   >[0];
 
-  type CommentOrReview = ListReviewsItem[] | ListCommentsItem[];
+  type CommentOrReview = ListReviewsItem | ListCommentsItem;
 
   // Fetch the latest API Review check for the PR.
   const checkRun = (
@@ -109,7 +109,7 @@ export async function addOrUpdateAPIReviewCheck(
   debug(`Fetched ${members.length} API Review WG members`);
 
   // Filter reviews by those from members of the API Working Group.
-  const reviews: CommentOrReview = (
+  const reviews = (
     await octokit.pulls.listReviews({
       owner,
       repo,
@@ -122,7 +122,7 @@ export async function addOrUpdateAPIReviewCheck(
   debug(`Found ${reviews.length} API reviews from WG members`);
 
   // Filter comments by those from members of the API Working Group.
-  const comments: CommentOrReview = (
+  const comments = (
     await octokit.issues.listComments({
       owner,
       repo,
@@ -136,8 +136,9 @@ export async function addOrUpdateAPIReviewCheck(
   const allReviews = [
     ...[...comments, ...reviews]
       .reduce((hash, item) => {
-        const prev = hash[item.user.id];
+        if (!/API LGTM|API DECLINED/.test(item.body)) return hash;
 
+        const prev = hash[item.user.id];
         if (!prev) {
           hash[item.user.id] = item;
           return hash;
@@ -154,7 +155,7 @@ export async function addOrUpdateAPIReviewCheck(
         }
 
         return hash;
-      }, {} as CommentOrReview)
+      }, {} as CommentOrReview[])
       .values(),
   ];
 
