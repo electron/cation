@@ -132,16 +132,19 @@ export async function addOrUpdateAPIReviewCheck(
 
   debug(`Found ${comments.length} API reviews from WG members`);
 
+  const lgtm = /API LGTM/gi;
+  const decline = /API DECLINED/gi;
+
   // Combine reviews/comments and filter by recency.
   const allReviews = [
     ...[...comments, ...reviews]
-      .reduce((hash, item) => {
-        if (!/API LGTM|API DECLINED/.test(item.body)) return hash;
+      .reduce((items, item) => {
+        if (!lgtm.test(item.body) && !decline.test(item.body)) return items;
 
-        const prev = hash[item.user.id];
+        const prev = items[item.user.id];
         if (!prev) {
-          hash[item.user.id] = item;
-          return hash;
+          items[item.user.id] = item;
+          return items;
         }
 
         const isReview = (item: ListReviewsItem | ListCommentsItem): item is ListReviewsItem => {
@@ -151,11 +154,11 @@ export async function addOrUpdateAPIReviewCheck(
         const prevDate = isReview(prev) ? new Date(prev.submitted_at) : new Date(prev.updated_at);
         const currDate = isReview(item) ? new Date(item.submitted_at) : new Date(item.updated_at);
         if (prevDate.getTime() < currDate.getTime()) {
-          hash[item.user.id] = item;
+          items[item.user.id] = item;
         }
 
-        return hash;
-      }, {} as CommentOrReview[])
+        return items;
+      }, [] as CommentOrReview[])
       .values(),
   ];
 
@@ -168,12 +171,10 @@ export async function addOrUpdateAPIReviewCheck(
     return;
   }
 
-  const approved = allReviews.filter((r) => r.body.match(/API LGTM/gi)).map((r) => r.user.login);
+  const approved = allReviews.filter((r) => r.body.match(lgtm)).map((r) => r.user.login);
   debug(`PR ${pr.number} has ${approved.length} API LGTMs`);
 
-  const declined = allReviews
-    .filter((r) => r.body.match(/API DECLINED/gi))
-    .map((r) => r.user.login);
+  const declined = allReviews.filter((r) => r.body.match(decline)).map((r) => r.user.login);
   debug(`PR ${pr.number} has ${declined.length} API DECLINEDs`);
 
   const requestedChanges = reviews
