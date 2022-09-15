@@ -53,4 +53,4 @@ export const API_WORKING_GROUP = 'wg-api';
 // exclusion labels
 export const EXCLUDE_LABELS = [BACKPORT_LABEL, BACKPORT_SKIP_LABEL, FAST_TRACK_LABEL];
 export const EXCLUDE_PREFIXES = ['build', 'ci', 'test'];
-export const EXCLUDE_USERS = ['roller-bot[bot]', 'electron-bot'];
+export const EXCLUDE_USERS = ['roller-bot[bot]', 'electron-bot', 'trop[bot]'];
