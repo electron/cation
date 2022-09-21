@@ -26,7 +26,6 @@
   "devDependencies": {
     "@octokit/webhooks-definitions": "^3.19.0",
     "@types/bunyan": "^1.8.6",
-    "@types/debug": "^4.1.7",
     "@types/express": "^4.17.9",
     "@types/jest": "^26.0.16",
     "@types/node": "^11.15.39",
