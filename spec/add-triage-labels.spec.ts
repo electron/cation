@@ -4,7 +4,7 @@ import * as nock from 'nock';
 import { addBasicPRLabels } from '../src/add-triage-labels';
 import { DOCUMENTATION_LABEL, SEMVER_LABELS, SEMVER_NONE_LABEL } from '../src/constants';
 
-const handler = async ({ app }: { app: Probot }) => {
+const handler = async (app: Probot) => {
   addBasicPRLabels(app);
 };
 
@@ -18,7 +18,7 @@ describe('add-triage-labels', () => {
       githubToken: 'test',
       secret: 'secret',
       privateKey: 'private key',
-      id: 690857,
+      appId: 690857,
     });
 
     robot.load(handler);

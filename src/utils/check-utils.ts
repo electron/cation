@@ -1,4 +1,4 @@
-import { WebhookPayloadWithRepository } from 'probot';
+import { PullRequest } from '@octokit/webhooks-types';
 import { SEMVER_LABELS } from '../constants';
 
 /**
@@ -8,7 +8,7 @@ import { SEMVER_LABELS } from '../constants';
  *
  * @param pr The pull request being checked for API Review requirements.
  */
-export function isAPIReviewRequired(pr: WebhookPayloadWithRepository['pull_request']): boolean {
+export function isAPIReviewRequired(pr: PullRequest): boolean {
   if (!pr) return false;
 
   // If it's not a semver-patch PR it must be reviewed.
