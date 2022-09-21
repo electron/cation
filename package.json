@@ -41,7 +41,7 @@
   "dependencies": {
     "@octokit/rest": "^18.0.10",
     "@sentry/node": "^5.29.0",
-    "probot": "^10.17.2",
+    "probot": "^12.2.8",
     "semver": "^5.7.1"
   },
   "lint-staged": {
