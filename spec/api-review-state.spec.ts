@@ -20,7 +20,7 @@ import {
 
 import { CheckRunStatus } from '../src/enums';
 
-const handler = async ({ app }: { app: Probot }) => {
+const handler = async (app: Probot) => {
   setupAPIReviewStateManagement(app);
 };
 
@@ -34,7 +34,7 @@ describe('api review', () => {
       githubToken: 'test',
       secret: 'secret',
       privateKey: 'private key',
-      id: 690857,
+      appId: 690857,
     });
 
     moctokit = {

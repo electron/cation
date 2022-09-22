@@ -16,7 +16,7 @@ import {
 import { CheckRunStatus, LogLevel } from './enums';
 import { isAPIReviewRequired } from './utils/check-utils';
 import { getEnvVar } from './utils/env-util';
-import { EventPayloads } from '@octokit/webhooks';
+import { PullRequest, Label } from '@octokit/webhooks-types';
 import { GetResponseDataTypeFromEndpointMethod, Endpoints } from '@octokit/types';
 import { addLabels, removeLabel } from './utils/label-utils';
 
@@ -42,7 +42,7 @@ export const isSemverMajorMinorLabel = (label: string) =>
  * @returns a date corresponding to the time that must elapse before a PR requiring
  *          API review is ready to be merged according to its semver label.
  */
-export const getPRReadyDate = (pr: EventPayloads.WebhookPayloadPullRequestPullRequest) => {
+export const getPRReadyDate = (pr: PullRequest) => {
   let readyTime = new Date(pr.created_at).getTime();
   const isMajorMinor = pr.labels.some((l: any) => isSemverMajorMinorLabel(l.name));
 
@@ -51,10 +51,7 @@ export const getPRReadyDate = (pr: EventPayloads.WebhookPayloadPullRequestPullRe
   return new Date(readyTime).toISOString().split('T')[0];
 };
 
-export async function addOrUpdateAPIReviewCheck(
-  octokit: Context['octokit'],
-  pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
-) {
+export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr: PullRequest) {
   const owner = pr.head.repo.owner.login;
   const repo = pr.head.repo.name;
 
@@ -118,7 +115,7 @@ export async function addOrUpdateAPIReviewCheck(
       pull_number: pr.number,
     })
   ).data.filter(({ user, body }) => {
-    return members.includes(user.login) && body.length !== 0;
+    return members.includes(user!.login) && body.length !== 0;
   });
 
   log(
@@ -134,7 +131,7 @@ export async function addOrUpdateAPIReviewCheck(
       repo,
       issue_number: pr.number,
     })
-  ).data.filter(({ user }) => members.includes(user.login));
+  ).data.filter(({ user }) => members.includes(user!.login));
 
   log(
     'addOrUpdateAPIReviewCheck',
@@ -149,6 +146,8 @@ export async function addOrUpdateAPIReviewCheck(
   const allReviews = [
     ...[...comments, ...reviews]
       .reduce((items, item) => {
+        if (!item?.body || !item.user) return items;
+
         if (!lgtm.test(item.body) && !decline.test(item.body)) return items;
 
         const prev = items[item.user.id];
@@ -161,8 +160,8 @@ export async function addOrUpdateAPIReviewCheck(
           return (item as ListReviewsItem).submitted_at !== undefined;
         };
 
-        const prevDate = isReview(prev) ? new Date(prev.submitted_at) : new Date(prev.updated_at);
-        const currDate = isReview(item) ? new Date(item.submitted_at) : new Date(item.updated_at);
+        const prevDate = isReview(prev) ? new Date(prev.submitted_at!) : new Date(prev.updated_at);
+        const currDate = isReview(item) ? new Date(item.submitted_at!) : new Date(item.updated_at);
         if (prevDate.getTime() < currDate.getTime()) {
           items[item.user.id] = item;
         }
@@ -189,11 +188,11 @@ export async function addOrUpdateAPIReviewCheck(
     return;
   }
 
-  const approved = allReviews.filter((r) => r.body.match(lgtm)).map((r) => r.user.login);
-  const declined = allReviews.filter((r) => r.body.match(decline)).map((r) => r.user.login);
+  const approved = allReviews.filter((r) => r.body?.match(lgtm)).map((r) => r.user?.login);
+  const declined = allReviews.filter((r) => r.body?.match(decline)).map((r) => r.user?.login);
   const requestedChanges = reviews
     .filter((review) => review.state === REVIEW_STATUS.CHANGES_REQUESTED)
-    .map((r) => r.user.login);
+    .map((r) => r.user?.login);
 
   log(
     'addOrUpdateAPIReviewCheck',
@@ -298,7 +297,7 @@ export async function addOrUpdateAPIReviewCheck(
  */
 export async function checkPRReadyForMerge(
   octokit: Context['octokit'],
-  pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
+  pr: PullRequest,
   userApprovalState: APIApprovalState,
 ) {
   log('checkPRReadyForMerge', LogLevel.INFO, `Checking if ${pr.number} is ready for merge`);
@@ -324,7 +323,7 @@ export async function checkPRReadyForMerge(
     }
   };
 
-  const isNewPR = pr.labels.some((l) => l.name === NEW_PR_LABEL);
+  const isNewPR = pr.labels.some((l: Label) => l.name === NEW_PR_LABEL);
   if (!userApprovalState || isNewPR) return;
 
   const { approved, declined, requestedChanges } = userApprovalState;
@@ -341,15 +340,21 @@ export async function checkPRReadyForMerge(
 }
 
 export function setupAPIReviewStateManagement(probot: Probot) {
-  probot.on(['pull_request.synchronize', 'pull_request.opened'], async (context: Context) => {
-    await addOrUpdateAPIReviewCheck(context.octokit, context.payload.pull_request);
-  });
+  probot.on(
+    ['pull_request.synchronize', 'pull_request.opened'],
+    async (context: Context<'pull_request'>) => {
+      await addOrUpdateAPIReviewCheck(context.octokit, context.payload.pull_request);
+    },
+  );
 
-  probot.on('pull_request_review.submitted', async (context: Context) => {
-    const pr = context.payload.pull_request;
-    const state = await addOrUpdateAPIReviewCheck(context.octokit, pr);
-    checkPRReadyForMerge(context.octokit, pr, state);
-  });
+  probot.on(
+    'pull_request_review.submitted',
+    async (context: Context<'pull_request_review.submitted'>) => {
+      const pr = context.payload.pull_request as PullRequest;
+      const state = await addOrUpdateAPIReviewCheck(context.octokit, pr);
+      checkPRReadyForMerge(context.octokit, pr, state);
+    },
+  );
 
   /**
    * If a potential API PR is labeled, there are several decision trees we
@@ -367,13 +372,13 @@ export function setupAPIReviewStateManagement(probot: Probot) {
    *    - If any api-review-{state} label besides api-review-requested is added, remove it.
    *      API approval is controlled solely by cation.
    */
-  probot.on('pull_request.labeled', async (context) => {
+  probot.on('pull_request.labeled', async (context: Context<'pull_request.labeled'>) => {
     const {
       label,
       pull_request: pr,
       repository,
       sender: { login: initiator },
-    }: EventPayloads.WebhookPayloadPullRequest = context.payload;
+    } = context.payload;
 
     if (!label) {
       throw new Error('Something went wrong - label does not exist.');
@@ -435,12 +440,12 @@ export function setupAPIReviewStateManagement(probot: Probot) {
    * label.
    *
    */
-  probot.on('pull_request.unlabeled', async (context) => {
+  probot.on('pull_request.unlabeled', async (context: Context<'pull_request.unlabeled'>) => {
     const {
       label,
       pull_request: pr,
       sender: { login: initiator },
-    }: EventPayloads.WebhookPayloadPullRequest = context.payload;
+    } = context.payload;
 
     if (!label) {
       throw new Error('Something went wrong - label does not exist.');

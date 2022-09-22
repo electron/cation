@@ -3,7 +3,7 @@ import * as nock from 'nock';
 
 import { setupSemverLabelEnforcement } from '../src/enforce-semver-labels';
 
-const handler = async ({ app }: { app: Probot }) => {
+const handler = async (app: Probot) => {
   setupSemverLabelEnforcement(app);
 };
 
@@ -17,7 +17,7 @@ describe('semver-enforcement', () => {
       githubToken: 'test',
       secret: 'secret',
       privateKey: 'private key',
-      id: 690857,
+      appId: 690857,
     });
 
     robot.load(handler);

@@ -11,7 +11,7 @@ import {
   MINIMUM_MINOR_OPEN_TIME,
   SEMVER_NONE_LABEL,
 } from './constants';
-import { EventPayloads } from '@octokit/webhooks';
+import { PullRequest, Label, PullRequestLabeledEvent } from '@octokit/webhooks-types';
 import { addOrUpdateAPIReviewCheck, checkPRReadyForMerge } from './api-review-state';
 import { log } from './utils/log-util';
 import { addLabels, removeLabel } from './utils/label-utils';
@@ -20,15 +20,15 @@ import { LogLevel } from './enums';
 
 const CHECK_INTERVAL = 1000 * 60 * 5;
 
+type TimelineEvents = RestEndpointMethodTypes['issues']['listEventsForTimeline']['response'];
+
 /**
  *
  * @param {EventPayloads.WebhookPayloadPullRequestPullRequest} pr
  * @returns {number} a number representing the minimum open time for the PR
  * based on  its semantic prefix in milliseconds
  */
-export const getMinimumOpenTime = (
-  pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
-): number => {
+export const getMinimumOpenTime = (pr: PullRequest): number => {
   log('getMinimumOpenTime', LogLevel.INFO, `Fetching minimum open time for PR #${pr.number}.`);
 
   const hasLabel = (label: string) => pr.labels.some((l: any) => l.name === label);
@@ -50,7 +50,7 @@ export const getMinimumOpenTime = (
  */
 export const getPROpenedTime = async (
   github: Context['octokit'],
-  pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
+  pr: PullRequest,
 ): Promise<number> => {
   const [owner, repo] = pr.base.repo.full_name.split('/');
 
@@ -59,26 +59,26 @@ export const getPROpenedTime = async (
     owner,
     repo,
     issue_number: pr.number,
-  })) as RestEndpointMethodTypes['issues']['listEventsForTimeline']['response'];
+  })) as TimelineEvents;
 
   // Filter out all except 'Ready For Review' events.
   const readyForReviewEvents = events
     .filter((e) => e.event === 'ready_for_review')
     .sort(({ created_at: cA }, { created_at: cB }) => {
-      return new Date(cB).getTime() - new Date(cA).getTime();
+      return new Date(cB!).getTime() - new Date(cA!).getTime();
     });
 
   // If this PR was a draft PR previously, set its opened time as a function
   // of when it was most recently marked ready for review instead of when it was opened,
   // otherwise return the PR open date.
   return readyForReviewEvents.length > 0
-    ? new Date(readyForReviewEvents[0].created_at).getTime()
+    ? new Date(readyForReviewEvents[0].created_at!).getTime()
     : new Date(pr.created_at).getTime();
 };
 
 export const shouldPRHaveLabel = async (
   github: Context['octokit'],
-  pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
+  pr: PullRequest,
 ): Promise<boolean> => {
   log('shouldPRHaveLabel', LogLevel.INFO, `Checking whether #${pr.number} should have label.`);
 
@@ -103,7 +103,7 @@ export const shouldPRHaveLabel = async (
 
 export const applyLabelToPR = async (
   github: Context['octokit'],
-  pr: EventPayloads.WebhookPayloadPullRequestPullRequest,
+  pr: PullRequest,
   shouldHaveLabel: boolean,
 ) => {
   const [owner, repo] = pr.base.repo.full_name.split('/');
@@ -145,7 +145,7 @@ export const applyLabelToPR = async (
 };
 
 // Returns whether or not a label is relevant to the new-pr decision tree.
-export const labelShouldBeChecked = (label: EventPayloads.WebhookPayloadPullRequestLabel) => {
+export const labelShouldBeChecked = (label: Label) => {
   const relevantLabels = [
     NEW_PR_LABEL,
     SEMVER_NONE_LABEL,
@@ -158,11 +158,14 @@ export const labelShouldBeChecked = (label: EventPayloads.WebhookPayloadPullRequ
 export function setUp24HourRule(probot: Probot) {
   probot.on(
     ['pull_request.opened', 'pull_request.unlabeled', 'pull_request.labeled'],
-    async (context) => {
-      const { action, label, pull_request: pr, repository } = context.payload;
+    async (context: Context<'pull_request'>) => {
+      const { action, pull_request: pr, repository } = context.payload;
 
       // We only care about user labels adds for new-pr and semver labels.
-      if (action === 'pull_request.labeled' && !labelShouldBeChecked(label!)) return;
+      if (action === 'labeled' || action === 'unlabeled') {
+        const { label } = context.payload as PullRequestLabeledEvent;
+        if (!labelShouldBeChecked(label!)) return;
+      }
 
       probot.log(`24-hour rule received PR: ${repository.full_name}#${pr.number} checking now`);
 

@@ -19,7 +19,7 @@ import {
   SEMVER_NONE_LABEL,
 } from '../src/constants';
 
-const handler = async ({ app }: { app: Probot }) => {
+const handler = async (app: Probot) => {
   setUp24HourRule(app);
 };
 
@@ -34,7 +34,7 @@ describe('pr open time', () => {
       githubToken: 'test',
       secret: 'secret',
       privateKey: 'private key',
-      id: 690857,
+      appId: 690857,
     });
 
     moctokit = {
@@ -103,6 +103,7 @@ describe('pr open time', () => {
     expect(
       labelShouldBeChecked({
         id: 12345,
+        description: '',
         node_id: 'id',
         url: `https://api.github.com/repos/electron/electron/labels/${NEW_PR_LABEL}`,
         name: NEW_PR_LABEL,
@@ -114,6 +115,7 @@ describe('pr open time', () => {
     expect(
       labelShouldBeChecked({
         id: 12345,
+        description: '',
         node_id: 'id',
         url: `https://api.github.com/repos/electron/electron/labels/${SEMVER_LABELS.MINOR}`,
         name: SEMVER_LABELS.MINOR,
@@ -125,6 +127,7 @@ describe('pr open time', () => {
     expect(
       labelShouldBeChecked({
         id: 12345,
+        description: '',
         node_id: 'id',
         url: `https://api.github.com/repos/electron/electron/labels/${SEMVER_LABELS.PATCH}`,
         name: SEMVER_LABELS.PATCH,
@@ -136,6 +139,7 @@ describe('pr open time', () => {
     expect(
       labelShouldBeChecked({
         id: 12345,
+        description: '',
         node_id: 'id',
         url: `https://api.github.com/repos/electron/electron/labels/${SEMVER_LABELS.MAJOR}`,
         name: SEMVER_LABELS.PATCH,
@@ -147,6 +151,7 @@ describe('pr open time', () => {
     expect(
       labelShouldBeChecked({
         id: 12345,
+        description: '',
         node_id: 'id',
         url: `https://api.github.com/repos/electron/electron/labels/${SEMVER_NONE_LABEL}`,
         name: SEMVER_NONE_LABEL,
@@ -158,6 +163,7 @@ describe('pr open time', () => {
     expect(
       labelShouldBeChecked({
         id: 12345,
+        description: '',
         node_id: 'id',
         url: `https://api.github.com/repos/electron/electron/labels/${BACKPORT_LABEL}`,
         name: BACKPORT_LABEL,
@@ -169,6 +175,7 @@ describe('pr open time', () => {
     expect(
       labelShouldBeChecked({
         id: 12345,
+        description: '',
         node_id: 'id',
         url: `https://api.github.com/repos/electron/electron/labels/${BACKPORT_SKIP_LABEL}`,
         name: BACKPORT_SKIP_LABEL,
@@ -180,6 +187,7 @@ describe('pr open time', () => {
     expect(
       labelShouldBeChecked({
         id: 12345,
+        description: '',
         node_id: 'id',
         url: `https://api.github.com/repos/electron/electron/labels/${FAST_TRACK_LABEL}`,
         name: FAST_TRACK_LABEL,
@@ -191,6 +199,7 @@ describe('pr open time', () => {
     expect(
       labelShouldBeChecked({
         id: 12345,
+        description: '',
         node_id: 'id',
         url: 'https://api.github.com/repos/electron/electron/labels/random',
         name: 'random',
