@@ -1,5 +1,7 @@
 import { Probot } from 'probot';
 import { SEMVER_LABELS, SEMVER_NONE_LABEL } from './constants';
+import { log } from './utils/log-util';
+import { LogLevel } from './enums';
 
 const ALL_SEMVER_LABELS = [
   SEMVER_LABELS.MAJOR,
@@ -10,24 +12,20 @@ const ALL_SEMVER_LABELS = [
 
 export function setupSemverLabelEnforcement(probot: Probot) {
   probot.on(
-    [
-      'pull_request.opened',
-      'pull_request.unlabeled',
-      'pull_request.labeled',
-      'pull_request.synchronize',
-    ],
+    ['pull_request.opened', 'pull_request.unlabeled', 'pull_request.labeled'],
     async (context) => {
       const { pull_request: pr, repository } = context.payload;
 
-      probot.log(
-        'semver-enforce received PR:',
-        `${repository.full_name}#${pr.number}`,
-        'checking now',
-      );
+      log('setupSemverLabelEnforcement:', LogLevel.INFO, `Checking #${pr.number} for semver label`);
 
       const semverLabels = pr.labels.filter((l: any) => ALL_SEMVER_LABELS.includes(l.name));
       if (semverLabels.length === 0) {
-        // Pending check -- not enough
+        log(
+          'setupSemverLabelEnforcement:',
+          LogLevel.ERROR,
+          `#${pr.number} is missing semver label`,
+        );
+
         await context.octokit.checks.create(
           context.repo({
             name: 'Semver Label Enforcement',
@@ -40,7 +38,12 @@ export function setupSemverLabelEnforcement(probot: Probot) {
           }),
         );
       } else if (semverLabels.length > 1) {
-        // Pending check -- too many
+        log(
+          'setupSemverLabelEnforcement:',
+          LogLevel.ERROR,
+          `#${pr.number} has duplicate semver labels`,
+        );
+
         await context.octokit.checks.create(
           context.repo({
             name: 'Semver Label Enforcement',
@@ -53,7 +56,12 @@ export function setupSemverLabelEnforcement(probot: Probot) {
           }),
         );
       } else {
-        // Pass check
+        log(
+          'setupSemverLabelEnforcement:',
+          LogLevel.INFO,
+          `#${pr.number} has a valid semver label`,
+        );
+
         await context.octokit.checks.create(
           context.repo({
             name: 'Semver Label Enforcement',
