@@ -52,6 +52,8 @@ export const getPRReadyDate = (pr: PullRequest) => {
 };
 
 export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr: PullRequest) {
+  log('addOrUpdateAPIReviewCheck', LogLevel.INFO, `Validating ${pr.number}`);
+
   const owner = pr.head.repo.owner.login;
   const repo = pr.head.repo.name;
 
@@ -121,7 +123,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
   log(
     'addOrUpdateAPIReviewCheck',
     LogLevel.INFO,
-    `Found ${reviews.length} API reviews from WG members`,
+    `Found ${reviews.length} API review(s) from WG members`,
   );
 
   // Filter comments by those from members of the API Working Group.
@@ -136,40 +138,40 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
   log(
     'addOrUpdateAPIReviewCheck',
     LogLevel.INFO,
-    `Found ${comments.length} API reviews from WG members`,
+    `Found ${comments.length} API review comment(s) from WG members`,
   );
 
   const lgtm = /API LGTM/gi;
   const decline = /API DECLINED/gi;
 
   // Combine reviews/comments and filter by recency.
-  const allReviews = [
-    ...[...comments, ...reviews]
-      .reduce((items, item) => {
-        if (!item?.body || !item.user) return items;
+  console.log('[...comments, ...reviews]: ', [...comments, ...reviews].length);
+  console.log('[...comments, ...reviews][0]: ', [...comments, ...reviews][0]);
+  const filtered = [...comments, ...reviews].reduce((items, item) => {
+    if (!item?.body || !item.user) return items;
 
-        if (!lgtm.test(item.body) && !decline.test(item.body)) return items;
+    if (!lgtm.test(item.body) && !decline.test(item.body)) return items;
 
-        const prev = items[item.user.id];
-        if (!prev) {
-          items[item.user.id] = item;
-          return items;
-        }
+    const prev = items[item.user.id];
+    if (!prev) {
+      items[item.user.id] = item;
+      return items;
+    }
 
-        const isReview = (item: ListReviewsItem | ListCommentsItem): item is ListReviewsItem => {
-          return (item as ListReviewsItem).submitted_at !== undefined;
-        };
+    const isReview = (item: ListReviewsItem | ListCommentsItem): item is ListReviewsItem => {
+      return (item as ListReviewsItem).submitted_at !== undefined;
+    };
 
-        const prevDate = isReview(prev) ? new Date(prev.submitted_at!) : new Date(prev.updated_at);
-        const currDate = isReview(item) ? new Date(item.submitted_at!) : new Date(item.updated_at);
-        if (prevDate.getTime() < currDate.getTime()) {
-          items[item.user.id] = item;
-        }
+    const prevDate = isReview(prev) ? new Date(prev.submitted_at!) : new Date(prev.updated_at);
+    const currDate = isReview(item) ? new Date(item.submitted_at!) : new Date(item.updated_at);
+    if (prevDate.getTime() < currDate.getTime()) {
+      items[item.user.id] = item;
+    }
 
-        return items;
-      }, [] as CommentOrReview[])
-      .values(),
-  ];
+    console.log('items: ', items);
+    return items;
+  }, [] as CommentOrReview[]);
+  const allReviews = [...filtered.values()];
 
   log(
     'addOrUpdateAPIReviewCheck',
@@ -361,7 +363,7 @@ export function setupAPIReviewStateManagement(probot: Probot) {
    * can potentially take, outlined as follows:
    *
    *  - Semver Labels:
-   *    - If a semver-major or semver-minor PR is opened, API review is requisite.
+   *    - If a semver-major or semver-minor PR is opened, API review is required.
    *      The api-review-requested label must be added.
    *    - If a semver-patch label is added, do not add any api-review-{state} labels and
    *      remove them if they exist.
@@ -384,14 +386,21 @@ export function setupAPIReviewStateManagement(probot: Probot) {
       throw new Error('Something went wrong - label does not exist.');
     }
 
-    const shouldExclude =
+    // Once a PR is merged, allow tampering.
+    if (pr.merged) return;
+
+    // Exclude PRs from api review if they:
+    // 1) Have backport, backport-skip, or fast-track labels
+    // 2) Are targeting a non-main branch
+    // 3) Are semver-patch PRs
+    const excludePR =
       pr.labels.some((l) => EXCLUDE_LABELS.includes(l.name)) ||
       pr.base.ref !== pr.base.repo.default_branch ||
       label.name === SEMVER_LABELS.PATCH;
 
     // If a PR is semver-minor or semver-major and the PR does not have an
-    // exclusion label, automatically add the 'api-review/requested 🗳' label.
-    if (isSemverMajorMinorLabel(label.name) && !shouldExclude) {
+    // exclusion condition, automatically add the 'api-review/requested 🗳' label.
+    if (isSemverMajorMinorLabel(label.name) && !excludePR) {
       probot.log(
         'Received a semver-minor or semver-major PR:',
         `${repository.full_name}#${pr.number}`,
@@ -403,8 +412,10 @@ export function setupAPIReviewStateManagement(probot: Probot) {
         prNumber: pr.number,
         labels: [REVIEW_LABELS.REQUESTED],
       });
+
+      // If the human-added label is an approve/decline API review label
+      // remove it.
     } else if (isReviewLabel(label.name)) {
-      // Humans can only add the 'api-review/requested 🗳' manually.
       if (!isBot(initiator) && label.name !== REVIEW_LABELS.REQUESTED) {
         probot.log(
           `${initiator} tried to add ${label.name} to PR #${pr.number} - this is not permitted.`,
@@ -415,12 +426,11 @@ export function setupAPIReviewStateManagement(probot: Probot) {
           prNumber: pr.number,
           name: label.name,
         });
-
-        return;
       }
-    } else if (shouldExclude) {
-      // Remove the api-review/requested label if it was added prior to an exclusion label -
+
+      // Remove the api-review/requested 🗳' label if it was added prior to an exclusion label -
       // for example if the backport label was added by trop after cation got to it.
+    } else if (excludePR) {
       await removeLabel(context.octokit, {
         ...context.repo({}),
         prNumber: pr.number,
@@ -450,6 +460,9 @@ export function setupAPIReviewStateManagement(probot: Probot) {
     if (!label) {
       throw new Error('Something went wrong - label does not exist.');
     }
+
+    // Once a PR is merged, allow tampering.
+    if (pr.merged) return;
 
     // We want to prevent tampering with api-review/* labels other than
     // request labels - the bot should control the full review lifecycle.
