@@ -145,8 +145,6 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
   const decline = /API DECLINED/gi;
 
   // Combine reviews/comments and filter by recency.
-  console.log('[...comments, ...reviews]: ', [...comments, ...reviews].length);
-  console.log('[...comments, ...reviews][0]: ', [...comments, ...reviews][0]);
   const filtered = [...comments, ...reviews].reduce((items, item) => {
     if (!item?.body || !item.user) return items;
 
@@ -168,10 +166,10 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
       items[item.user.id] = item;
     }
 
-    console.log('items: ', items);
     return items;
-  }, [] as CommentOrReview[]);
-  const allReviews = [...filtered.values()];
+  }, {} as Record<string, CommentOrReview>);
+
+  const allReviews = Object.values(filtered);
 
   log(
     'addOrUpdateAPIReviewCheck',
