@@ -20,7 +20,7 @@ import {
 } from '../src/constants';
 
 const handler = async (app: Probot) => {
-  setUp24HourRule(app);
+  setUp24HourRule(app, true);
 };
 
 describe('pr open time', () => {

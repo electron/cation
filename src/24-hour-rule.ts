@@ -155,7 +155,7 @@ export const labelShouldBeChecked = (label: Label) => {
   return relevantLabels.includes(label.name);
 };
 
-export function setUp24HourRule(probot: Probot) {
+export async function setUp24HourRule(probot: Probot, disableCronForTesting = false) {
   probot.on(
     ['pull_request.opened', 'pull_request.unlabeled', 'pull_request.labeled'],
     async (context: Context<'pull_request'>) => {
@@ -175,7 +175,7 @@ export function setUp24HourRule(probot: Probot) {
     },
   );
 
-  runInterval();
+  if (!disableCronForTesting) runInterval();
 
   async function runInterval() {
     probot.log('Running 24 hour rule check');
