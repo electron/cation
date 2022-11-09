@@ -152,8 +152,8 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
     `Found ${comments.length} API review comment(s) from WG members`,
   );
 
-  const lgtm = /API LGTM/gi;
-  const decline = /API DECLINED/gi;
+  const lgtm = /API LGTM/i;
+  const decline = /API DECLINED/i;
 
   // Combine reviews/comments and filter by recency.
   const filtered = [...comments, ...reviews].reduce((items, item) => {
