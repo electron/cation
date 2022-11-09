@@ -1,0 +1,39 @@
+{
+  "id": 11736108589,
+  "node_id": "PRR_kwDOAI8xS85F8-Fq",
+  "user": {
+    "login": "nornagon",
+    "id": 2036041,
+    "node_id": "MDQ6VXNlcjIwMzYwNDA=",
+    "avatar_url": "https://avatars.githubusercontent.com/u/2036041?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/nornagon",
+    "html_url": "https://github.com/nornagon",
+    "followers_url": "https://api.github.com/users/nornagon/followers",
+    "following_url": "https://api.github.com/users/nornagon/following{/other_user}",
+    "gists_url": "https://api.github.com/users/nornagon/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/nornagon/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/nornagon/subscriptions",
+    "organizations_url": "https://api.github.com/users/nornagon/orgs",
+    "repos_url": "https://api.github.com/users/nornagon/repos",
+    "events_url": "https://api.github.com/users/nornagon/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/nornagon/received_events",
+    "type": "User",
+    "site_admin": false
+  },
+  "body": "API LGTM",
+  "commit_id": "eeebabc362aab804afa5885188a1712f0125f9f8",
+  "submitted_at": "2022-11-09T08:58:00Z",
+  "state": "commented",
+  "html_url": "https://github.com/electron/electron/pull/36279#pullrequestreview-1173610858",
+  "pull_request_url": "https://api.github.com/repos/electron/electron/pulls/36279",
+  "author_association": "MEMBER",
+  "_links": {
+    "html": {
+      "href": "https://github.com/electron/electron/pull/36279#pullrequestreview-1173610858"
+    },
+    "pull_request": {
+      "href": "https://api.github.com/repos/electron/electron/pulls/36279"
+    }
+  }
+}

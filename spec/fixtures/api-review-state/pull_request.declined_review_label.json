@@ -43,6 +43,13 @@
         "description": "backwards-incompatible bug fixes"
       }
     ],
+    "base": {
+      "repo": {
+        "owner": {
+          "login": "electron"
+        }
+      }
+    },
     "head": {
       "label": "electron:fix-lint-js",
       "ref": "fix-lint-js",

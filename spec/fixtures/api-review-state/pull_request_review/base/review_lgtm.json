@@ -1,0 +1,39 @@
+{
+  "id": 1173610858,
+  "node_id": "PRR_kwDOAI8xS85F8-Fq",
+  "user": {
+    "login": "codebytere",
+    "id": 2036040,
+    "node_id": "MDQ6VXNlcjIwMzYwNDA=",
+    "avatar_url": "https://avatars.githubusercontent.com/u/2036040?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/codebytere",
+    "html_url": "https://github.com/codebytere",
+    "followers_url": "https://api.github.com/users/codebytere/followers",
+    "following_url": "https://api.github.com/users/codebytere/following{/other_user}",
+    "gists_url": "https://api.github.com/users/codebytere/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/codebytere/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/codebytere/subscriptions",
+    "organizations_url": "https://api.github.com/users/codebytere/orgs",
+    "repos_url": "https://api.github.com/users/codebytere/repos",
+    "events_url": "https://api.github.com/users/codebytere/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/codebytere/received_events",
+    "type": "User",
+    "site_admin": false
+  },
+  "body": "API LGTM",
+  "commit_id": "eeebabc362aab804afa5885188a1712f0125f9f8",
+  "submitted_at": "2022-11-09T08:58:00Z",
+  "state": "commented",
+  "html_url": "https://github.com/electron/electron/pull/36279#pullrequestreview-1173610858",
+  "pull_request_url": "https://api.github.com/repos/electron/electron/pulls/36279",
+  "author_association": "MEMBER",
+  "_links": {
+    "html": {
+      "href": "https://github.com/electron/electron/pull/36279#pullrequestreview-1173610858"
+    },
+    "pull_request": {
+      "href": "https://api.github.com/repos/electron/electron/pulls/36279"
+    }
+  }
+}

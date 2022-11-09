@@ -26,6 +26,13 @@
     "merge_commit_sha": null,
     "assignee": null,
     "labels": [],
+    "base": {
+      "repo": {
+        "owner": {
+          "login": "electron"
+        }
+      }
+    },
     "head": {
       "label": "electron:fix-lint-js",
       "ref": "fix-lint-js",
