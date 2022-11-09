@@ -366,7 +366,7 @@ export function setupAPIReviewStateManagement(probot: Probot) {
     async (context: Context<'pull_request_review.submitted'>) => {
       const pr = context.payload.pull_request as PullRequest;
       const state = await addOrUpdateAPIReviewCheck(context.octokit, pr);
-      checkPRReadyForMerge(context.octokit, pr, state);
+      await checkPRReadyForMerge(context.octokit, pr, state);
     },
   );
 
