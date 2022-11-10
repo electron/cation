@@ -53,12 +53,14 @@ describe('api review', () => {
     moctokit = {
       issues: {
         addLabels: jest.fn().mockReturnValue({ data: [] }),
+        removeLabel: jest.fn().mockReturnValue({ data: [] }),
         listLabelsOnIssue: jest.fn().mockReturnValue({ data: [] }),
         listComments: jest.fn().mockReturnValue({ data: [] }),
       },
       checks: {
         listForRef: jest.fn().mockReturnValue({ data: { check_runs: [] } }),
         create: jest.fn().mockReturnValue({ data: {} }),
+        update: jest.fn().mockReturnValue({ data: {} }),
       },
       teams: {
         listMembersInOrg: jest.fn().mockReturnValue({ data: [] }),
@@ -75,7 +77,7 @@ describe('api review', () => {
     nock.cleanAll();
   });
 
-  it('should returns true for review lables', () => {
+  it('should returns true for review labels', () => {
     expect(isReviewLabel(REVIEW_LABELS.APPROVED)).toEqual(true);
     expect(isReviewLabel(REVIEW_LABELS.DECLINED)).toEqual(true);
     expect(isReviewLabel(REVIEW_LABELS.REQUESTED)).toEqual(true);
@@ -92,17 +94,14 @@ describe('api review', () => {
   });
 
   it('correctly returns PR ready date for semver-major/semver-minor labels', async () => {
-    const payload = require('./fixtures/api-review-state/pull_request.semver-minor.json');
+    const { pull_request } = require('./fixtures/api-review-state/pull_request.semver-minor.json');
 
     // Set created_at to yesterday.
-    payload.pull_request.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
+    pull_request.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
 
-    const readyDate = getPRReadyDate(payload.pull_request);
-    const expectedDate = new Date(
-      payload.pull_request.created_at.getTime() + MINIMUM_MINOR_OPEN_TIME,
-    )
-      .toISOString()
-      .split('T')[0];
+    const expectedTime = pull_request.created_at.getTime() + MINIMUM_MINOR_OPEN_TIME;
+    const expectedDate = new Date(expectedTime).toISOString().split('T')[0];
+    const readyDate = getPRReadyDate(pull_request);
 
     expect(readyDate).toEqual(expectedDate);
   });
@@ -113,92 +112,161 @@ describe('api review', () => {
     // Set created_at to yesterday.
     payload.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
 
+    const expectedTime = payload.created_at.getTime() + MINIMUM_PATCH_OPEN_TIME;
+    const expectedDate = new Date(expectedTime).toISOString().split('T')[0];
     const readyDate = getPRReadyDate(payload);
-    const expectedDate = new Date(payload.created_at.getTime() + MINIMUM_PATCH_OPEN_TIME)
-      .toISOString()
-      .split('T')[0];
 
     expect(readyDate).toEqual(expectedDate);
   });
 
-  it(`should correctly update api review check when no review and semver/major or semver/minor labels found`, async () => {
-    let payload = require('./fixtures/api-review-state/pull_request.no_review_label.json');
+  it('should reset the check when PR does not have an API review label on a base PR', async () => {
+    let { pull_request } = require('./fixtures/api-review-state/pull_request.no_review_label.json');
 
-    const response = await addOrUpdateAPIReviewCheck(moctokit, payload.pull_request);
-    expect(response).toEqual(undefined);
+    moctokit.checks.listForRef = jest.fn().mockReturnValue({
+      data: {
+        check_runs: [
+          {
+            name: API_REVIEW_CHECK_NAME,
+            id: '12345',
+          },
+        ],
+      },
+    });
+
+    const users = await addOrUpdateAPIReviewCheck(moctokit, pull_request);
+    expect(users).toEqual(undefined);
+
+    expect(moctokit.issues.addLabels).not.toHaveBeenCalled();
+    expect(moctokit.issues.removeLabel).not.toHaveBeenCalled();
+
+    expect(moctokit.checks.listForRef).toHaveBeenCalled();
+    expect(moctokit.checks.update).toHaveBeenCalled();
+  });
+
+  it('should do nothing when the PR does not have an API review label on a fork PR', async () => {
+    let { pull_request } = require('./fixtures/api-review-state/pull_request.no_review_label.json');
+
+    pull_request.fork = true;
+
+    const users = await addOrUpdateAPIReviewCheck(moctokit, pull_request);
+    expect(users).toEqual(undefined);
+
+    expect(moctokit.issues.addLabels).not.toHaveBeenCalled();
+    expect(moctokit.issues.removeLabel).not.toHaveBeenCalled();
+
+    expect(moctokit.checks.listForRef).toHaveBeenCalled();
+    expect(moctokit.checks.update).not.toHaveBeenCalled();
   });
 
   it(`should correctly update api review check for ${REVIEW_LABELS.REQUESTED} label`, async () => {
-    const payload = require('./fixtures/api-review-state/pull_request.requested_review_label.json');
+    const {
+      pull_request,
+    } = require('./fixtures/api-review-state/pull_request.requested_review_label.json');
 
-    const users = await addOrUpdateAPIReviewCheck(moctokit, payload.pull_request);
-    const expectedUsers = {
+    const users = await addOrUpdateAPIReviewCheck(moctokit, pull_request);
+    expect(users).toEqual({
       approved: [],
       declined: [],
       requestedChanges: [],
-    };
-
-    expect(users).toEqual(expectedUsers);
+    });
   });
 
   it(`should correctly update api review check for ${REVIEW_LABELS.APPROVED} label`, async () => {
-    const payload = require('./fixtures/api-review-state/pull_request.approved_review_label.json');
+    const {
+      pull_request,
+    } = require('./fixtures/api-review-state/pull_request.approved_review_label.json');
 
-    const users = await addOrUpdateAPIReviewCheck(moctokit, payload.pull_request);
-    const expectedUsers = {
+    const users = await addOrUpdateAPIReviewCheck(moctokit, pull_request);
+    expect(users).toEqual({
       approved: [],
       declined: [],
       requestedChanges: [],
-    };
-
-    expect(users).toEqual(expectedUsers);
+    });
   });
 
   it(`should correctly update api review check for ${REVIEW_LABELS.DECLINED} label`, async () => {
-    const payload = require('./fixtures/api-review-state/pull_request.declined_review_label.json');
+    const {
+      pull_request,
+    } = require('./fixtures/api-review-state/pull_request.declined_review_label.json');
 
-    const users = await addOrUpdateAPIReviewCheck(moctokit, payload.pull_request);
-    const expectedUsers = {
+    const users = await addOrUpdateAPIReviewCheck(moctokit, pull_request);
+    expect(users).toEqual({
       approved: [],
       declined: [],
       requestedChanges: [],
-    };
-
-    expect(users).toEqual(expectedUsers);
+    });
   });
 
-  it(`should correctly update api review label if pr contains ${NEW_PR_LABEL} label`, async () => {
-    const payload = require('./fixtures/api-review-state/pull_request.new-pr_label.json');
-    const response = await checkPRReadyForMerge(moctokit, payload.pull_request, undefined);
-    expect(response).toEqual(undefined);
-  });
-
-  it('should correctly update api review label according to reviews by wg-api', async () => {
-    const noReviewLabelPayload = require('./fixtures/api-review-state/pull_request.no_review_label.json');
-
-    // if one or more member of wg-api declined
-    const response = await checkPRReadyForMerge(moctokit, noReviewLabelPayload.pull_request, {
+  it(`should not update api review label if the PR has ${NEW_PR_LABEL}`, async () => {
+    const { pull_request } = require('./fixtures/api-review-state/pull_request.new-pr_label.json');
+    await checkPRReadyForMerge(moctokit, pull_request, {
       approved: [],
-      declined: [' ', ' '],
-      requestedChanges: [],
-    });
-    expect(response).toEqual(undefined);
-
-    // if two or more member of wg-api approved and none of them requested changes
-    const response2 = await checkPRReadyForMerge(moctokit, noReviewLabelPayload.pull_request, {
-      approved: [' ', ' '],
       declined: [],
       requestedChanges: [],
     });
-    expect(response2).toEqual(undefined);
 
-    // in any other case
-    const response3 = await checkPRReadyForMerge(moctokit, noReviewLabelPayload.pull_request, {
-      approved: [' '],
-      declined: [],
-      requestedChanges: [' '],
+    expect(moctokit.issues.addLabels).not.toHaveBeenCalled();
+    expect(moctokit.issues.removeLabel).not.toHaveBeenCalled();
+  });
+
+  it(`should update api review label for ${REVIEW_LABELS.DECLINED}`, async () => {
+    const {
+      pull_request,
+    } = require('./fixtures/api-review-state/pull_request.no_review_label.json');
+
+    await checkPRReadyForMerge(moctokit, pull_request, {
+      approved: [],
+      declined: ['jkleinsc', 'codebytere'],
+      requestedChanges: [],
     });
-    expect(response3).toEqual(undefined);
+
+    expect(moctokit.issues.removeLabel).not.toHaveBeenCalled();
+    expect(moctokit.issues.addLabels).toHaveBeenCalledWith({
+      issue_number: pull_request.number,
+      labels: [REVIEW_LABELS.DECLINED],
+      owner: 'electron',
+      repo: 'electron',
+    });
+  });
+
+  it(`should update API review label for ${REVIEW_LABELS.APPROVED}`, async () => {
+    const {
+      pull_request,
+    } = require('./fixtures/api-review-state/pull_request.no_review_label.json');
+
+    await checkPRReadyForMerge(moctokit, pull_request, {
+      approved: ['jkleinsc', 'codebytere'],
+      declined: [],
+      requestedChanges: [],
+    });
+
+    expect(moctokit.issues.removeLabel).not.toHaveBeenCalled();
+    expect(moctokit.issues.addLabels).toHaveBeenCalledWith({
+      issue_number: pull_request.number,
+      labels: [REVIEW_LABELS.APPROVED],
+      owner: 'electron',
+      repo: 'electron',
+    });
+  });
+
+  it(`should set ${REVIEW_LABELS.REQUESTED} when there is one API LGTM and one request changes`, async () => {
+    const {
+      pull_request,
+    } = require('./fixtures/api-review-state/pull_request.no_review_label.json');
+
+    await checkPRReadyForMerge(moctokit, pull_request, {
+      approved: ['jkleinsc'],
+      declined: [],
+      requestedChanges: ['nornagon'],
+    });
+
+    expect(moctokit.issues.removeLabel).not.toHaveBeenCalled();
+    expect(moctokit.issues.addLabels).toHaveBeenCalledWith({
+      issue_number: pull_request.number,
+      labels: [REVIEW_LABELS.REQUESTED],
+      owner: 'electron',
+      repo: 'electron',
+    });
   });
 
   it(`correctly updates api review check when no review labels are found`, async () => {
