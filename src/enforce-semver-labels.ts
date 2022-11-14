@@ -12,19 +12,20 @@ const ALL_SEMVER_LABELS = [
 
 export function setupSemverLabelEnforcement(probot: Probot) {
   probot.on(
-    ['pull_request.opened', 'pull_request.unlabeled', 'pull_request.labeled'],
+    [
+      'pull_request.opened',
+      'pull_request.unlabeled',
+      'pull_request.labeled',
+      'pull_request.synchronize',
+    ],
     async (context) => {
-      const { pull_request: pr, repository } = context.payload;
+      const { pull_request: pr } = context.payload;
 
-      log('setupSemverLabelEnforcement:', LogLevel.INFO, `Checking #${pr.number} for semver label`);
+      log('setupSemverLabelEnforcement', LogLevel.INFO, `Checking #${pr.number} for semver label`);
 
       const semverLabels = pr.labels.filter((l: any) => ALL_SEMVER_LABELS.includes(l.name));
       if (semverLabels.length === 0) {
-        log(
-          'setupSemverLabelEnforcement:',
-          LogLevel.ERROR,
-          `#${pr.number} is missing semver label`,
-        );
+        log('setupSemverLabelEnforcement', LogLevel.ERROR, `#${pr.number} is missing semver label`);
 
         await context.octokit.checks.create(
           context.repo({
@@ -39,7 +40,7 @@ export function setupSemverLabelEnforcement(probot: Probot) {
         );
       } else if (semverLabels.length > 1) {
         log(
-          'setupSemverLabelEnforcement:',
+          'setupSemverLabelEnforcement',
           LogLevel.ERROR,
           `#${pr.number} has duplicate semver labels`,
         );
@@ -56,11 +57,7 @@ export function setupSemverLabelEnforcement(probot: Probot) {
           }),
         );
       } else {
-        log(
-          'setupSemverLabelEnforcement:',
-          LogLevel.INFO,
-          `#${pr.number} has a valid semver label`,
-        );
+        log('setupSemverLabelEnforcement', LogLevel.INFO, `#${pr.number} has a valid semver label`);
 
         await context.octokit.checks.create(
           context.repo({
