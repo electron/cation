@@ -99,6 +99,14 @@ describe('pr open time', () => {
     expect(noLabel).toEqual(false);
   });
 
+  it('does not add the new-pr label to merged PRs', async () => {
+    const payload = require('./fixtures/pr-open-time/pull_request.should_label.json');
+    payload.merged = true;
+
+    const label = await shouldPRHaveLabel(moctokit, payload);
+    expect(label).toEqual(false);
+  });
+
   it('correctly determines whether a label if relevant to the decision tree', () => {
     expect(
       labelShouldBeChecked({

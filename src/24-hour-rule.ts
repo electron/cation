@@ -91,7 +91,8 @@ export const shouldPRHaveLabel = async (
     EXCLUDE_PREFIXES.includes(prefix) ||
     hasExcludedLabel ||
     backportInTitle ||
-    EXCLUDE_USERS.includes(pr.user.login)
+    EXCLUDE_USERS.includes(pr.user.login) ||
+    pr.merged
   )
     return false;
 
