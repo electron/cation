@@ -60,7 +60,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
     typeof octokit.issues.listComments
   >[0];
 
-  type CommentOrReview = ListReviewsItem | ListCommentsItem;
+  type CommentOrReview = ListReviewsItem & ListCommentsItem;
 
   const fork = pr.head.repo.fork;
   const owner = pr.base.repo.owner.login;
@@ -156,10 +156,12 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
   const decline = /API DECLINED/i;
 
   // Combine reviews/comments and filter by recency.
-  const filtered = [...comments, ...reviews].reduce((items, item) => {
+  const filtered = ([...comments, ...reviews] as CommentOrReview[]).reduce((items, item) => {
     if (!item?.body || !item.user) return items;
 
-    if (!lgtm.test(item.body) && !decline.test(item.body)) return items;
+    const changeRequest = item.state === REVIEW_STATUS.CHANGES_REQUESTED;
+    const reviewComment = lgtm.test(item.body) || decline.test(item.body);
+    if (!reviewComment && !changeRequest) return items;
 
     const prev = items[item.user.id];
     if (!prev) {
@@ -167,8 +169,8 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
       return items;
     }
 
-    const isReview = (item: ListReviewsItem | ListCommentsItem): item is ListReviewsItem => {
-      return (item as ListReviewsItem).submitted_at !== undefined;
+    const isReview = (item: CommentOrReview) => {
+      return item.submitted_at !== undefined;
     };
 
     const prevDate = isReview(prev) ? new Date(prev.submitted_at!) : new Date(prev.updated_at);
@@ -201,8 +203,8 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
 
   const approved = allReviews.filter((r) => r.body?.match(lgtm)).map((r) => r.user?.login);
   const declined = allReviews.filter((r) => r.body?.match(decline)).map((r) => r.user?.login);
-  const requestedChanges = reviews
-    .filter((review) => review.state === REVIEW_STATUS.CHANGES_REQUESTED)
+  const requestedChanges = allReviews
+    .filter((r) => r.state === REVIEW_STATUS.CHANGES_REQUESTED)
     .map((r) => r.user?.login);
 
   log(

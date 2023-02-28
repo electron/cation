@@ -158,16 +158,111 @@ describe('api review', () => {
     expect(moctokit.checks.update).not.toHaveBeenCalled();
   });
 
-  it(`should correctly update api review check for ${REVIEW_LABELS.REQUESTED} label`, async () => {
+  it(`should correctly parse user approval status for ${REVIEW_LABELS.REQUESTED} label`, async () => {
     const {
       pull_request,
     } = require('./fixtures/api-review-state/pull_request.requested_review_label.json');
 
+    moctokit.pulls.listReviews.mockReturnValue({
+      data: [
+        {
+          user: { id: 1, login: 'ckerr' },
+          body: 'Fix this please!',
+          state: 'CHANGES_REQUESTED',
+        },
+        {
+          user: { id: 2, login: 'codebytere' },
+          body: 'API LGTM',
+          state: 'APPROVED',
+        },
+        {
+          user: { id: 3, login: 'nornagon' },
+          body: 'API LGTM',
+          state: 'COMMENTED',
+        },
+        {
+          user: { id: 4, login: 'jkleinsc' },
+          body: 'API DECLINED',
+          state: 'COMMENTED',
+        },
+      ],
+    });
+
+    moctokit.teams.listMembersInOrg.mockReturnValue({
+      data: [
+        { login: 'codebytere' },
+        { login: 'jkleinsc' },
+        { login: 'nornagon' },
+        { login: 'ckerr' },
+      ],
+    });
+
+    const users = await addOrUpdateAPIReviewCheck(moctokit, pull_request);
+    expect(moctokit.checks.create).toHaveBeenCalledWith({
+      head_sha: 'c6b1b7168ab850a47f856c4a30f7a441bede1117',
+      name: 'API Review',
+      output: {
+        summary: `#### Approved
+
+* @codebytere
+* @nornagon
+#### Requested Changes
+
+* @ckerr
+#### Declined
+
+* @jkleinsc
+`,
+        title: 'Pending (2/2 LGTMs - ready on 2020-12-15)',
+      },
+      owner: 'electron',
+      repo: 'electron',
+      status: 'in_progress',
+    });
+
+    expect(users).toEqual({
+      approved: ['codebytere', 'nornagon'],
+      declined: ['jkleinsc'],
+      requestedChanges: ['ckerr'],
+    });
+  });
+
+  it('should correctly parse user approvals when a previous approver requests changes', async () => {
+    const {
+      pull_request,
+    } = require('./fixtures/api-review-state/pull_request.requested_review_label.json');
+
+    moctokit.pulls.listReviews.mockReturnValue({
+      data: [
+        {
+          user: { id: 1, login: 'nornagon' },
+          body: 'API LGTM',
+          state: 'COMMENTED',
+        },
+        {
+          user: { id: 2, login: 'jkleinsc' },
+          body: 'API LGTM',
+          state: 'COMMENTED',
+          submitted_at: '2020-12-09T01:24:55Z',
+        },
+        {
+          user: { id: 2, login: 'jkleinsc' },
+          body: 'This test is failing!!',
+          state: 'CHANGES_REQUESTED',
+          submitted_at: '2020-12-10T01:24:55Z',
+        },
+      ],
+    });
+
+    moctokit.teams.listMembersInOrg.mockReturnValue({
+      data: [{ login: 'jkleinsc' }, { login: 'nornagon' }],
+    });
+
     const users = await addOrUpdateAPIReviewCheck(moctokit, pull_request);
     expect(users).toEqual({
-      approved: [],
+      approved: ['nornagon'],
       declined: [],
-      requestedChanges: [],
+      requestedChanges: ['jkleinsc'],
     });
   });
 
