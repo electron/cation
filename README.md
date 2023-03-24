@@ -1,5 +1,7 @@
 # cation
 
+[![Test](https://github.com/electron/cation/actions/workflows/test.yml/badge.svg)](https://github.com/electron/cation/actions/workflows/test.yml)
+
 `cation` is Electron's PR monitoring bot, which serves three primary functions - semver label enforcement, PR open time enforcement, and API review bookkeeping. Each of the three are discussed in further detail below.
 
 ## Semver Label
