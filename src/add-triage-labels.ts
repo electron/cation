@@ -17,9 +17,7 @@ export function addBasicPRLabels(probot: Probot) {
     // Only add triage labels to the default branch.
     if (pr.base.ref !== pr.base.repo.default_branch) return;
 
-    const hasSemverLabel = pr.labels.some(({ name }) => {
-      name.startsWith(SEMVER_PREFIX);
-    });
+    const hasSemverLabel = pr.labels.some(({ name }) => name.startsWith(SEMVER_PREFIX));
 
     // Respect existing semver labels.
     if (hasSemverLabel) {
