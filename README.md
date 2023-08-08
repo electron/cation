@@ -2,7 +2,7 @@
 
 [![Test](https://github.com/electron/cation/actions/workflows/test.yml/badge.svg)](https://github.com/electron/cation/actions/workflows/test.yml)
 
-`cation` is Electron's PR monitoring bot, which serves three primary functions - semver label enforcement, PR open time enforcement, and API review bookkeeping. Each of the three are discussed in further detail below.
+`cation` is Electron's PR monitoring bot, which serves four primary functions - semver label enforcement, PR open time enforcement, API review bookkeeping, and deprecation review. Each of the four are discussed in further detail below.
 
 ## Semver Label
 
@@ -30,7 +30,7 @@ Backport PRs (PRs to a release branch that is not `main`) do not require a minim
 
 ## API Review
 
-The final function of this bot is to control the API review lifecycle on behalf of the [API Working Group](https://github.com/electron/governance/tree/main/wg-api).
+The bot controls the API review lifecycle on behalf of the [API Working Group](https://github.com/electron/governance/tree/main/wg-api).
 
 This group's review is mandated on all API changes, and their goal is twofold:
  1. To guide Electron’s API surface towards a more ergonomic and usable design.
@@ -47,3 +47,13 @@ Members of the API Working Group must indicate their approval by leaving a comme
 <img width="836" alt="Screen Shot 2021-11-02 at 10 49 27 AM" src="https://user-images.githubusercontent.com/2036040/139824356-25a06c95-d976-422c-91cf-560876e295f4.png">
 
 If a PR has passed its minimum open time and has the requisite number of approvals with no outstanding requests for changes, the bot will then switch `api-review/requested 🗳` to `api-review/approved ✅`, and the PR is free to be merged. If outstanding change requests persist, then the group will initiate consensus-seeking procedures and ultimately choose to approve or decline the PR. If the decision is made to decline, the API WG chair will then comment on the PR with `API Declined` and the bot will update `api-review/requested 🗳` to `api-review/declined ❌`.
+
+## Deprecation Review
+
+The bot controls the deprecation review lifecycle on behalf of the [Releases Working Group](https://github.com/electron/governance/tree/main/wg-releases).
+
+Proper deprecation of APIs requires several changes: calling out the deprecation in the "Breaking Changes" doc, adding deprecation warnings to usage of the APIs, updating the docs to mark the APIs as deprecated, etc. Removing a deprecated API requires similar changes.
+
+Since it's easy for one of these changes to be missed in a code review, this bot provides a checklist to ensure nothing has been forgotten. When a PR is labeled with `deprecation-review/requested 📝` the bot will make a comment on the PR with a checklist of items that should be confirmed to follow deprecation policy.
+
+When deprecation review is requested, the bot also adds a GitHub Check on the PR. When all items on the checklist have been checked off (and any non-applicable items are removed) the check will be marked as completed. At that point the bot will update `deprecation-review/requested 📝` to `deprecation-review/complete ✅`.
