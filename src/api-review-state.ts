@@ -88,15 +88,20 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
 
   const resetToNeutral = async () => {
     if (!checkRun) return;
-    return await octokit.checks.update({
-      owner,
-      repo,
-      name: API_REVIEW_CHECK_NAME,
-      status: 'completed',
-      title: 'PR no longer requires API Review',
-      check_run_id: checkRun.id,
-      conclusion: CheckRunStatus.NEUTRAL,
-    });
+    const params: Endpoints['PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}']['parameters'] =
+      {
+        owner,
+        repo,
+        name: API_REVIEW_CHECK_NAME,
+        status: 'completed',
+        output: {
+          title: 'Outdated',
+          summary: 'PR no longer requires API Review',
+        },
+        check_run_id: checkRun.id,
+        conclusion: CheckRunStatus.NEUTRAL,
+      };
+    return await octokit.checks.update(params);
   };
 
   // We do not care about PRs without an API review label of any kind.
