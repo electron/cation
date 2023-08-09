@@ -383,7 +383,10 @@ describe('api review', () => {
     const expected = {
       name: API_REVIEW_CHECK_NAME,
       status: 'completed',
-      title: 'PR no longer requires API Review',
+      output: {
+        title: 'Outdated',
+        summary: 'PR no longer requires API Review',
+      },
       conclusion: CheckRunStatus.NEUTRAL,
     };
 
