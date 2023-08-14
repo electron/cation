@@ -31,11 +31,10 @@ export async function addOrUpdateDeprecationReviewCheck(
     `Validating ${pr.number} by ${pr.user.login}`,
   );
 
-  const fork = pr.head.repo.fork;
   const owner = pr.base.repo.owner.login;
   const repo = pr.head.repo.name;
 
-  if (fork) {
+  if (pr.head.repo.fork) {
     log(
       'addOrUpdateDeprecationReviewCheck',
       LogLevel.INFO,
@@ -46,16 +45,14 @@ export async function addOrUpdateDeprecationReviewCheck(
   }
 
   // Fetch the latest Deprecation Review check for the PR.
-  const checkRun = fork
-    ? null
-    : (
-        await octokit.checks.listForRef({
-          ref: pr.head.sha,
-          per_page: 100,
-          owner,
-          repo,
-        })
-      ).data.check_runs.find((run) => run.name === DEPRECATION_REVIEW_CHECK_NAME);
+  const checkRun = (
+    await octokit.checks.listForRef({
+      ref: pr.head.sha,
+      per_page: 100,
+      owner,
+      repo,
+    })
+  ).data.check_runs.find((run) => run.name === DEPRECATION_REVIEW_CHECK_NAME);
 
   const resetToNeutral = async () => {
     if (!checkRun) return;
@@ -81,7 +78,6 @@ export async function addOrUpdateDeprecationReviewCheck(
     await resetToNeutral();
     return;
   }
-
 
   // Update the GitHub Check with appropriate deprecation review information.
   const updateCheck = async (
