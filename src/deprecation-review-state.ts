@@ -41,6 +41,8 @@ export async function addOrUpdateDeprecationReviewCheck(
       LogLevel.INFO,
       `${pr.number} is a fork - checks will not be created or updated`,
     );
+    // If the PR is a fork PR, return early as the Checks API doesn't work.
+    return;
   }
 
   // Fetch the latest Deprecation Review check for the PR.
@@ -80,8 +82,6 @@ export async function addOrUpdateDeprecationReviewCheck(
     return;
   }
 
-  // If the PR is a fork PR, return early as the Checks API doesn't work.
-  if (fork) return;
 
   // Update the GitHub Check with appropriate deprecation review information.
   const updateCheck = async (
