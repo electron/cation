@@ -40,6 +40,11 @@ export const REVIEW_LABELS = {
   DECLINED: 'api-review/declined ❌',
 };
 
+export const DEPRECATION_REVIEW_LABELS = {
+  REQUESTED: 'deprecation-review/requested 📝',
+  COMPLETE: 'deprecation-review/complete ✅',
+};
+
 export const REVIEW_STATUS = {
   APPROVED: 'APPROVED',
   CHANGES_REQUESTED: 'CHANGES_REQUESTED',
@@ -47,6 +52,8 @@ export const REVIEW_STATUS = {
 };
 
 export const API_REVIEW_CHECK_NAME = 'API Review';
+
+export const DEPRECATION_REVIEW_CHECK_NAME = 'Deprecation Review';
 
 export const API_WORKING_GROUP = 'wg-api';
 
