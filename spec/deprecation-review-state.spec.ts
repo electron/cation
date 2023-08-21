@@ -24,7 +24,7 @@ const handler = async (app: Probot) => {
 };
 
 const CHECKLIST_COMMENT = fs.readFileSync(
-  path.join(__dirname, '..', 'src', 'deprecation-checklist.md'),
+  path.join(__dirname, '..', 'assets', 'deprecation-checklist.md'),
   'utf-8',
 );
 

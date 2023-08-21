@@ -161,7 +161,10 @@ export async function maybeAddChecklistComment(octokit: Context['octokit'], pr: 
       owner,
       repo,
       issue_number: pr.number,
-      body: fs.readFileSync(path.join(__dirname, 'deprecation-checklist.md'), 'utf-8'),
+      body: fs.readFileSync(
+        path.join(__dirname, '..', 'assets', 'deprecation-checklist.md'),
+        'utf-8',
+      ),
     });
   }
 }
