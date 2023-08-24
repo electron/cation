@@ -2,7 +2,7 @@
   "action": "edited",
   "changes": {
       "body": {
-          "from": "## 🪦 Deprecation Checklist\r\n\r\n### ð¥ New deprecations in this PR\r\n\r\n- [x] ð¢ Are called out in [`docs/breaking-changes.md`][]\r\n- [x] â ï¸ Use the deprecation helpers in [`lib/common/deprecate.ts`](https://github.com/electron/electron/blob/main/lib/common/deprecate.ts) to warn about usage (including events)\r\n- [ ] ð Are marked as deprecated in the docs, using `_Deprecated_` (including properties and events)\r\n\r\n[`docs/breaking-changes.md`]: https://github.com/electron/electron/blob/main/docs/breaking-changes.md"
+          "from": "## 🪦 Deprecation Checklist\r\n\r\n### ð¥ New deprecations in this PR\r\n\r\n- [ ] ð¢ Are called out in [`docs/breaking-changes.md`][]\r\n- [ ] â ï¸ Use the deprecation helpers in [`lib/common/deprecate.ts`](https://github.com/electron/electron/blob/main/lib/common/deprecate.ts) to warn about usage (including events)\r\n- [ ] ð Are marked as deprecated in the docs, using `_Deprecated_` (including properties and events)\r\n\r\n[`docs/breaking-changes.md`]: https://github.com/electron/electron/blob/main/docs/breaking-changes.md"
       }
   },
   "issue": {
@@ -112,7 +112,7 @@
       "created_at": "2023-08-11T01:58:23Z",
       "updated_at": "2023-08-11T01:59:33Z",
       "author_association": "NONE",
-      "body": "## 🪦 Deprecation Checklist\r\n\r\n### ð¥ New deprecations in this PR\r\n\r\n- [x] ð¢ Are called out in [`docs/breaking-changes.md`][]\r\n- [x] â ï¸ Use the deprecation helpers in [`lib/common/deprecate.ts`](https://github.com/electron/electron/blob/main/lib/common/deprecate.ts) to warn about usage (including events)\r\n- [x] ð Are marked as deprecated in the docs, using `_Deprecated_` (including properties and events)\r\n\r\n[`docs/breaking-changes.md`]: https://github.com/electron/electron/blob/main/docs/breaking-changes.md",
+      "body": "## 🪦 Deprecation Checklist\r\n\r\n### ð¥ New deprecations in this PR\r\n\r\n- [ ] ð¢ Are called out in [`docs/breaking-changes.md`][]\r\n- [x] â ï¸ Use the deprecation helpers in [`lib/common/deprecate.ts`](https://github.com/electron/electron/blob/main/lib/common/deprecate.ts) to warn about usage (including events)\r\n- [x] ð Are marked as deprecated in the docs, using `_Deprecated_` (including properties and events)\r\n\r\n[`docs/breaking-changes.md`]: https://github.com/electron/electron/blob/main/docs/breaking-changes.md",
       "reactions": {
           "url": "https://api.github.com/repos/dsanders11/deprecation-review/issues/comments/1674130054/reactions",
           "total_count": 0,

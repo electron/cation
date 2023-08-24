@@ -18,6 +18,7 @@ import {
 } from '../src/constants';
 
 import { CheckRunStatus } from '../src/enums';
+import { loadFixture } from './utils';
 
 const handler = async (app: Probot) => {
   setupDeprecationReviewStateManagement(app);
@@ -33,6 +34,7 @@ describe('deprecation review', () => {
   let moctokit: any;
 
   beforeEach(() => {
+    nock.cleanAll();
     nock.disableNetConnect();
     robot = new Probot({
       githubToken: 'test',
@@ -66,6 +68,8 @@ describe('deprecation review', () => {
   });
 
   afterEach(() => {
+    console.log(nock.pendingMocks());
+    expect(nock.isDone()).toEqual(true);
     nock.cleanAll();
   });
 
@@ -82,23 +86,23 @@ describe('deprecation review', () => {
 
   describe('isChecklistComment', () => {
     it('should return true for the checklist comment', () => {
-      const {
-        comment,
-      } = require('./fixtures/deprecation-review-state/issue_comment.checklist_complete.json');
+      const { comment } = loadFixture(
+        'deprecation-review-state/issue_comment.checklist_complete.json',
+      );
       expect(isChecklistComment(comment)).toEqual(true);
     });
 
     it('should false true for any other comment', () => {
-      const { comment } = require('./fixtures/deprecation-review-state/issue_comment.edited.json');
+      const { comment } = loadFixture('deprecation-review-state/issue_comment.edited.json');
       expect(isChecklistComment(comment)).toEqual(false);
     });
   });
 
   describe('addOrUpdateDeprecationReviewCheck', () => {
     it('should reset the check when PR does not have a deprecation review label', async () => {
-      const {
-        pull_request,
-      } = require('./fixtures/deprecation-review-state/pull_request.no_review_label.json');
+      const { pull_request } = loadFixture(
+        'deprecation-review-state/pull_request.no_review_label.json',
+      );
 
       moctokit.checks.listForRef = jest.fn().mockReturnValue({
         data: {
@@ -132,9 +136,9 @@ describe('deprecation review', () => {
     });
 
     it(`should create the check for a PR with the ${DEPRECATION_REVIEW_LABELS.REQUESTED} label`, async () => {
-      const {
-        pull_request,
-      } = require('./fixtures/deprecation-review-state/pull_request.requested_review_label.json');
+      const { pull_request } = loadFixture(
+        'deprecation-review-state/pull_request.requested_review_label.json',
+      );
 
       moctokit.checks.listForRef = jest.fn().mockReturnValue({
         data: {
@@ -156,9 +160,9 @@ describe('deprecation review', () => {
     });
 
     it('should not use Checks API when the PR is from a fork', async () => {
-      const {
-        pull_request,
-      } = require('./fixtures/deprecation-review-state/pull_request.requested_review_label.json');
+      const { pull_request } = loadFixture(
+        'deprecation-review-state/pull_request.requested_review_label.json',
+      );
 
       pull_request.head.repo.fork = true;
 
@@ -168,7 +172,9 @@ describe('deprecation review', () => {
     });
 
     it(`should correctly update deprecation review check for ${DEPRECATION_REVIEW_LABELS.COMPLETE} label`, async () => {
-      const payload = require('./fixtures/deprecation-review-state/pull_request.review_complete_label.json');
+      const payload = loadFixture(
+        'deprecation-review-state/pull_request.review_complete_label.json',
+      );
 
       moctokit.checks.listForRef = jest.fn().mockReturnValue({
         data: {
@@ -198,9 +204,9 @@ describe('deprecation review', () => {
 
   describe('maybeAddChecklistComment', () => {
     it('should comment on the PR when Deprecation Review is requested', async () => {
-      const {
-        pull_request,
-      } = require('./fixtures/deprecation-review-state/pull_request.requested_review_label.json');
+      const { pull_request } = loadFixture(
+        'deprecation-review-state/pull_request.requested_review_label.json',
+      );
 
       await maybeAddChecklistComment(moctokit, pull_request);
       expect(moctokit.issues.createComment).toHaveBeenCalledWith(
@@ -211,18 +217,18 @@ describe('deprecation review', () => {
     });
 
     it('should not comment on a PR when no Deprecation Review is requested', async () => {
-      const {
-        pull_request,
-      } = require('./fixtures/deprecation-review-state/pull_request.no_review_label.json');
+      const { pull_request } = loadFixture(
+        'deprecation-review-state/pull_request.no_review_label.json',
+      );
 
       await maybeAddChecklistComment(moctokit, pull_request);
       expect(moctokit.issues.createComment).not.toHaveBeenCalled();
     });
 
     it('should not comment on the PR when the comment already exists', async () => {
-      const {
-        pull_request,
-      } = require('./fixtures/deprecation-review-state/pull_request.requested_review_label.json');
+      const { pull_request } = loadFixture(
+        'deprecation-review-state/pull_request.requested_review_label.json',
+      );
 
       moctokit.issues.listComments = jest.fn().mockReturnValue({
         data: [
@@ -241,7 +247,9 @@ describe('deprecation review', () => {
   });
 
   it(`creates the deprecation review check and comments when review is requested`, async () => {
-    const payload = require('./fixtures/deprecation-review-state/pull_request.requested_review_label.json');
+    const payload = loadFixture(
+      'deprecation-review-state/pull_request.requested_review_label.json',
+    );
 
     nock('https://api.github.com')
       .get(
@@ -267,7 +275,7 @@ describe('deprecation review', () => {
     };
 
     nock('https://api.github.com')
-      .post(`/repos/dsanders11/deprecation-review/check-runs/`, (body) => {
+      .post('/repos/dsanders11/deprecation-review/check-runs', (body) => {
         expect(body).toMatchObject(expected);
         return true;
       })
@@ -291,7 +299,7 @@ describe('deprecation review', () => {
   });
 
   it(`correctly updates deprecation review check when no review labels are found`, async () => {
-    const payload = require('./fixtures/deprecation-review-state/pull_request.no_review_label.json');
+    const payload = loadFixture('deprecation-review-state/pull_request.no_review_label.json');
 
     nock('https://api.github.com')
       .get(
@@ -331,7 +339,7 @@ describe('deprecation review', () => {
   });
 
   it('correctly updates deprecation review check and deprecation review label when pr is unlabeled', async () => {
-    const payload = require('./fixtures/deprecation-review-state/pull_request.unlabeled.json');
+    const payload = loadFixture('deprecation-review-state/pull_request.unlabeled.json');
 
     nock('https://api.github.com')
       .get(
@@ -354,53 +362,57 @@ describe('deprecation review', () => {
   });
 
   it('does nothing for an edited comment that is not the deprecation checklist', async () => {
-    const payload = require('./fixtures/deprecation-review-state/issue_comment.edited.json');
+    const payload = loadFixture('deprecation-review-state/issue_comment.edited.json');
 
     await robot.receive({
       id: '123-456',
       name: 'issue_comment',
       payload,
     });
-    expect(nock.isDone()).toEqual(true);
+  });
+
+  it('does nothing when checklist is incomplete', async () => {
+    const payload = loadFixture('deprecation-review-state/issue_comment.checklist_incomplete.json');
+
+    await robot.receive({
+      id: '123-456',
+      name: 'issue_comment',
+      payload,
+    });
   });
 
   it('correctly updates deprecation review check and deprecation review label when checklist complete', async () => {
-    const payload = require('./fixtures/deprecation-review-state/issue_comment.checklist_complete.json');
+    const payload = loadFixture('deprecation-review-state/issue_comment.checklist_complete.json');
 
     nock('https://api.github.com')
       .get(
-        `/repos/dsanders11/deprecation-review/issues/${payload.number}/labels?per_page=100&page=1`,
+        `/repos/dsanders11/deprecation-review/issues/${payload.issue.number}/labels?per_page=100&page=1`,
       )
-      .reply(200, [DEPRECATION_REVIEW_LABELS.REQUESTED]);
+      .reply(200, [{ name: DEPRECATION_REVIEW_LABELS.REQUESTED }])
+      .get(
+        `/repos/dsanders11/deprecation-review/issues/${payload.issue.number}/labels?per_page=100&page=1`,
+      )
+      .reply(200, [
+        { name: DEPRECATION_REVIEW_LABELS.REQUESTED },
+        { name: DEPRECATION_REVIEW_LABELS.COMPLETE },
+      ]);
 
     nock('https://api.github.com')
-      .post(`/repos/dsanders11/deprecation-review/issues/${payload.number}/labels`, (body) => {
-        expect(body).toEqual([DEPRECATION_REVIEW_LABELS.REQUESTED]);
-        return true;
-      })
-      .reply(200)
-      .post(`/repos/dsanders11/deprecation-review/issues/${payload.number}/labels`, (body) => {
-        expect(body).toEqual([DEPRECATION_REVIEW_LABELS.COMPLETE]);
-        return true;
-      })
+      .post(
+        `/repos/dsanders11/deprecation-review/issues/${payload.issue.number}/labels`,
+        (body) => {
+          expect(body).toEqual([DEPRECATION_REVIEW_LABELS.COMPLETE]);
+          return true;
+        },
+      )
       .reply(200);
 
-    const expected = {
-      name: DEPRECATION_REVIEW_CHECK_NAME,
-      status: 'completed',
-      output: {
-        title: 'Complete',
-        summary: 'All review items have been checked off',
-      },
-      conclusion: CheckRunStatus.SUCCESS,
-    };
-
+    const encoded = encodeURIComponent(DEPRECATION_REVIEW_LABELS.REQUESTED);
     nock('https://api.github.com')
-      .patch(`/repos/dsanders11/deprecation-review/check-runs/12345`, (body) => {
-        expect(body).toMatchObject(expected);
-        return true;
-      })
-      .reply(200);
+      .delete(
+        `/repos/dsanders11/deprecation-review/issues/${payload.issue.number}/labels/${encoded}`,
+      )
+      .reply(200, [{ name: DEPRECATION_REVIEW_LABELS.COMPLETE }]);
 
     await robot.receive({
       id: '123-456',
