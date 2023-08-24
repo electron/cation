@@ -33,7 +33,7 @@
       "type": "User",
       "site_admin": false
     },
-    "body": "Unhandled exception error is received if description is not defined while running \"npm run make.\"  Defining a description solves this issue.\r\n\r\n#### Description of Change\r\n<!--\r\nThank you for your Pull Request. Please provide a description above and review\r\nthe requirements below.\r\n\r\nContributors guide: https://github.com/electron/electron/blob/master/CONTRIBUTING.md\r\n-->\r\n\r\n#### Checklist\r\n<!-- Remove items that do not apply. For completed items, change [ ] to [x]. -->\r\n\r\n- [x] PR description included and stakeholders cc'd\r\n- [x] `npm test` passes\r\n- [x] tests are [changed or added](https://github.com/electron/electron/blob/master/docs/development/testing.md)\r\n- [x] relevant documentation is changed or added\r\n- [ ] [PR release notes](https://github.com/electron/clerk/blob/master/README.md) describe the change in a way relevant to app developers, and are [capitalized, punctuated, and past tense](https://github.com/electron/clerk/blob/master/README.md#examples).\r\n\r\n#### Release Notes\r\n\r\nNotes: none",
+    "body": "Unhandled exception error is received if description is not defined while running \"npm run make.\"  Defining a description solves this issue.\r\n\r\n#### Description of Change\r\n<!--\r\nThank you for your Pull Request. Please provide a description above and review\r\nthe requirements below.\r\n\r\nContributors guide: https://github.com/electron/electron/blob/main/CONTRIBUTING.md\r\n-->\r\n\r\n#### Checklist\r\n<!-- Remove items that do not apply. For completed items, change [ ] to [x]. -->\r\n\r\n- [x] PR description included and stakeholders cc'd\r\n- [x] `npm test` passes\r\n- [x] tests are [changed or added](https://github.com/electron/electron/blob/main/docs/development/testing.md)\r\n- [x] relevant documentation is changed or added\r\n- [ ] [PR release notes](https://github.com/electron/clerk/blob/main/README.md) describe the change in a way relevant to app developers, and are [capitalized, punctuated, and past tense](https://github.com/electron/clerk/blob/main/README.md#examples).\r\n\r\n#### Release Notes\r\n\r\nNotes: none",
     "created_at": "2020-12-03T20:08:02Z",
     "updated_at": "2020-12-08T04:26:18Z",
     "closed_at": null,
@@ -192,7 +192,7 @@
         "forks": 0,
         "open_issues": 0,
         "watchers": 0,
-        "default_branch": "master",
+        "default_branch": "main",
         "allow_squash_merge": true,
         "allow_merge_commit": true,
         "allow_rebase_merge": true,
@@ -200,8 +200,8 @@
       }
     },
     "base": {
-      "label": "electron:master",
-      "ref": "master",
+      "label": "electron:main",
+      "ref": "main",
       "sha": "45eee468647309e9e6cdb2a88a3b460a59771fef",
       "user": {
         "login": "electron",
@@ -321,7 +321,7 @@
         "forks": 11756,
         "open_issues": 1526,
         "watchers": 87935,
-        "default_branch": "master",
+        "default_branch": "main",
         "allow_squash_merge": true,
         "allow_merge_commit": false,
         "allow_rebase_merge": true,
@@ -476,7 +476,7 @@
     "forks": 11756,
     "open_issues": 1526,
     "watchers": 87935,
-    "default_branch": "master"
+    "default_branch": "main"
   },
   "installation": {
     "id": 690857

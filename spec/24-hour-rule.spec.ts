@@ -18,6 +18,7 @@ import {
   SEMVER_LABELS,
   SEMVER_NONE_LABEL,
 } from '../src/constants';
+import { loadFixture } from './utils';
 
 const handler = async (app: Probot) => {
   setUp24HourRule(app, true);
@@ -28,6 +29,7 @@ describe('pr open time', () => {
   let moctokit: any;
 
   beforeEach(() => {
+    nock.cleanAll();
     nock.disableNetConnect();
 
     robot = new Probot({
@@ -47,47 +49,48 @@ describe('pr open time', () => {
   });
 
   afterEach(() => {
+    expect(nock.isDone()).toEqual(true);
     nock.cleanAll();
   });
 
   it('correctly returns the time for a semver-patch label', async () => {
-    const payload = require('./fixtures/pr-open-time/pull_request.semver-patch.json');
+    const payload = loadFixture('pr-open-time/pull_request.semver-patch.json');
     const minTime = getMinimumOpenTime(payload);
 
     expect(minTime).toEqual(MINIMUM_PATCH_OPEN_TIME);
   });
 
   it('correctly returns the time for a semver-minor label', async () => {
-    const payload = require('./fixtures/pr-open-time/pull_request.semver-minor.json');
+    const payload = loadFixture('pr-open-time/pull_request.semver-minor.json');
     const minTime = getMinimumOpenTime(payload);
 
     expect(minTime).toEqual(MINIMUM_MINOR_OPEN_TIME);
   });
 
   it('correctly returns the time for a semver-major label', async () => {
-    const payload = require('./fixtures/pr-open-time/pull_request.semver-major.json');
+    const payload = loadFixture('pr-open-time/pull_request.semver-major.json');
     const minTime = getMinimumOpenTime(payload);
 
     expect(minTime).toEqual(MINIMUM_MAJOR_OPEN_TIME);
   });
 
   it('correctly returns the time for a semver-none label', async () => {
-    const payload = require('./fixtures/pr-open-time/pull_request.semver-none.json');
+    const payload = loadFixture('pr-open-time/pull_request.semver-none.json');
     const minTime = getMinimumOpenTime(payload);
 
     expect(minTime).toEqual(MINIMUM_PATCH_OPEN_TIME);
   });
 
   it('correctly returns the time for a missing semver label', async () => {
-    const payload = require('./fixtures/pr-open-time/pull_request.semver-missing.json');
+    const payload = loadFixture('pr-open-time/pull_request.semver-missing.json');
     const minTime = getMinimumOpenTime(payload);
 
     expect(minTime).toEqual(MINIMUM_MAJOR_OPEN_TIME);
   });
 
   it('correctly determines whether to exclude some PRs from labels', async () => {
-    const noLabelPayload = require('./fixtures/pr-open-time/pull_request.should_not_label.json');
-    const yesLabelPayload = require('./fixtures/pr-open-time/pull_request.should_label.json');
+    const noLabelPayload = loadFixture('pr-open-time/pull_request.should_not_label.json');
+    const yesLabelPayload = loadFixture('pr-open-time/pull_request.should_label.json');
 
     // Set created_at to yesterday.
     yesLabelPayload.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
@@ -100,7 +103,7 @@ describe('pr open time', () => {
   });
 
   it('does not add the new-pr label to merged PRs', async () => {
-    const payload = require('./fixtures/pr-open-time/pull_request.should_label.json');
+    const payload = loadFixture('pr-open-time/pull_request.should_label.json');
     payload.merged = true;
 
     const label = await shouldPRHaveLabel(moctokit, payload);
@@ -218,7 +221,7 @@ describe('pr open time', () => {
   });
 
   it(`can add a ${NEW_PR_LABEL} label to a pull request`, async () => {
-    const payload = require('./fixtures/pr-open-time/pull_request.opened.json');
+    const payload = loadFixture('pr-open-time/pull_request.opened.json');
 
     // Set created_at to yesterday.
     payload.pull_request.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
@@ -246,7 +249,7 @@ describe('pr open time', () => {
   });
 
   it(`takes draft status into account when adding a ${NEW_PR_LABEL} label`, async () => {
-    const payload = require('./fixtures/pr-open-time/pull_request.opened.json');
+    const payload = loadFixture('pr-open-time/pull_request.opened.json');
 
     // Set created_at to 5 days ago.
     const msInADay = 1638370929101;
@@ -265,13 +268,6 @@ describe('pr open time', () => {
     nock('https://api.github.com')
       .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
       .reply(200, [{ name: 'one' }, { name: 'two' }]);
-
-    nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
-        expect(body).toEqual([NEW_PR_LABEL]);
-        return true;
-      })
-      .reply(200);
 
     await robot.receive({
       id: '123-456',

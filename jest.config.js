@@ -9,6 +9,9 @@ module.exports = {
   },
   clearMocks: true,
   testRegex: '(/spec/.*|(\\.|/)(test|spec))\\.tsx?$',
+  testPathIgnorePatterns: [
+    'spec/utils.ts'
+  ],
   moduleFileExtensions: [
     'ts',
     'tsx',
