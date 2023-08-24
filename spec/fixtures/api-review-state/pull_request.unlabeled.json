@@ -60,8 +60,8 @@
       }
     },
     "base": {
-      "label": "electron:master",
-      "ref": "master",
+      "label": "electron:main",
+      "ref": "main",
       "sha": "c41b8d536b2d886abbe739374c0a46f99242a894",
       "user": {
         "login": "electron",
@@ -88,6 +88,7 @@
         "node_id": "MDEwOlJlcG9zaXRvcnk5Mzg0MjY3",
         "name": "electron",
         "full_name": "electron/electron",
+        "default_branch": "main",
         "private": false,
         "owner": {
           "login": "electron",

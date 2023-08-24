@@ -173,7 +173,7 @@
         "forks": 11755,
         "open_issues": 1525,
         "watchers": 87932,
-        "default_branch": "master",
+        "default_branch": "main",
         "allow_squash_merge": true,
         "allow_merge_commit": false,
         "allow_rebase_merge": true,
@@ -181,8 +181,8 @@
       }
     },
     "base": {
-      "label": "electron:master",
-      "ref": "master",
+      "label": "electron:main",
+      "ref": "main",
       "sha": "771e34a53a03bfaa8299a0eb28589baeae756a7b",
       "user": {
         "login": "electron",
@@ -302,7 +302,7 @@
         "forks": 11755,
         "open_issues": 1525,
         "watchers": 87932,
-        "default_branch": "master",
+        "default_branch": "main",
         "allow_squash_merge": true,
         "allow_merge_commit": false,
         "allow_rebase_merge": true,
@@ -448,7 +448,7 @@
     "forks": 11755,
     "open_issues": 1525,
     "watchers": 87932,
-    "default_branch": "master"
+    "default_branch": "main"
   },
   "installation": {
     "id": 690857

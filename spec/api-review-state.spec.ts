@@ -42,6 +42,7 @@ describe('api review', () => {
   let moctokit: any;
 
   beforeEach(() => {
+    nock.cleanAll();
     nock.disableNetConnect();
     robot = new Probot({
       githubToken: 'test',
@@ -74,6 +75,7 @@ describe('api review', () => {
   });
 
   afterEach(() => {
+    expect(nock.isDone()).toEqual(true);
     nock.cleanAll();
   });
 
@@ -436,20 +438,6 @@ describe('api review', () => {
           .reply(200, [c1]);
 
         nock('https://api.github.com')
-          .get(`/repos/electron/electron/issues/${pull_request.number}/labels?per_page=100&page=1`)
-          .reply(200, [
-            {
-              id: 208045946,
-              node_id: 'MDU6TGFiZWwyMDgwNDU5NDY=',
-              url: `https://api.github.com/repos/electron/electron/labels/${REVIEW_LABELS.REQUESTED}`,
-              name: REVIEW_LABELS.REQUESTED,
-              description: '',
-              color: 'f29513',
-              default: true,
-            },
-          ]);
-
-        nock('https://api.github.com')
           .post('/repos/electron/electron/check-runs', (body) => {
             expect(body).toMatchObject({
               name: API_REVIEW_CHECK_NAME,
@@ -680,20 +668,6 @@ describe('api review', () => {
         nock('https://api.github.com')
           .get(`/repos/electron/electron/issues/${pull_request.number}/comments`)
           .reply(200, [c1]);
-
-        nock('https://api.github.com')
-          .get(`/repos/electron/electron/issues/${pull_request.number}/labels?per_page=100&page=1`)
-          .reply(200, [
-            {
-              id: 208045946,
-              node_id: 'MDU6TGFiZWwyMDgwNDU5NDY=',
-              url: `https://api.github.com/repos/electron/electron/labels/${REVIEW_LABELS.REQUESTED}`,
-              name: REVIEW_LABELS.REQUESTED,
-              description: '',
-              color: 'f29513',
-              default: true,
-            },
-          ]);
 
         await robot.receive({
           id: '123-456',

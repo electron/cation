@@ -12,6 +12,7 @@ describe('add-triage-labels', () => {
   let robot: Probot;
 
   beforeEach(() => {
+    nock.cleanAll();
     nock.disableNetConnect();
 
     robot = new Probot({
@@ -22,6 +23,11 @@ describe('add-triage-labels', () => {
     });
 
     robot.load(handler);
+  });
+
+  afterEach(() => {
+    expect(nock.isDone()).toEqual(true);
+    nock.cleanAll();
   });
 
   it('adds correct labels to documentation PRs', async () => {

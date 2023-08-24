@@ -11,6 +11,7 @@ describe('semver-enforcement', () => {
   let robot: Probot;
 
   beforeEach(() => {
+    nock.cleanAll();
     nock.disableNetConnect();
 
     robot = new Probot({
@@ -21,6 +22,11 @@ describe('semver-enforcement', () => {
     });
 
     robot.load(handler);
+  });
+
+  afterEach(() => {
+    expect(nock.isDone()).toEqual(true);
+    nock.cleanAll();
   });
 
   it('correctly responds to a missing semver label', async () => {

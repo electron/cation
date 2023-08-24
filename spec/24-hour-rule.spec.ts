@@ -28,6 +28,7 @@ describe('pr open time', () => {
   let moctokit: any;
 
   beforeEach(() => {
+    nock.cleanAll();
     nock.disableNetConnect();
 
     robot = new Probot({
@@ -47,6 +48,7 @@ describe('pr open time', () => {
   });
 
   afterEach(() => {
+    expect(nock.isDone()).toEqual(true);
     nock.cleanAll();
   });
 
@@ -265,13 +267,6 @@ describe('pr open time', () => {
     nock('https://api.github.com')
       .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
       .reply(200, [{ name: 'one' }, { name: 'two' }]);
-
-    nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
-        expect(body).toEqual([NEW_PR_LABEL]);
-        return true;
-      })
-      .reply(200);
 
     await robot.receive({
       id: '123-456',
