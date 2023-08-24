@@ -276,7 +276,7 @@ export function setupDeprecationReviewStateManagement(probot: Probot) {
     if (!isChecklistComment(comment)) return;
 
     // If there are no unchecked items then add the review completed label
-    if (!comment.body.matchAll(/^- \[ \] /gm)) {
+    if (comment.body.search(/^- \[ \] /gm) === -1) {
       await addLabels(context.octokit, {
         ...context.repo({}),
         prNumber: prNumber,
