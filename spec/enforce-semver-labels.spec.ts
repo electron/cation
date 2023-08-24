@@ -2,6 +2,7 @@ import { Probot } from 'probot';
 import * as nock from 'nock';
 
 import { setupSemverLabelEnforcement } from '../src/enforce-semver-labels';
+import { loadFixture } from './utils';
 
 const handler = async (app: Probot) => {
   setupSemverLabelEnforcement(app);
@@ -30,7 +31,7 @@ describe('semver-enforcement', () => {
   });
 
   it('correctly responds to a missing semver label', async () => {
-    const payload = require('./fixtures/semver-enforcement/pull_request.opened.json');
+    const payload = loadFixture('semver-enforcement/pull_request.opened.json');
 
     const expected = {
       name: 'Semver Label Enforcement',
@@ -57,7 +58,7 @@ describe('semver-enforcement', () => {
   });
 
   it('correctly responds to a single applied semver label', async () => {
-    const payload = require('./fixtures/semver-enforcement/pull_request.labeled.json');
+    const payload = loadFixture('semver-enforcement/pull_request.labeled.json');
 
     const expected = {
       name: 'Semver Label Enforcement',
@@ -84,7 +85,7 @@ describe('semver-enforcement', () => {
   });
 
   it('correctly responds to too many semver labels', async () => {
-    const payload = require('./fixtures/semver-enforcement/pull_request.labeled.too_many.json');
+    const payload = loadFixture('semver-enforcement/pull_request.labeled.too_many.json');
 
     const expected = {
       name: 'Semver Label Enforcement',

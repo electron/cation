@@ -3,6 +3,7 @@ import * as nock from 'nock';
 
 import { addBasicPRLabels } from '../src/add-triage-labels';
 import { DOCUMENTATION_LABEL, SEMVER_LABELS, SEMVER_NONE_LABEL } from '../src/constants';
+import { loadFixture } from './utils';
 
 const handler = async (app: Probot) => {
   addBasicPRLabels(app);
@@ -31,7 +32,7 @@ describe('add-triage-labels', () => {
   });
 
   it('adds correct labels to documentation PRs', async () => {
-    const payload = require('./fixtures/add-triage-labels/docs_pr_opened.json');
+    const payload = loadFixture('add-triage-labels/docs_pr_opened.json');
 
     nock('https://api.github.com')
       .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
@@ -52,7 +53,7 @@ describe('add-triage-labels', () => {
   });
 
   it('adds correct labels to build PRs', async () => {
-    const payload = require('./fixtures/add-triage-labels/build_pr_opened.json');
+    const payload = loadFixture('add-triage-labels/build_pr_opened.json');
 
     nock('https://api.github.com')
       .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
@@ -73,7 +74,7 @@ describe('add-triage-labels', () => {
   });
 
   it('adds correct labels to test PRs', async () => {
-    const payload = require('./fixtures/add-triage-labels/test_pr_opened.json');
+    const payload = loadFixture('add-triage-labels/test_pr_opened.json');
 
     nock('https://api.github.com')
       .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
@@ -94,7 +95,7 @@ describe('add-triage-labels', () => {
   });
 
   it('adds correct labels to CI PRs', async () => {
-    const payload = require('./fixtures/add-triage-labels/ci_pr_opened.json');
+    const payload = loadFixture('add-triage-labels/ci_pr_opened.json');
 
     nock('https://api.github.com')
       .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)

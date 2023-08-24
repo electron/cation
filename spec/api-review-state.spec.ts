@@ -20,6 +20,7 @@ import {
 } from '../src/constants';
 
 import { CheckRunStatus } from '../src/enums';
+import { loadFixture } from './utils';
 
 const API_WORKING_GROUP_MEMBERS = [
   { login: 'ckerr' },
@@ -96,7 +97,7 @@ describe('api review', () => {
   });
 
   it('correctly returns PR ready date for semver-major/semver-minor labels', async () => {
-    const { pull_request } = require('./fixtures/api-review-state/pull_request.semver-minor.json');
+    const { pull_request } = loadFixture('api-review-state/pull_request.semver-minor.json');
 
     // Set created_at to yesterday.
     pull_request.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
@@ -109,7 +110,7 @@ describe('api review', () => {
   });
 
   it('correctly returns PR ready date when semver-major/semver-minor labels not found', async () => {
-    const payload = require('./fixtures/api-review-state/pull_request.semver-patch.json');
+    const payload = loadFixture('api-review-state/pull_request.semver-patch.json');
 
     // Set created_at to yesterday.
     payload.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
@@ -122,7 +123,7 @@ describe('api review', () => {
   });
 
   it('should reset the check when PR does not have an API review label on a base PR', async () => {
-    let { pull_request } = require('./fixtures/api-review-state/pull_request.no_review_label.json');
+    let { pull_request } = loadFixture('api-review-state/pull_request.no_review_label.json');
 
     moctokit.checks.listForRef = jest.fn().mockReturnValue({
       data: {
@@ -146,7 +147,7 @@ describe('api review', () => {
   });
 
   it('should do nothing when the PR does not have an API review label on a fork PR', async () => {
-    let { pull_request } = require('./fixtures/api-review-state/pull_request.no_review_label.json');
+    let { pull_request } = loadFixture('api-review-state/pull_request.no_review_label.json');
 
     pull_request.fork = true;
 
@@ -161,9 +162,9 @@ describe('api review', () => {
   });
 
   it(`should correctly parse user approval status for ${REVIEW_LABELS.REQUESTED} label`, async () => {
-    const {
-      pull_request,
-    } = require('./fixtures/api-review-state/pull_request.requested_review_label.json');
+    const { pull_request } = loadFixture(
+      'api-review-state/pull_request.requested_review_label.json',
+    );
 
     moctokit.pulls.listReviews.mockReturnValue({
       data: [
@@ -230,9 +231,9 @@ describe('api review', () => {
   });
 
   it('should correctly parse user approvals when a previous approver requests changes', async () => {
-    const {
-      pull_request,
-    } = require('./fixtures/api-review-state/pull_request.requested_review_label.json');
+    const { pull_request } = loadFixture(
+      'api-review-state/pull_request.requested_review_label.json',
+    );
 
     moctokit.pulls.listReviews.mockReturnValue({
       data: [
@@ -269,9 +270,9 @@ describe('api review', () => {
   });
 
   it(`should correctly update api review check for ${REVIEW_LABELS.APPROVED} label`, async () => {
-    const {
-      pull_request,
-    } = require('./fixtures/api-review-state/pull_request.approved_review_label.json');
+    const { pull_request } = loadFixture(
+      'api-review-state/pull_request.approved_review_label.json',
+    );
 
     const users = await addOrUpdateAPIReviewCheck(moctokit, pull_request);
     expect(users).toEqual({
@@ -282,9 +283,9 @@ describe('api review', () => {
   });
 
   it(`should correctly update api review check for ${REVIEW_LABELS.DECLINED} label`, async () => {
-    const {
-      pull_request,
-    } = require('./fixtures/api-review-state/pull_request.declined_review_label.json');
+    const { pull_request } = loadFixture(
+      'api-review-state/pull_request.declined_review_label.json',
+    );
 
     const users = await addOrUpdateAPIReviewCheck(moctokit, pull_request);
     expect(users).toEqual({
@@ -295,7 +296,7 @@ describe('api review', () => {
   });
 
   it(`should not update api review label if the PR has ${NEW_PR_LABEL}`, async () => {
-    const { pull_request } = require('./fixtures/api-review-state/pull_request.new-pr_label.json');
+    const { pull_request } = loadFixture('api-review-state/pull_request.new-pr_label.json');
     await checkPRReadyForMerge(moctokit, pull_request, {
       approved: [],
       declined: [],
@@ -307,9 +308,7 @@ describe('api review', () => {
   });
 
   it(`should update api review label for ${REVIEW_LABELS.DECLINED}`, async () => {
-    const {
-      pull_request,
-    } = require('./fixtures/api-review-state/pull_request.no_review_label.json');
+    const { pull_request } = loadFixture('api-review-state/pull_request.no_review_label.json');
 
     await checkPRReadyForMerge(moctokit, pull_request, {
       approved: [],
@@ -327,9 +326,7 @@ describe('api review', () => {
   });
 
   it(`should update API review label for ${REVIEW_LABELS.APPROVED}`, async () => {
-    const {
-      pull_request,
-    } = require('./fixtures/api-review-state/pull_request.no_review_label.json');
+    const { pull_request } = loadFixture('api-review-state/pull_request.no_review_label.json');
 
     await checkPRReadyForMerge(moctokit, pull_request, {
       approved: ['jkleinsc', 'codebytere'],
@@ -347,9 +344,7 @@ describe('api review', () => {
   });
 
   it(`should set ${REVIEW_LABELS.REQUESTED} when there is one API LGTM and one request changes`, async () => {
-    const {
-      pull_request,
-    } = require('./fixtures/api-review-state/pull_request.no_review_label.json');
+    const { pull_request } = loadFixture('api-review-state/pull_request.no_review_label.json');
 
     await checkPRReadyForMerge(moctokit, pull_request, {
       approved: ['jkleinsc'],
@@ -367,7 +362,7 @@ describe('api review', () => {
   });
 
   it(`correctly updates api review check when no review labels are found`, async () => {
-    const payload = require('./fixtures/api-review-state/pull_request.no_review_label.json');
+    const payload = loadFixture('api-review-state/pull_request.no_review_label.json');
 
     nock('https://api.github.com')
       .get(
@@ -409,7 +404,7 @@ describe('api review', () => {
   describe('correctly updates API Review data when a PR review is submitted', () => {
     describe('from the base repo', () => {
       it('updates the check when there is one API LGTM', async () => {
-        const payload = require('./fixtures/api-review-state/pull_request_review/base/submitted.json');
+        const payload = loadFixture('api-review-state/pull_request_review/base/submitted.json');
         const { pull_request } = payload;
 
         nock('https://api.github.com')
@@ -427,12 +422,12 @@ describe('api review', () => {
             ],
           });
 
-        const r1 = require('./fixtures/api-review-state/pull_request_review/base/review_lgtm.json');
+        const r1 = loadFixture('api-review-state/pull_request_review/base/review_lgtm.json');
         nock('https://api.github.com')
           .get(`/repos/electron/electron/pulls/${pull_request.number}/reviews`)
           .reply(200, [r1]);
 
-        const c1 = require('./fixtures/api-review-state/pull_request_review/base/comment_neutral.json');
+        const c1 = loadFixture('api-review-state/pull_request_review/base/comment_neutral.json');
         nock('https://api.github.com')
           .get(`/repos/electron/electron/issues/${pull_request.number}/comments`)
           .reply(200, [c1]);
@@ -462,7 +457,7 @@ describe('api review', () => {
       });
 
       it('sets the label to APPROVED when there are two API LGTMs and updates the check', async () => {
-        const payload = require('./fixtures/api-review-state/pull_request_review/base/submitted.json');
+        const payload = loadFixture('api-review-state/pull_request_review/base/submitted.json');
         const { pull_request } = payload;
 
         nock('https://api.github.com')
@@ -480,8 +475,8 @@ describe('api review', () => {
             ],
           });
 
-        const r1 = require('./fixtures/api-review-state/pull_request_review/base/review_lgtm.json');
-        const r2 = require('./fixtures/api-review-state/pull_request_review/base/review_lgtm_2.json');
+        const r1 = loadFixture('api-review-state/pull_request_review/base/review_lgtm.json');
+        const r2 = loadFixture('api-review-state/pull_request_review/base/review_lgtm_2.json');
         nock('https://api.github.com')
           .get(`/repos/electron/electron/pulls/${pull_request.number}/reviews`)
           .reply(200, [r1, r2]);
@@ -557,7 +552,7 @@ describe('api review', () => {
       });
 
       it('sets the label to DECLINED when there is one API DECLINED', async () => {
-        const payload = require('./fixtures/api-review-state/pull_request_review/base/submitted.json');
+        const payload = loadFixture('api-review-state/pull_request_review/base/submitted.json');
         const { pull_request } = payload;
 
         nock('https://api.github.com')
@@ -575,7 +570,7 @@ describe('api review', () => {
             ],
           });
 
-        const r1 = require('./fixtures/api-review-state/pull_request_review/base/review_declined.json');
+        const r1 = loadFixture('api-review-state/pull_request_review/base/review_declined.json');
         nock('https://api.github.com')
           .get(`/repos/electron/electron/pulls/${pull_request.number}/reviews`)
           .reply(200, [r1]);
@@ -652,19 +647,19 @@ describe('api review', () => {
 
     describe('from a fork repo', () => {
       it('the label remains REQUESTED when there is one API LGTM', async () => {
-        const payload = require('./fixtures/api-review-state/pull_request_review/fork/submitted.json');
+        const payload = loadFixture('api-review-state/pull_request_review/fork/submitted.json');
         const { pull_request } = payload;
 
         nock('https://api.github.com')
           .get(`/orgs/electron/teams/${API_WORKING_GROUP}/members`)
           .reply(200, API_WORKING_GROUP_MEMBERS);
 
-        const r1 = require('./fixtures/api-review-state/pull_request_review/fork/review_lgtm.json');
+        const r1 = loadFixture('api-review-state/pull_request_review/fork/review_lgtm.json');
         nock('https://api.github.com')
           .get(`/repos/electron/electron/pulls/${pull_request.number}/reviews`)
           .reply(200, [r1]);
 
-        const c1 = require('./fixtures/api-review-state/pull_request_review/fork/comment_neutral.json');
+        const c1 = loadFixture('api-review-state/pull_request_review/fork/comment_neutral.json');
         nock('https://api.github.com')
           .get(`/repos/electron/electron/issues/${pull_request.number}/comments`)
           .reply(200, [c1]);
@@ -677,20 +672,20 @@ describe('api review', () => {
       });
 
       it('sets the label to APPROVED when there are two API LGTMs', async () => {
-        const payload = require('./fixtures/api-review-state/pull_request_review/fork/submitted.json');
+        const payload = loadFixture('api-review-state/pull_request_review/fork/submitted.json');
         const { pull_request } = payload;
 
         nock('https://api.github.com')
           .get(`/orgs/electron/teams/${API_WORKING_GROUP}/members`)
           .reply(200, API_WORKING_GROUP_MEMBERS);
 
-        const r1 = require('./fixtures/api-review-state/pull_request_review/fork/review_lgtm.json');
-        const r2 = require('./fixtures/api-review-state/pull_request_review/fork/review_lgtm_2.json');
+        const r1 = loadFixture('api-review-state/pull_request_review/fork/review_lgtm.json');
+        const r2 = loadFixture('api-review-state/pull_request_review/fork/review_lgtm_2.json');
         nock('https://api.github.com')
           .get(`/repos/electron/electron/pulls/${pull_request.number}/reviews`)
           .reply(200, [r1, r2]);
 
-        const c1 = require('./fixtures/api-review-state/pull_request_review/fork/comment_neutral.json');
+        const c1 = loadFixture('api-review-state/pull_request_review/fork/comment_neutral.json');
         nock('https://api.github.com')
           .get(`/repos/electron/electron/issues/${pull_request.number}/comments`)
           .reply(200, [c1]);
@@ -743,14 +738,14 @@ describe('api review', () => {
       });
 
       it('sets the label to DECLINED when there is one API DECLINED', async () => {
-        const payload = require('./fixtures/api-review-state/pull_request_review/fork/submitted.json');
+        const payload = loadFixture('api-review-state/pull_request_review/fork/submitted.json');
         const { pull_request } = payload;
 
         nock('https://api.github.com')
           .get(`/orgs/electron/teams/${API_WORKING_GROUP}/members`)
           .reply(200, API_WORKING_GROUP_MEMBERS);
 
-        const r1 = require('./fixtures/api-review-state/pull_request_review/fork/review_declined.json');
+        const r1 = loadFixture('api-review-state/pull_request_review/fork/review_declined.json');
         nock('https://api.github.com')
           .get(`/repos/electron/electron/pulls/${pull_request.number}/reviews`)
           .reply(200, [r1]);
@@ -809,7 +804,7 @@ describe('api review', () => {
   });
 
   it(`adds ${REVIEW_LABELS.REQUESTED} label if pr has semver/major or semver/minor label and no exclusion labels`, async () => {
-    const payload = require('./fixtures/api-review-state/pull_request.semver-minor.json');
+    const payload = loadFixture('api-review-state/pull_request.semver-minor.json');
 
     nock('https://api.github.com')
       .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
@@ -835,7 +830,7 @@ describe('api review', () => {
   });
 
   it('correctly update api review check and api review label when pr is unlabeled', async () => {
-    const payload = require('./fixtures/api-review-state/pull_request.unlabeled.json');
+    const payload = loadFixture('api-review-state/pull_request.unlabeled.json');
 
     nock('https://api.github.com')
       .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
