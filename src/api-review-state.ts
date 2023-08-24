@@ -62,28 +62,29 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
 
   type CommentOrReview = ListReviewsItem & ListCommentsItem;
 
+  const fork = pr.head.repo.fork;
   const owner = pr.base.repo.owner.login;
   const repo = pr.head.repo.name;
 
-  if (pr.head.repo.fork) {
+  if (fork) {
     log(
       'addOrUpdateAPIReviewCheck',
       LogLevel.INFO,
       `${pr.number} is a fork - checks will not be created or updated`,
     );
-    // If the PR is a fork PR, return early as the Checks API doesn't work.
-    return;
   }
 
   // Fetch the latest API Review check for the PR.
-  const checkRun = (
-    await octokit.checks.listForRef({
-      ref: pr.head.sha,
-      per_page: 100,
-      owner,
-      repo,
-    })
-  ).data.check_runs.find((run) => run.name === API_REVIEW_CHECK_NAME);
+  const checkRun = fork
+    ? null
+    : (
+        await octokit.checks.listForRef({
+          ref: pr.head.sha,
+          per_page: 100,
+          owner,
+          repo,
+        })
+      ).data.check_runs.find((run) => run.name === API_REVIEW_CHECK_NAME);
 
   const resetToNeutral = async () => {
     if (!checkRun) return;
@@ -218,6 +219,9 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
   );
 
   const users = { approved, declined, requestedChanges };
+
+  // If the PR is a fork PR, return early as the Checks API doesn't work.
+  if (fork) return users;
 
   // Update the GitHub Check with appropriate API review information.
   const updateCheck = async (
