@@ -2,6 +2,7 @@
 
 ### 🔥 New deprecations in this PR
 
+- [ ] 🏷️ Pull request is labeled as https://github.com/electron/electron/labels/semver%2Fmajor
 - [ ] 📢 Are called out in [`docs/breaking-changes.md`][]
 - [ ] ⚠️ Use the deprecation helpers in [`lib/common/deprecate.ts`](https://github.com/electron/electron/blob/main/lib/common/deprecate.ts) to warn about usage (including events)
 - [ ] 📝 Are marked as deprecated in the docs, using `_Deprecated_` (including properties and events)
@@ -9,6 +10,7 @@
 
 ### 🗑️ Previous deprecations being removed in this PR
 
+- [ ] 🏷️ Pull request is labeled as https://github.com/electron/electron/labels/semver%2Fmajor
 - [ ] 📢 Are called out as removed in [`docs/breaking-changes.md`][]
 - [ ] 📝 Are fully removed from the docs
 - [ ] ⌨️ All relevant code is removed
