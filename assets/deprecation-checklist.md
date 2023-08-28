@@ -9,6 +9,7 @@
 
 ### 🗑️ Previous deprecations being removed in this PR
 
+- [ ] 🏷️ Pull request is labeled as https://github.com/electron/electron/labels/semver%2Fmajor
 - [ ] 📢 Are called out as removed in [`docs/breaking-changes.md`][]
 - [ ] 📝 Are fully removed from the docs
 - [ ] ⌨️ All relevant code is removed
