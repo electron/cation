@@ -173,7 +173,6 @@ export function setupDeprecationReviewStateManagement(probot: Probot) {
   probot.on(
     ['pull_request.synchronize', 'pull_request.opened'],
     async (context: Context<'pull_request'>) => {
-      await maybeAddChecklistComment(context.octokit, context.payload.pull_request);
       await addOrUpdateDeprecationReviewCheck(context.octokit, context.payload.pull_request);
     },
   );
@@ -208,9 +207,12 @@ export function setupDeprecationReviewStateManagement(probot: Probot) {
           name: label.name,
         });
       }
+
+      if (label.name === DEPRECATION_REVIEW_LABELS.REQUESTED) {
+        await maybeAddChecklistComment(context.octokit, context.payload.pull_request);
+      }
     }
 
-    await maybeAddChecklistComment(context.octokit, context.payload.pull_request);
     await addOrUpdateDeprecationReviewCheck(context.octokit, pr);
   });
 
