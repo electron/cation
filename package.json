@@ -1,6 +1,7 @@
 {
   "name": "cation",
   "version": "1.0.0",
+  "private": true,
   "description": "Electron's PR monitoring bot",
   "main": "index.js",
   "scripts": {
