@@ -165,8 +165,9 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
     if (!item?.body || !item.user) return items;
 
     const changeRequest = item.state === REVIEW_STATUS.CHANGES_REQUESTED;
+    const approved = item.state === REVIEW_STATUS.APPROVED;
     const reviewComment = lgtm.test(item.body) || decline.test(item.body);
-    if (!reviewComment && !changeRequest) return items;
+    if (!reviewComment && !changeRequest && !approved) return items;
 
     const prev = items[item.user.id];
     if (!prev) {
@@ -206,7 +207,9 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
     return;
   }
 
-  const approved = allReviews.filter((r) => r.body?.match(lgtm)).map((r) => r.user?.login);
+  const approved = allReviews
+    .filter((r) => r.body?.match(lgtm) || r.state === REVIEW_STATUS.APPROVED)
+    .map((r) => r.user?.login);
   const declined = allReviews.filter((r) => r.body?.match(decline)).map((r) => r.user?.login);
   const requestedChanges = allReviews
     .filter((r) => r.state === REVIEW_STATUS.CHANGES_REQUESTED)
@@ -277,7 +280,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
       output: {
         title: `${checkTitles[currentReviewLabel.name]} (${
           users.approved.length
-        }/2 LGTMs - ready on ${getPRReadyDate(pr)})`,
+        }/2 Approvals/LGTMs - ready on ${getPRReadyDate(pr)})`,
         summary: checkSummary,
       },
     });
