@@ -280,7 +280,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
       output: {
         title: `${checkTitles[currentReviewLabel.name]} (${
           users.approved.length
-        }/2 Approvals/LGTMs - ready on ${getPRReadyDate(pr)})`,
+        }/2 LGTMs - ready on ${getPRReadyDate(pr)})`,
         summary: checkSummary,
       },
     });
