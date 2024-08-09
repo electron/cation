@@ -159,15 +159,15 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
 
   const lgtm = /API LGTM/i;
   const decline = /API DECLINED/i;
+  const changesRequested = /API CHANGES REQUESTED/i;
 
   // Combine reviews/comments and filter by recency.
   const filtered = ([...comments, ...reviews] as CommentOrReview[]).reduce((items, item) => {
     if (!item?.body || !item.user) return items;
 
-    const changeRequest = item.state === REVIEW_STATUS.CHANGES_REQUESTED;
-    const approved = item.state === REVIEW_STATUS.APPROVED;
-    const reviewComment = lgtm.test(item.body) || decline.test(item.body);
-    if (!reviewComment && !changeRequest && !approved) return items;
+    const reviewComment =
+      lgtm.test(item.body) || decline.test(item.body) || changesRequested.test(item.body);
+    if (!reviewComment) return items;
 
     const prev = items[item.user.id];
     if (!prev) {
@@ -207,18 +207,16 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
     return;
   }
 
-  const approved = allReviews
-    .filter((r) => r.body?.match(lgtm) || r.state === REVIEW_STATUS.APPROVED)
-    .map((r) => r.user?.login);
+  const approved = allReviews.filter((r) => r.body?.match(lgtm)).map((r) => r.user?.login);
   const declined = allReviews.filter((r) => r.body?.match(decline)).map((r) => r.user?.login);
   const requestedChanges = allReviews
-    .filter((r) => r.state === REVIEW_STATUS.CHANGES_REQUESTED)
+    .filter((r) => r.body?.match(changesRequested))
     .map((r) => r.user?.login);
 
   log(
     'addOrUpdateAPIReviewCheck',
     LogLevel.INFO,
-    `PR ${pr.number} has ${approved.length} API LGTMs, ${declined.length} API DECLINEDs, and ${requestedChanges.length} change requests`,
+    `PR ${pr.number} has ${approved.length} API LGTMs, ${declined.length} API DECLINEDs, and ${requestedChanges.length} API CHANGES REQUESTED`,
   );
 
   const users = { approved, declined, requestedChanges };

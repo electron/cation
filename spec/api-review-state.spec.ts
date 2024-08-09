@@ -170,7 +170,7 @@ describe('api review', () => {
       data: [
         {
           user: { id: 1, login: 'ckerr' },
-          body: 'Fix this please!',
+          body: 'API CHANGES REQUESTED',
           state: 'CHANGES_REQUESTED',
         },
         {
@@ -188,6 +188,11 @@ describe('api review', () => {
           body: 'API DECLINED',
           state: 'COMMENTED',
         },
+        {
+          user: { id: 5, login: 'itsananderson' },
+          body: 'API CHANGES REQUESTED',
+          state: 'COMMENTED',
+        },
       ],
     });
 
@@ -197,6 +202,7 @@ describe('api review', () => {
         { login: 'jkleinsc' },
         { login: 'nornagon' },
         { login: 'ckerr' },
+        { login: 'itsananderson' },
       ],
     });
 
@@ -212,6 +218,7 @@ describe('api review', () => {
 #### Requested Changes
 
 * @ckerr
+* @itsananderson
 #### Declined
 
 * @jkleinsc
@@ -226,7 +233,7 @@ describe('api review', () => {
     expect(users).toEqual({
       approved: ['codebytere', 'nornagon'],
       declined: ['jkleinsc'],
-      requestedChanges: ['ckerr'],
+      requestedChanges: ['ckerr', 'itsananderson'],
     });
   });
 
@@ -250,8 +257,8 @@ describe('api review', () => {
         },
         {
           user: { id: 2, login: 'jkleinsc' },
-          body: 'This test is failing!!',
-          state: 'CHANGES_REQUESTED',
+          body: 'API CHANGES REQUESTED',
+          state: 'COMMENTED',
           submitted_at: '2020-12-10T01:24:55Z',
         },
       ],
@@ -266,6 +273,40 @@ describe('api review', () => {
       approved: ['nornagon'],
       declined: [],
       requestedChanges: ['jkleinsc'],
+    });
+  });
+
+  it('should correctly parse user approvals when a reviewer requests changes and then approves', async () => {
+    const { pull_request } = loadFixture(
+      'api-review-state/pull_request.requested_review_label.json',
+    );
+
+    moctokit.pulls.listReviews.mockReturnValue({
+      data: [
+        {
+          user: { id: 2, login: 'marshallofsound' },
+          body: 'API CHANGES REQUESTED',
+          state: 'COMMENTED',
+          submitted_at: '2020-12-09T01:24:55Z',
+        },
+        {
+          user: { id: 2, login: 'marshallofsound' },
+          body: 'API LGTM',
+          state: 'COMMENTED',
+          submitted_at: '2020-12-10T01:24:55Z',
+        },
+      ],
+    });
+
+    moctokit.teams.listMembersInOrg.mockReturnValue({
+      data: [{ login: 'marshallofsound' }],
+    });
+
+    const users = await addOrUpdateAPIReviewCheck(moctokit, pull_request);
+    expect(users).toEqual({
+      approved: ['marshallofsound'],
+      declined: [],
+      requestedChanges: [],
     });
   });
 
