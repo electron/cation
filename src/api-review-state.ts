@@ -2,6 +2,7 @@ import { Context, Probot } from 'probot';
 import { log } from './utils/log-util';
 import {
   API_REVIEW_CHECK_NAME,
+  API_SKIP_TIMEOUT_LABEL,
   API_WORKING_GROUP,
   EXCLUDE_LABELS,
   MINIMUM_MINOR_OPEN_TIME,
@@ -10,7 +11,6 @@ import {
   OWNER,
   REPO,
   REVIEW_LABELS,
-  REVIEW_STATUS,
   SEMVER_LABELS,
 } from './constants';
 import { CheckRunStatus, LogLevel } from './enums';
@@ -44,9 +44,11 @@ export const isSemverMajorMinorLabel = (label: string) =>
  */
 export const getPRReadyDate = (pr: PullRequest) => {
   let readyTime = new Date(pr.created_at).getTime();
-  const isMajorMinor = pr.labels.some((l: any) => isSemverMajorMinorLabel(l.name));
 
-  readyTime += isMajorMinor ? MINIMUM_MINOR_OPEN_TIME : MINIMUM_PATCH_OPEN_TIME;
+  if (!pr.labels.some((l: any) => l.name === API_SKIP_TIMEOUT_LABEL)) {
+    const isMajorMinor = pr.labels.some((l: any) => isSemverMajorMinorLabel(l.name));
+    readyTime += isMajorMinor ? MINIMUM_MINOR_OPEN_TIME : MINIMUM_PATCH_OPEN_TIME;
+  }
 
   return new Date(readyTime).toISOString().split('T')[0];
 };

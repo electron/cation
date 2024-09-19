@@ -39,6 +39,7 @@ export const REVIEW_LABELS = {
   APPROVED: 'api-review/approved ✅',
   DECLINED: 'api-review/declined ❌',
 };
+export const API_SKIP_TIMEOUT_LABEL = 'api-review/skip-timeout ⏰';
 
 export const DEPRECATION_REVIEW_LABELS = {
   REQUESTED: 'deprecation-review/requested 📝',
