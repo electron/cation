@@ -48,6 +48,8 @@ Members of the API Working Group must indicate their approval by leaving a comme
 
 If a PR has passed its minimum open time and has the requisite number of approvals with no outstanding requests for changes, the bot will then switch `api-review/requested 🗳` to `api-review/approved ✅`, and the PR is free to be merged. If outstanding change requests persist, then the group will initiate consensus-seeking procedures and ultimately choose to approve or decline the PR. If the decision is made to decline, the API WG chair will then comment on the PR with `API Declined` and the bot will update `api-review/requested 🗳` to `api-review/declined ❌`.
 
+For PRs that need to land faster than the minimum open time (e.g. to respond to OS or Chromium updates), the minimum open time can be bypassed by adding a `api-review/skip-delay ⏰` label to the PR. This label may be added to a PR if at least two members of the API WG representing two different employers approve fast-tracking the PR.
+
 ## Deprecation Review
 
 The bot controls the deprecation review lifecycle on behalf of the [Releases Working Group](https://github.com/electron/governance/tree/main/wg-releases).
