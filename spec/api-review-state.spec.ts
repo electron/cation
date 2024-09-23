@@ -122,6 +122,18 @@ describe('api review', () => {
     expect(readyDate).toEqual(expectedDate);
   });
 
+  it('correctly returns PR ready date when skip-timeout label is found', async () => {
+    const payload = loadFixture('api-review-state/pull_request.api-skip-delay_label.json');
+
+    // Set created_at to yesterday.
+    payload.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
+
+    const expectedDate = payload.created_at.toISOString().split('T')[0];
+    const readyDate = getPRReadyDate(payload);
+
+    expect(readyDate).toEqual(expectedDate);
+  });
+
   it('should reset the check when PR does not have an API review label on a base PR', async () => {
     let { pull_request } = loadFixture('api-review-state/pull_request.no_review_label.json');
 
