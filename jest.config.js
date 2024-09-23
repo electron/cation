@@ -2,7 +2,8 @@ process.env.SPEC_RUNNING = '1';
 
 module.exports = {
   roots: [
-    '<rootDir>/spec'
+    '<rootDir>/spec',
+    '<rootDir>/src',
   ],
   transform: {
     '^.+\\.tsx?$': 'ts-jest'
