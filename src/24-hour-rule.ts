@@ -23,9 +23,7 @@ const CHECK_INTERVAL = 1000 * 60 * 5;
 type TimelineEvents = RestEndpointMethodTypes['issues']['listEventsForTimeline']['response'];
 
 /**
- *
- * @param {EventPayloads.WebhookPayloadPullRequestPullRequest} pr
- * @returns {number} a number representing the minimum open time for the PR
+ * @returns a number representing the minimum open time for the PR
  * based on  its semantic prefix in milliseconds
  */
 export const getMinimumOpenTime = (pr: PullRequest): number => {
@@ -42,10 +40,8 @@ export const getMinimumOpenTime = (pr: PullRequest): number => {
 };
 
 /**
- *
- * @param {Context['github']}  github An Octokit instance
- * @param {EventPayloads.WebhookPayloadPullRequestPullRequest} pr
- * @returns {number} a number representing the that cation should use as the
+ * @param github - An Octokit instance
+ * @returns a number representing the that cation should use as the
  * open time for the PR in milliseconds, taking draft status into account.
  */
 export const getPROpenedTime = async (
