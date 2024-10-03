@@ -45,8 +45,8 @@ export const isSemverMajorMinorLabel = (label: string) =>
 export const getPRReadyDate = (pr: PullRequest) => {
   let readyTime = new Date(pr.created_at).getTime();
 
-  if (!pr.labels.some((l: any) => l.name === API_SKIP_DELAY_LABEL)) {
-    const isMajorMinor = pr.labels.some((l: any) => isSemverMajorMinorLabel(l.name));
+  if (!pr.labels.some((l) => l.name === API_SKIP_DELAY_LABEL)) {
+    const isMajorMinor = pr.labels.some((l) => isSemverMajorMinorLabel(l.name));
     readyTime += isMajorMinor ? MINIMUM_MINOR_OPEN_TIME : MINIMUM_PATCH_OPEN_TIME;
   }
 

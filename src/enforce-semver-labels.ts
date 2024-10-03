@@ -23,7 +23,7 @@ export function setupSemverLabelEnforcement(probot: Probot) {
 
       log('setupSemverLabelEnforcement', LogLevel.INFO, `Checking #${pr.number} for semver label`);
 
-      const semverLabels = pr.labels.filter((l: any) => ALL_SEMVER_LABELS.includes(l.name));
+      const semverLabels = pr.labels.filter((l) => ALL_SEMVER_LABELS.includes(l.name));
       if (semverLabels.length === 0) {
         log('setupSemverLabelEnforcement', LogLevel.ERROR, `#${pr.number} is missing semver label`);
 

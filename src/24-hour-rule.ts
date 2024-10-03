@@ -31,7 +31,7 @@ type TimelineEvents = RestEndpointMethodTypes['issues']['listEventsForTimeline']
 export const getMinimumOpenTime = (pr: PullRequest): number => {
   log('getMinimumOpenTime', LogLevel.INFO, `Fetching minimum open time for PR #${pr.number}.`);
 
-  const hasLabel = (label: string) => pr.labels.some((l: any) => l.name === label);
+  const hasLabel = (label: string) => pr.labels.some((l) => l.name === label);
 
   if (hasLabel(SEMVER_LABELS.MAJOR)) return MINIMUM_MAJOR_OPEN_TIME;
   if (hasLabel(SEMVER_LABELS.MINOR)) return MINIMUM_MINOR_OPEN_TIME;
@@ -85,7 +85,7 @@ export const shouldPRHaveLabel = async (
   const prefix = pr.title.split(':')[0];
   const backportMatch = pr.title.match(/[bB]ackport/);
   const backportInTitle = backportMatch && backportMatch[0];
-  const hasExcludedLabel = pr.labels.some((label: any) => EXCLUDE_LABELS.includes(label.name));
+  const hasExcludedLabel = pr.labels.some((label) => EXCLUDE_LABELS.includes(label.name));
 
   if (
     EXCLUDE_PREFIXES.includes(prefix) ||
@@ -200,12 +200,12 @@ export async function setUp24HourRule(probot: Probot, disableCronForTesting = fa
     for (const repo of data.repositories) {
       probot.log(`Running 24 hour cron job on repo: ${repo.owner.login}/${repo.name}`);
       let page = 0;
-      const prs = [];
+      const prs: PullRequest[] = [];
       let lastPRCount = -1;
       do {
         lastPRCount = prs.length;
         prs.push(
-          ...(
+          ...((
             await octokit.pulls.list({
               owner: repo.owner.login,
               repo: repo.name,
@@ -213,7 +213,7 @@ export async function setUp24HourRule(probot: Probot, disableCronForTesting = fa
               state: 'open',
               page,
             })
-          ).data,
+          ).data as PullRequest[]),
         );
         page++;
       } while (lastPRCount < prs.length);
@@ -221,15 +221,15 @@ export async function setUp24HourRule(probot: Probot, disableCronForTesting = fa
       probot.log(`Found ${prs.length} prs for repo: ${repo.owner.login}/${repo.name}`);
 
       for (const pr of prs) {
-        const shouldLabel = await shouldPRHaveLabel(octokit, pr as any);
+        const shouldLabel = await shouldPRHaveLabel(octokit, pr);
 
         // Ensure that API review labels are updated after waiting period.
         if (!shouldLabel) {
-          const approvalState = await addOrUpdateAPIReviewCheck(octokit, pr as any);
-          await checkPRReadyForMerge(octokit, pr as any, approvalState);
+          const approvalState = await addOrUpdateAPIReviewCheck(octokit, pr);
+          await checkPRReadyForMerge(octokit, pr, approvalState);
         }
 
-        await applyLabelToPR(octokit, pr as any, shouldLabel);
+        await applyLabelToPR(octokit, pr, shouldLabel);
       }
     }
   }
