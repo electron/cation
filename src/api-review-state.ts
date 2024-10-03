@@ -38,7 +38,6 @@ export const isSemverMajorMinorLabel = (label: string) =>
 /**
  * Determines the PR readiness date depending on its semver label.
  *
- * @param {EventPayloads.WebhookPayloadPullRequestPullRequest} pr
  * @returns a date corresponding to the time that must elapse before a PR requiring
  *          API review is ready to be merged according to its semver label.
  */
@@ -314,9 +313,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
 /**
  * Determines whether or not a PR is ready for merge depending on API WG Reviews.
  *
- * @param {Context['octokit']} octokit
- * @param {EventPayloads.WebhookPayloadPullRequestPullRequest} pr
- * @param {APIApprovalState} userApprovalState How many users have
+ * @param userApprovalState - How many users have
  *        approved/declined/requested changes for the PR.
  */
 export async function checkPRReadyForMerge(
