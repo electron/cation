@@ -34,6 +34,10 @@ const isBot = (user: string) => user === getEnvVar('BOT_USER_NAME', 'bot');
 export const isReviewLabel = (label: string) => Object.values(REVIEW_LABELS).includes(label);
 export const isSemverMajorMinorLabel = (label: string) =>
   [SEMVER_LABELS.MINOR, SEMVER_LABELS.MAJOR].includes(label);
+export const hasSemverMajorMinorLabel = (pr: PullRequest) =>
+  pr.labels.some((l) => isSemverMajorMinorLabel(l.name));
+export const hasAPIReviewRequestedLabel = (pr: PullRequest) =>
+  pr.labels.some((l) => l.name === REVIEW_LABELS.REQUESTED);
 
 /**
  * Determines the PR readiness date depending on its semver label.
@@ -361,6 +365,10 @@ export async function checkPRReadyForMerge(
 }
 
 export function setupAPIReviewStateManagement(probot: Probot) {
+  /**
+   * If a PR is opened or synchronized, we want to ensure the
+   * API review check is up-to-date.
+   */
   probot.on(
     ['pull_request.synchronize', 'pull_request.opened'],
     async (context: Context<'pull_request'>) => {
@@ -368,6 +376,10 @@ export function setupAPIReviewStateManagement(probot: Probot) {
     },
   );
 
+  /**
+   * If a PR review is submitted, we want to ensure the API
+   * review check is up-to-date.
+   */
   probot.on(
     'pull_request_review.submitted',
     async (context: Context<'pull_request_review.submitted'>) => {
@@ -376,6 +388,52 @@ export function setupAPIReviewStateManagement(probot: Probot) {
       await checkPRReadyForMerge(context.octokit, pr, state);
     },
   );
+
+  /**
+   * If a PR with API review requirements is marked ready for review,
+   * we want to add the 'api-review/requested 🗳' label.
+   */
+  probot.on('pull_request.ready_for_review', async (context: Context<'pull_request'>) => {
+    const { pull_request: pr, repository } = context.payload;
+
+    if (hasSemverMajorMinorLabel(pr)) {
+      probot.log(
+        'semver-minor or semver-major PR:',
+        `${repository.full_name}#${pr.number}`,
+        'was marked as ready for review',
+        "Adding the 'api-review/requested 🗳' label",
+      );
+
+      await addLabels(context.octokit, {
+        ...context.repo({}),
+        prNumber: pr.number,
+        labels: [REVIEW_LABELS.REQUESTED],
+      });
+    }
+  });
+
+  /**
+   * If a PR with existing API review requirements is converted to draft status,
+   * we want to remove the 'api-review/requested 🗳' label.
+   */
+  probot.on('pull_request.converted_to_draft', async (context: Context<'pull_request'>) => {
+    const { pull_request: pr, repository } = context.payload;
+
+    if (hasSemverMajorMinorLabel(pr) && hasAPIReviewRequestedLabel(pr)) {
+      probot.log(
+        'semver-minor or semver-major PR:',
+        `${repository.full_name}#${pr.number}`,
+        'was converted to draft status',
+        "Removing the 'api-review/requested 🗳' label",
+      );
+
+      await removeLabel(context.octokit, {
+        ...context.repo({}),
+        prNumber: pr.number,
+        name: REVIEW_LABELS.REQUESTED,
+      });
+    }
+  });
 
   /**
    * If a potential API PR is labeled, there are several decision trees we
@@ -408,14 +466,16 @@ export function setupAPIReviewStateManagement(probot: Probot) {
     // Once a PR is merged, allow tampering.
     if (pr.merged) return;
 
-    // Exclude PRs from api review if they:
+    // Exclude PRs from API review if they:
     // 1) Have backport, backport-skip, or fast-track labels
     // 2) Are targeting a non-main branch
     // 3) Are semver-patch PRs
+    // 4) Are draft PRs
     const excludePR =
       pr.labels.some((l) => EXCLUDE_LABELS.includes(l.name)) ||
       pr.base.ref !== pr.base.repo.default_branch ||
-      label.name === SEMVER_LABELS.PATCH;
+      label.name === SEMVER_LABELS.PATCH ||
+      pr.draft;
 
     // If a PR is semver-minor or semver-major and the PR does not have an
     // exclusion condition, automatically add the 'api-review/requested 🗳' label.
@@ -446,7 +506,6 @@ export function setupAPIReviewStateManagement(probot: Probot) {
           name: label.name,
         });
       }
-
       // Remove the api-review/requested 🗳' label if it was added prior to an exclusion label -
       // for example if the backport label was added by trop after cation got to it.
     } else if (excludePR) {
