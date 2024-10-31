@@ -869,6 +869,7 @@ describe('api review', () => {
         return true;
       })
       .reply(200);
+
     nock('https://api.github.com')
       .get(
         `/repos/electron/electron/commits/${payload.pull_request.head.sha}/check-runs?per_page=100`,
@@ -882,7 +883,88 @@ describe('api review', () => {
     });
   });
 
-  it('correctly update api review check and api review label when pr is unlabeled', async () => {
+  it('adds the API requested label if a PR is marked ready for review', async () => {
+    const payload = loadFixture('api-review-state/pull_request.ready_for_review.json');
+    const { pull_request } = payload;
+
+    nock('https://api.github.com')
+      .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+      .reply(200, [
+        {
+          id: 1034512799,
+          node_id: 'MDU6TGFiZWwxMDM0NTEyNzk5',
+          url: 'https://api.github.com/repos/electron/electron/labels/semver/minor',
+          name: 'semver/minor',
+          color: '6ac2dd',
+          default: false,
+          description: 'backwards-compatible bug fixes',
+        },
+      ]);
+
+    nock('https://api.github.com')
+      .post(`/repos/electron/electron/issues/${pull_request.number}/labels`, (body) => {
+        expect(body).toEqual([REVIEW_LABELS.REQUESTED]);
+        return true;
+      })
+      .reply(200);
+
+    await robot.receive({
+      id: '123-456',
+      name: 'pull_request',
+      payload,
+    });
+  });
+
+  it('removes the API requested label if a PR is put in draft mode', async () => {
+    const payload = loadFixture('api-review-state/pull_request.converted_to_draft.json');
+    const { pull_request } = payload;
+
+    nock('https://api.github.com')
+      .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+      .reply(200, [
+        {
+          id: 1034512799,
+          node_id: 'MDU6TGFiZWwxMDM0NTEyNzk5',
+          url: 'https://api.github.com/repos/electron/electron/labels/semver/minor',
+          name: 'semver/minor',
+          color: '6ac2dd',
+          default: false,
+          description: 'backwards-compatible bug fixes',
+        },
+        {
+          id: 1603621692,
+          node_id: 'MDU6TGFiZWwxNjAzNjIxNjky',
+          url: 'https://api.github.com/repos/electron/electron/labels/api-review/requested%20%F0%9F%97%B3',
+          name: REVIEW_LABELS.REQUESTED,
+          color: 'c918ba',
+          default: false,
+          description: '',
+        },
+      ]);
+
+    const encoded = encodeURIComponent(REVIEW_LABELS.REQUESTED);
+    nock('https://api.github.com')
+      .delete(`/repos/electron/electron/issues/${pull_request.number}/labels/${encoded}`)
+      .reply(200, [
+        {
+          id: 208045946,
+          node_id: 'MDU6TGFiZWwyMDgwNDU5NDY=',
+          url: `https://api.github.com/repos/electron/electron/labels/${encoded}`,
+          name: REVIEW_LABELS.REQUESTED,
+          description: '',
+          color: 'f29513',
+          default: true,
+        },
+      ]);
+
+    await robot.receive({
+      id: '123-456',
+      name: 'pull_request',
+      payload,
+    });
+  });
+
+  it('correctly updates API review check and API review label when pr is unlabeled', async () => {
     const payload = loadFixture('api-review-state/pull_request.unlabeled.json');
 
     nock('https://api.github.com')
