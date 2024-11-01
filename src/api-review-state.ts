@@ -463,8 +463,8 @@ export function setupAPIReviewStateManagement(probot: Probot) {
       throw new Error('Something went wrong - label does not exist.');
     }
 
-    // Once a PR is merged, allow tampering.
-    if (pr.merged) return;
+    // It's permissible to change labels on merged or draft PRs.
+    if (pr.merged || pr.draft) return;
 
     // Exclude PRs from API review if they:
     // 1) Have backport, backport-skip, or fast-track labels
