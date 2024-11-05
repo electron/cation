@@ -12,7 +12,7 @@
     "prettier:write": "prettier --write \"{src,spec}/**/*.ts\"",
     "test": "jest",
     "coverage": "jest --silent --coverage",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -25,18 +25,17 @@
   },
   "homepage": "https://github.com/electron/cation#readme",
   "devDependencies": {
-    "@octokit/webhooks-definitions": "^3.19.0",
-    "@types/express": "^4.17.14",
-    "@types/jest": "^29.0.3",
-    "@types/node": "^16.11.7",
-    "husky": "^8.0.1",
-    "jest": "^29.0.3",
-    "lint-staged": "^13.0.3",
-    "nock": "^13.2.9",
-    "prettier": "^2.7.1",
-    "smee-client": "^2.0.1",
-    "ts-jest": "^29.0.1",
-    "typescript": "^4.8.2"
+    "@octokit/webhooks-types": "5.8.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.9.0",
+    "husky": "^9.1.6",
+    "jest": "^29.7.0",
+    "lint-staged": "^15.2.10",
+    "nock": "^13.5.5",
+    "prettier": "^3.3.3",
+    "smee-client": "^2.0.4",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.6.3"
   },
   "dependencies": {
     "@octokit/rest": "^19.0.4",
