@@ -20,9 +20,8 @@ import { PullRequest, Label } from '@octokit/webhooks-types';
 import { GetResponseDataTypeFromEndpointMethod, Endpoints } from '@octokit/types';
 import { addLabels, removeLabel } from './utils/label-utils';
 
-type APIApprovalState = ReturnType<typeof addOrUpdateAPIReviewCheck> extends Promise<infer T>
-  ? T
-  : unknown;
+type APIApprovalState =
+  ReturnType<typeof addOrUpdateAPIReviewCheck> extends Promise<infer T> ? T : unknown;
 
 const checkTitles = {
   [REVIEW_LABELS.APPROVED]: 'Approved',
@@ -167,31 +166,34 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
   const changesRequested = /API CHANGES REQUESTED/i;
 
   // Combine reviews/comments and filter by recency.
-  const filtered = ([...comments, ...reviews] as CommentOrReview[]).reduce((items, item) => {
-    if (!item?.body || !item.user) return items;
+  const filtered = ([...comments, ...reviews] as CommentOrReview[]).reduce(
+    (items, item) => {
+      if (!item?.body || !item.user) return items;
 
-    const reviewComment =
-      lgtm.test(item.body) || decline.test(item.body) || changesRequested.test(item.body);
-    if (!reviewComment) return items;
+      const reviewComment =
+        lgtm.test(item.body) || decline.test(item.body) || changesRequested.test(item.body);
+      if (!reviewComment) return items;
 
-    const prev = items[item.user.id];
-    if (!prev) {
-      items[item.user.id] = item;
+      const prev = items[item.user.id];
+      if (!prev) {
+        items[item.user.id] = item;
+        return items;
+      }
+
+      const isReview = (item: CommentOrReview) => {
+        return item.submitted_at !== undefined;
+      };
+
+      const prevDate = isReview(prev) ? new Date(prev.submitted_at!) : new Date(prev.updated_at);
+      const currDate = isReview(item) ? new Date(item.submitted_at!) : new Date(item.updated_at);
+      if (prevDate.getTime() < currDate.getTime()) {
+        items[item.user.id] = item;
+      }
+
       return items;
-    }
-
-    const isReview = (item: CommentOrReview) => {
-      return item.submitted_at !== undefined;
-    };
-
-    const prevDate = isReview(prev) ? new Date(prev.submitted_at!) : new Date(prev.updated_at);
-    const currDate = isReview(item) ? new Date(item.submitted_at!) : new Date(item.updated_at);
-    if (prevDate.getTime() < currDate.getTime()) {
-      items[item.user.id] = item;
-    }
-
-    return items;
-  }, {} as Record<string, CommentOrReview>);
+    },
+    {} as Record<string, CommentOrReview>,
+  );
 
   const allReviews = Object.values(filtered);
 
