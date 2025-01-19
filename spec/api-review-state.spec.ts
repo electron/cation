@@ -1,5 +1,6 @@
 import { Probot, Context } from 'probot';
-import * as nock from 'nock';
+import nock from 'nock';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   isReviewLabel,
@@ -54,21 +55,21 @@ describe('api review', () => {
 
     moctokit = {
       issues: {
-        addLabels: jest.fn().mockReturnValue({ data: [] }),
-        removeLabel: jest.fn().mockReturnValue({ data: [] }),
-        listLabelsOnIssue: jest.fn().mockReturnValue({ data: [] }),
-        listComments: jest.fn().mockReturnValue({ data: [] }),
+        addLabels: vi.fn().mockReturnValue({ data: [] }),
+        removeLabel: vi.fn().mockReturnValue({ data: [] }),
+        listLabelsOnIssue: vi.fn().mockReturnValue({ data: [] }),
+        listComments: vi.fn().mockReturnValue({ data: [] }),
       },
       checks: {
-        listForRef: jest.fn().mockReturnValue({ data: { check_runs: [] } }),
-        create: jest.fn().mockReturnValue({ data: {} }),
-        update: jest.fn().mockReturnValue({ data: {} }),
+        listForRef: vi.fn().mockReturnValue({ data: { check_runs: [] } }),
+        create: vi.fn().mockReturnValue({ data: {} }),
+        update: vi.fn().mockReturnValue({ data: {} }),
       },
       teams: {
-        listMembersInOrg: jest.fn().mockReturnValue({ data: [] }),
+        listMembersInOrg: vi.fn().mockReturnValue({ data: [] }),
       },
       pulls: {
-        listReviews: jest.fn().mockReturnValue({ data: [] }),
+        listReviews: vi.fn().mockReturnValue({ data: [] }),
       },
     } as any as Context['octokit'];
 
@@ -137,7 +138,7 @@ describe('api review', () => {
   it('should reset the check when PR does not have an API review label on a base PR', async () => {
     let { pull_request } = loadFixture('api-review-state/pull_request.no_review_label.json');
 
-    moctokit.checks.listForRef = jest.fn().mockReturnValue({
+    moctokit.checks.listForRef = vi.fn().mockReturnValue({
       data: {
         check_runs: [
           {

@@ -2,7 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { Probot, Context } from 'probot';
-import * as nock from 'nock';
+import nock from 'nock';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   addOrUpdateDeprecationReviewCheck,
@@ -45,22 +46,22 @@ describe('deprecation review', () => {
 
     moctokit = {
       issues: {
-        addLabels: jest.fn().mockReturnValue({ data: [] }),
-        createComment: jest.fn().mockResolvedValue({}),
-        listLabelsOnIssue: jest.fn().mockReturnValue({ data: [] }),
-        listComments: jest.fn().mockReturnValue({ data: [] }),
-        removeLabel: jest.fn().mockReturnValue({ data: [] }),
+        addLabels: vi.fn().mockReturnValue({ data: [] }),
+        createComment: vi.fn().mockResolvedValue({}),
+        listLabelsOnIssue: vi.fn().mockReturnValue({ data: [] }),
+        listComments: vi.fn().mockReturnValue({ data: [] }),
+        removeLabel: vi.fn().mockReturnValue({ data: [] }),
       },
       checks: {
-        listForRef: jest.fn().mockReturnValue({ data: { check_runs: [] } }),
-        create: jest.fn().mockReturnValue({ data: {} }),
-        update: jest.fn().mockReturnValue({ data: {} }),
+        listForRef: vi.fn().mockReturnValue({ data: { check_runs: [] } }),
+        create: vi.fn().mockReturnValue({ data: {} }),
+        update: vi.fn().mockReturnValue({ data: {} }),
       },
       teams: {
-        listMembersInOrg: jest.fn().mockReturnValue({ data: [] }),
+        listMembersInOrg: vi.fn().mockReturnValue({ data: [] }),
       },
       pulls: {
-        listReviews: jest.fn().mockReturnValue({ data: [] }),
+        listReviews: vi.fn().mockReturnValue({ data: [] }),
       },
     } as any as Context['octokit'];
 
@@ -104,7 +105,7 @@ describe('deprecation review', () => {
         'deprecation-review-state/pull_request.no_review_label.json',
       );
 
-      moctokit.checks.listForRef = jest.fn().mockReturnValue({
+      moctokit.checks.listForRef = vi.fn().mockReturnValue({
         data: {
           check_runs: [
             {
@@ -140,7 +141,7 @@ describe('deprecation review', () => {
         'deprecation-review-state/pull_request.requested_review_label.json',
       );
 
-      moctokit.checks.listForRef = jest.fn().mockReturnValue({
+      moctokit.checks.listForRef = vi.fn().mockReturnValue({
         data: {
           check_runs: [],
         },
@@ -176,7 +177,7 @@ describe('deprecation review', () => {
         'deprecation-review-state/pull_request.review_complete_label.json',
       );
 
-      moctokit.checks.listForRef = jest.fn().mockReturnValue({
+      moctokit.checks.listForRef = vi.fn().mockReturnValue({
         data: {
           check_runs: [
             {
@@ -230,7 +231,7 @@ describe('deprecation review', () => {
         'deprecation-review-state/pull_request.requested_review_label.json',
       );
 
-      moctokit.issues.listComments = jest.fn().mockReturnValue({
+      moctokit.issues.listComments = vi.fn().mockReturnValue({
         data: [
           {
             user: {

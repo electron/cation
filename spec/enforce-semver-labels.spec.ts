@@ -1,5 +1,6 @@
 import { Probot } from 'probot';
-import * as nock from 'nock';
+import nock from 'nock';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { setupSemverLabelEnforcement } from '../src/enforce-semver-labels';
 import { loadFixture } from './utils';
