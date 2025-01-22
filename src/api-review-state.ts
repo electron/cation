@@ -47,9 +47,22 @@ export const hasAPIReviewRequestedLabel = (pr: PullRequest) =>
 export const getPRReadyDate = (pr: PullRequest) => {
   let readyTime = new Date(pr.created_at).getTime();
 
-  if (!pr.labels.some((l) => l.name === API_SKIP_DELAY_LABEL)) {
+  if (pr.labels.some((l) => l.name === API_SKIP_DELAY_LABEL)) {
+    log(
+      'getPRReadyDate',
+      LogLevel.INFO,
+      `${pr.number} has "${API_SKIP_DELAY_LABEL}" label - skipping minimum open time`,
+    );
+  } else {
     const isMajorMinor = pr.labels.some((l) => isSemverMajorMinorLabel(l.name));
     readyTime += isMajorMinor ? MINIMUM_MINOR_OPEN_TIME : MINIMUM_PATCH_OPEN_TIME;
+    log(
+      'getPRReadyDate',
+      LogLevel.INFO,
+      `${pr.number} has no "${API_SKIP_DELAY_LABEL}" label - applying minimum open time for ${
+        isMajorMinor ? 'major/minor' : 'patch'
+      }`,
+    );
   }
 
   return new Date(readyTime).toISOString().split('T')[0];
