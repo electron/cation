@@ -18,6 +18,7 @@
 		"node_modules",
 		"spec",
 		"lib",
-		"jest.config.js"
+		"coverage",
+		"vitest.config.ts"
 	]
 }

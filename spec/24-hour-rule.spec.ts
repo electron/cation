@@ -1,5 +1,6 @@
 import { Context, Probot } from 'probot';
-import * as nock from 'nock';
+import nock from 'nock';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   setUp24HourRule,
@@ -41,7 +42,7 @@ describe('pr open time', () => {
 
     moctokit = {
       issues: {
-        listEventsForTimeline: jest.fn().mockReturnValue({ data: [] }),
+        listEventsForTimeline: vi.fn().mockReturnValue({ data: [] }),
       },
     } as any as Context['octokit'];
 

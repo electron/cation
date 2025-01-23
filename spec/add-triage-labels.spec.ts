@@ -1,5 +1,6 @@
 import { Probot } from 'probot';
-import * as nock from 'nock';
+import nock from 'nock';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { addBasicPRLabels } from '../src/add-triage-labels';
 import { DOCUMENTATION_LABEL, SEMVER_LABELS, SEMVER_NONE_LABEL } from '../src/constants';
