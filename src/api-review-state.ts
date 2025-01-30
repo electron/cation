@@ -144,12 +144,12 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
 
   // Filter reviews by those from members of the API Working Group.
   const reviews = (
-    await octokit.pulls.listReviews({
+    await octokit.paginate(octokit.pulls.listReviews, {
       owner,
       repo,
       pull_number: pr.number,
     })
-  ).data.filter(({ user, body }) => {
+  ).filter(({ user, body }) => {
     return members.includes(user!.login) && body.length !== 0;
   });
 
