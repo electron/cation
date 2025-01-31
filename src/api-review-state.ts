@@ -147,7 +147,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
       repo,
       pull_number: pr.number,
     })
-  ).filter(({ user, body }: any) => {
+  ).filter(({ user, body }) => {
     return members.includes(user!.login) && body.length !== 0;
   });
 
