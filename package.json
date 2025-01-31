@@ -25,7 +25,6 @@
   },
   "homepage": "https://github.com/electron/cation#readme",
   "devDependencies": {
-    "@octokit/webhooks-types": "5.8.0",
     "@types/node": "^22.9.0",
     "@vitest/coverage-v8": "^3.0.2",
     "husky": "^9.1.6",
@@ -37,9 +36,9 @@
     "vitest": "^3.0.2"
   },
   "dependencies": {
-    "@octokit/rest": "^19.0.4",
+    "@octokit/rest": "^20.1.1",
     "@sentry/node": "^7.119.2",
-    "probot": "^12.3.3",
+    "probot": "^12.4.0",
     "semver": "^7.5.2"
   },
   "lint-staged": {

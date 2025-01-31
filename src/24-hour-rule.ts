@@ -15,12 +15,9 @@ import { PullRequest, Label, PullRequestLabeledEvent } from '@octokit/webhooks-t
 import { addOrUpdateAPIReviewCheck, checkPRReadyForMerge } from './api-review-state';
 import { log } from './utils/log-util';
 import { addLabels, removeLabel } from './utils/label-utils';
-import { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods';
 import { LogLevel } from './enums';
 
 const CHECK_INTERVAL = 1000 * 60 * 5;
-
-type TimelineEvents = RestEndpointMethodTypes['issues']['listEventsForTimeline']['response'];
 
 /**
  * @returns a number representing the minimum open time for the PR
@@ -51,11 +48,11 @@ export const getPROpenedTime = async (
   const [owner, repo] = pr.base.repo.full_name.split('/');
 
   // Fetch PR timeline events.
-  const { data: events } = (await github.issues.listEventsForTimeline({
+  const { data: events } = await github.issues.listEventsForTimeline({
     owner,
     repo,
     issue_number: pr.number,
-  })) as TimelineEvents;
+  });
 
   // Filter out all except 'Ready For Review' events.
   const readyForReviewEvents = events
