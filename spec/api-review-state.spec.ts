@@ -71,6 +71,7 @@ describe('api review', () => {
       pulls: {
         listReviews: vi.fn().mockReturnValue({ data: [] }),
       },
+      paginate: (endpoint: Function) => endpoint()?.data,
     } as any as Context['octokit'];
 
     robot.load(handler);
