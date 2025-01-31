@@ -56,20 +56,18 @@ export async function addOrUpdateDeprecationReviewCheck(
 
   const resetToNeutral = async () => {
     if (!checkRun) return;
-    const params: Endpoints['PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}']['parameters'] =
-      {
-        owner,
-        repo,
-        name: DEPRECATION_REVIEW_CHECK_NAME,
-        status: 'completed',
-        output: {
-          title: 'Outdated',
-          summary: `PR no longer requires ${DEPRECATION_REVIEW_CHECK_NAME}`,
-        },
-        check_run_id: checkRun.id,
-        conclusion: CheckRunStatus.NEUTRAL,
-      };
-    return await octokit.checks.update(params);
+    return await octokit.checks.update({
+      owner,
+      repo,
+      name: DEPRECATION_REVIEW_CHECK_NAME,
+      status: 'completed',
+      output: {
+        title: 'Outdated',
+        summary: `PR no longer requires ${DEPRECATION_REVIEW_CHECK_NAME}`,
+      },
+      check_run_id: checkRun.id,
+      conclusion: CheckRunStatus.NEUTRAL,
+    });
   };
 
   // We do not care about PRs without a deprecation review label of any kind.
