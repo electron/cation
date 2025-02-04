@@ -26,14 +26,14 @@
   "homepage": "https://github.com/electron/cation#readme",
   "devDependencies": {
     "@types/node": "^22.9.0",
-    "@vitest/coverage-v8": "^3.0.2",
+    "@vitest/coverage-v8": "^3.0.5",
     "husky": "^9.1.6",
     "lint-staged": "^15.2.10",
     "nock": "^13.5.5",
     "prettier": "^3.3.3",
     "smee-client": "^2.0.4",
     "typescript": "^5.6.3",
-    "vitest": "^3.0.2"
+    "vitest": "^3.0.5"
   },
   "dependencies": {
     "@octokit/rest": "^20.1.1",
