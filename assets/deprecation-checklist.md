@@ -5,7 +5,7 @@
 - [ ] 📢 Are called out in [`docs/breaking-changes.md`][]
 - [ ] ⚠️ Use the deprecation helpers in [`lib/common/deprecate.ts`](https://github.com/electron/electron/blob/main/lib/common/deprecate.ts) to warn about usage (including events)
 - [ ] 📝 Are marked as deprecated in the docs, using `_Deprecated_` (including properties and events)
-- [ ] 🧪 Relevant tests are updated to expect deprecation messages using the helpers in [`spec/lib/deprecate-helpers.ts`](https://github.com/electron/electron/blob/main/spec/lib/deprecate-helpers.ts)
+- [ ] 🧪 Relevant tests are updated to expect deprecation messages using the helpers in [`spec/lib/warning-helpers.ts`](https://github.com/electron/electron/blob/main/spec/lib/warning-helpers.ts)
 
 ### 🗑️ Previous deprecations being removed in this PR
 
