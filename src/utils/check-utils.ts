@@ -1,5 +1,5 @@
-import { PullRequest } from '@octokit/webhooks-types';
 import { SEMVER_LABELS } from '../constants';
+import { PullRequest } from '../types';
 
 /**
  * Returns whether or not the 'api-review/requested 🗳' label

@@ -1,4 +1,4 @@
-import { Context, Probot } from 'probot';
+import { Context, Probot, ProbotOctokit } from 'probot';
 
 import {
   NEW_PR_LABEL,
@@ -11,11 +11,11 @@ import {
   MINIMUM_MINOR_OPEN_TIME,
   SEMVER_NONE_LABEL,
 } from './constants';
-import { PullRequest, Label, PullRequestLabeledEvent } from '@octokit/webhooks-types';
 import { addOrUpdateAPIReviewCheck, checkPRReadyForMerge } from './api-review-state';
 import { log } from './utils/log-util';
 import { addLabels, removeLabel } from './utils/label-utils';
 import { LogLevel } from './enums';
+import { PullRequest, Label, PullRequestLabeledEvent } from './types';
 
 const CHECK_INTERVAL = 1000 * 60 * 5;
 
@@ -37,18 +37,15 @@ export const getMinimumOpenTime = (pr: PullRequest): number => {
 };
 
 /**
- * @param github - An Octokit instance
+ * @param octokit - An Octokit instance
  * @returns a number representing the that cation should use as the
  * open time for the PR in milliseconds, taking draft status into account.
  */
-export const getPROpenedTime = async (
-  github: Context['octokit'],
-  pr: PullRequest,
-): Promise<number> => {
+export const getPROpenedTime = async (octokit: ProbotOctokit, pr: PullRequest): Promise<number> => {
   const [owner, repo] = pr.base.repo.full_name.split('/');
 
   // Fetch PR timeline events.
-  const { data: events } = await github.issues.listEventsForTimeline({
+  const { data: events } = await octokit.rest.issues.listEventsForTimeline({
     owner,
     repo,
     issue_number: pr.number,
@@ -57,15 +54,19 @@ export const getPROpenedTime = async (
   // Filter out all except 'Ready For Review' events.
   const readyForReviewEvents = events
     .filter((e) => e.event === 'ready_for_review')
-    .sort(({ created_at: cA }, { created_at: cB }) => {
-      return new Date(cB!).getTime() - new Date(cA!).getTime();
+    .sort((cA, cB) => {
+      if (!('created_at' in cA) || !('created_at' in cB)) return 0;
+      return new Date(cB.created_at).getTime() - new Date(cA.created_at).getTime();
     });
 
   // If this PR was a draft PR previously, set its opened time as a function
   // of when it was most recently marked ready for review instead of when it was opened,
   // otherwise return the PR open date.
-  return readyForReviewEvents.length > 0
-    ? new Date(readyForReviewEvents[0].created_at!).getTime()
+  const firstEvent = readyForReviewEvents[0];
+  const validFirstEvent = firstEvent && 'created_at' in firstEvent;
+
+  return validFirstEvent
+    ? new Date(firstEvent.created_at).getTime()
     : new Date(pr.created_at).getTime();
 };
 
@@ -161,25 +162,27 @@ export async function setUp24HourRule(probot: Probot, disableCronForTesting = fa
         if (!labelShouldBeChecked(label!)) return;
       }
 
-      probot.log(`24-hour rule received PR: ${repository.full_name}#${pr.number} checking now`);
+      probot.log.info(
+        `24-hour rule received PR: ${repository.full_name}#${pr.number} checking now`,
+      );
 
-      const shouldLabel = await shouldPRHaveLabel(context.octokit, pr);
+      const shouldLabel = await shouldPRHaveLabel(context.octokit, pr as PullRequest);
 
-      await applyLabelToPR(context.octokit, pr, shouldLabel);
+      await applyLabelToPR(context.octokit, pr as PullRequest, shouldLabel);
     },
   );
 
   if (!disableCronForTesting) runInterval();
 
   async function runInterval() {
-    probot.log('Running 24 hour rule check');
+    probot.log.info('Running 24 hour rule check');
     const github = await probot.auth();
-    const { data: installs } = await github.apps.listInstallations({});
+    const { data: installs } = await github.rest.apps.listInstallations({});
     for (const install of installs) {
       try {
         await runCron(probot, install.id);
       } catch (err) {
-        probot.log(`Failed to run cron for install: ${install.id} ${err}`);
+        probot.log.error(`Failed to run cron for install: ${install.id} ${err}`);
       }
     }
 
@@ -188,10 +191,10 @@ export async function setUp24HourRule(probot: Probot, disableCronForTesting = fa
 
   async function runCron(probot: Probot, installId: number) {
     const octokit = await probot.auth(installId);
-    const { data } = await octokit.apps.listReposAccessibleToInstallation({});
+    const { data } = await octokit.rest.apps.listReposAccessibleToInstallation({});
 
     for (const repo of data.repositories) {
-      probot.log(`Running 24 hour cron job on repo: ${repo.owner.login}/${repo.name}`);
+      probot.log.info(`Running 24 hour cron job on repo: ${repo.owner.login}/${repo.name}`);
       let page = 0;
       const prs: PullRequest[] = [];
       let lastPRCount = -1;
@@ -199,7 +202,7 @@ export async function setUp24HourRule(probot: Probot, disableCronForTesting = fa
         lastPRCount = prs.length;
         prs.push(
           ...((
-            await octokit.pulls.list({
+            await octokit.rest.pulls.list({
               owner: repo.owner.login,
               repo: repo.name,
               per_page: 100,
@@ -211,7 +214,7 @@ export async function setUp24HourRule(probot: Probot, disableCronForTesting = fa
         page++;
       } while (lastPRCount < prs.length);
 
-      probot.log(`Found ${prs.length} prs for repo: ${repo.owner.login}/${repo.name}`);
+      probot.log.info(`Found ${prs.length} prs for repo: ${repo.owner.login}/${repo.name}`);
 
       for (const pr of prs) {
         const shouldLabel = await shouldPRHaveLabel(octokit, pr);

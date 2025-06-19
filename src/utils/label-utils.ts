@@ -1,9 +1,9 @@
-import { Context } from 'probot';
 import { log } from './log-util';
 import { LogLevel } from '../enums';
+import { ProbotOctokit } from 'probot';
 
 export const addLabels = async (
-  octokit: Context['octokit'],
+  octokit: ProbotOctokit,
   data: {
     prNumber: number;
     owner: string;
@@ -21,7 +21,7 @@ export const addLabels = async (
   const existingLabels = await getLabelsForPR(octokit, data);
   const labels = data.labels.filter(async (label) => !existingLabels.includes(label));
 
-  await octokit.issues.addLabels({
+  await octokit.rest.issues.addLabels({
     owner: data.owner,
     repo: data.repo,
     issue_number: data.prNumber,
@@ -30,7 +30,7 @@ export const addLabels = async (
 };
 
 export const removeLabel = async (
-  octokit: Context['octokit'],
+  octokit: ProbotOctokit,
   data: {
     prNumber: number;
     name: string;
@@ -43,7 +43,7 @@ export const removeLabel = async (
   // If the issue does not have the label, don't try remove it.
   const labelExists = await labelExistsOnPR(octokit, data);
   if (labelExists) {
-    await octokit.issues.removeLabel({
+    await octokit.rest.issues.removeLabel({
       owner: data.owner,
       repo: data.repo,
       issue_number: data.prNumber,
@@ -60,7 +60,7 @@ export const removeLabel = async (
 };
 
 export const getLabelsForPR = async (
-  octokit: Context['octokit'],
+  octokit: ProbotOctokit,
   data: {
     prNumber: number;
     owner: string;
@@ -69,7 +69,7 @@ export const getLabelsForPR = async (
 ) => {
   log('getLabelsForPR', LogLevel.INFO, `Fetching all labels for #${data.prNumber}`);
 
-  const { data: labels } = await octokit.issues.listLabelsOnIssue({
+  const { data: labels } = await octokit.rest.issues.listLabelsOnIssue({
     owner: data.owner,
     repo: data.repo,
     issue_number: data.prNumber,
@@ -83,7 +83,7 @@ export const getLabelsForPR = async (
 };
 
 export const labelExistsOnPR = async (
-  octokit: Context['octokit'],
+  octokit: ProbotOctokit,
   data: {
     prNumber: number;
     name: string;

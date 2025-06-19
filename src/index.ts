@@ -14,13 +14,13 @@ import { addBasicPRLabels } from './add-triage-labels';
 import { setupDeprecationReviewStateManagement } from './deprecation-review-state';
 
 const probotHandler = async (app: Probot) => {
-  app.onError((errorEvent) => {
-    for (const error of Array.from(errorEvent)) {
+  app.onError((event) => {
+    for (const error of event.errors) {
       if (process.env.SENTRY_DSN) {
         Sentry.captureException(error, {
           req: error.request,
           extra: {
-            event: errorEvent.event,
+            event,
             status: error.status,
           },
         } as any);

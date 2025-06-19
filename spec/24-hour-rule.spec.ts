@@ -1,4 +1,4 @@
-import { Context, Probot } from 'probot';
+import { Probot, ProbotOctokit } from 'probot';
 import nock from 'nock';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -21,6 +21,8 @@ import {
 } from '../src/constants';
 import { loadFixture } from './utils';
 
+const GH_API = 'https://api.github.com';
+
 const handler = async (app: Probot) => {
   setUp24HourRule(app, true);
 };
@@ -35,21 +37,29 @@ describe('pr open time', () => {
 
     robot = new Probot({
       githubToken: 'test',
-      secret: 'secret',
-      privateKey: 'private key',
-      appId: 690857,
+      Octokit: ProbotOctokit.defaults({
+        retry: { enabled: false },
+        throttle: { enabled: false },
+      }),
     });
 
     moctokit = {
-      issues: {
-        listEventsForTimeline: vi.fn().mockReturnValue({ data: [] }),
+      rest: {
+        issues: {
+          listEventsForTimeline: vi.fn().mockReturnValue({ data: [] }),
+        },
       },
-    } as any as Context['octokit'];
+    } as any as ProbotOctokit;
 
     robot.load(handler);
   });
 
   afterEach(() => {
+    if (!nock.isDone()) {
+      // Output pending mocks to aid debugging when test fails.
+      // eslint-disable-next-line no-console
+      console.log('Pending nock mocks:', nock.pendingMocks());
+    }
     expect(nock.isDone()).toEqual(true);
     nock.cleanAll();
   });
@@ -227,20 +237,19 @@ describe('pr open time', () => {
     // Set created_at to yesterday.
     payload.pull_request.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
 
-    nock('https://api.github.com')
-      .get(`/repos/electron/electron/issues/${payload.number}/timeline`)
-      .reply(200, []);
+    // Timeline events (none) used by getPROpenedTime
+    nock(GH_API).get(`/repos/electron/electron/issues/${payload.number}/timeline`).reply(200, []);
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
       .reply(200, [{ name: 'one' }, { name: 'two' }]);
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
-        expect(body).toEqual([NEW_PR_LABEL]);
+        expect(body).toEqual({ labels: [NEW_PR_LABEL] });
         return true;
       })
-      .reply(200);
+      .reply(200, { labels: [{ name: NEW_PR_LABEL }] });
 
     await robot.receive({
       id: '123-456',
@@ -256,7 +265,7 @@ describe('pr open time', () => {
     const msInADay = 1638370929101;
     payload.pull_request.created_at = new Date(+new Date() - msInADay * 5);
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .get(`/repos/electron/electron/issues/${payload.number}/timeline`)
       .reply(200, [
         {
@@ -266,7 +275,7 @@ describe('pr open time', () => {
         },
       ]);
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
       .reply(200, [{ name: 'one' }, { name: 'two' }]);
 

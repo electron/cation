@@ -1,12 +1,8 @@
 {
 	"compilerOptions": {
 		"module": "commonjs",
-		"target": "es2018",
+		"target": "es2024",
 		"outDir": "lib",
-		"lib": [
-			"es6",
-			"es2016.array.include"
-		],
 		"sourceMap": true,
 		"rootDir": "src",
     "experimentalDecorators": true,
