@@ -228,16 +228,18 @@ describe('pr open time', () => {
     payload.pull_request.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
 
     nock('https://api.github.com')
-      .get(`/repos/electron/electron/issues/${payload.number}/timeline`)
+      .get(`/repos/electron/electron/issues/${payload.pull_request.number}/timeline`)
+      .matchHeader('accept', /application\/vnd\.github/)
       .reply(200, []);
 
     nock('https://api.github.com')
-      .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+      .get(`/repos/electron/electron/issues/${payload.pull_request.number}/labels`)
+      .query({ per_page: '100', page: '1' })
       .reply(200, [{ name: 'one' }, { name: 'two' }]);
 
     nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
-        expect(body).toEqual([NEW_PR_LABEL]);
+      .post(`/repos/electron/electron/issues/${payload.pull_request.number}/labels`, (body) => {
+        expect(body).toEqual({ labels: [NEW_PR_LABEL] });
         return true;
       })
       .reply(200);
@@ -257,7 +259,7 @@ describe('pr open time', () => {
     payload.pull_request.created_at = new Date(+new Date() - msInADay * 5);
 
     nock('https://api.github.com')
-      .get(`/repos/electron/electron/issues/${payload.number}/timeline`)
+      .get(`/repos/electron/electron/issues/${payload.pull_request.number}/timeline`)
       .reply(200, [
         {
           actor_name: 'codebytere',
@@ -267,7 +269,8 @@ describe('pr open time', () => {
       ]);
 
     nock('https://api.github.com')
-      .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+      .get(`/repos/electron/electron/issues/${payload.pull_request.number}/labels`)
+      .query({ per_page: '100', page: '1' })
       .reply(200, [{ name: 'one' }, { name: 'two' }]);
 
     await robot.receive({

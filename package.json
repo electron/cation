@@ -29,7 +29,7 @@
     "@vitest/coverage-v8": "^3.0.5",
     "husky": "^9.1.6",
     "lint-staged": "^15.2.10",
-    "nock": "^13.5.5",
+    "nock": "^14.0.10",
     "prettier": "^3.3.3",
     "smee-client": "^2.0.4",
     "typescript": "^5.6.3",
@@ -38,10 +38,11 @@
   "dependencies": {
     "@octokit/rest": "^20.1.1",
     "@sentry/node": "^7.119.2",
-    "probot": "^12.4.0",
+    "probot": "^13.0.0",
     "semver": "^7.5.2"
   },
   "lint-staged": {
     "{src,spec}/**/*.ts": "prettier --write"
-  }
+  },
+  "packageManager": "yarn@4.9.4+sha512.7b1cb0b62abba6a537b3a2ce00811a843bea02bcf53138581a6ae5b1bf563f734872bd47de49ce32a9ca9dcaff995aa789577ffb16811da7c603dcf69e73750b"
 }

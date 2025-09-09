@@ -594,7 +594,7 @@ describe('api review', () => {
 
         nock('https://api.github.com')
           .post(`/repos/electron/electron/issues/${pull_request.number}/labels`, (body) => {
-            expect(body).toEqual([REVIEW_LABELS.APPROVED]);
+            expect(body).toEqual({ labels: [REVIEW_LABELS.APPROVED] });
             return true;
           })
           .reply(200);
@@ -687,7 +687,7 @@ describe('api review', () => {
 
         nock('https://api.github.com')
           .post(`/repos/electron/electron/issues/${pull_request.number}/labels`, (body) => {
-            expect(body).toEqual([REVIEW_LABELS.DECLINED]);
+            expect(body).toEqual({ labels: [REVIEW_LABELS.DECLINED] });
             return true;
           })
           .reply(200);
@@ -780,7 +780,7 @@ describe('api review', () => {
 
         nock('https://api.github.com')
           .post(`/repos/electron/electron/issues/${pull_request.number}/labels`, (body) => {
-            expect(body).toEqual([REVIEW_LABELS.APPROVED]);
+            expect(body).toEqual({ labels: [REVIEW_LABELS.APPROVED] });
             return true;
           })
           .reply(200);
@@ -844,7 +844,7 @@ describe('api review', () => {
 
         nock('https://api.github.com')
           .post(`/repos/electron/electron/issues/${pull_request.number}/labels`, (body) => {
-            expect(body).toEqual([REVIEW_LABELS.DECLINED]);
+            expect(body).toEqual({ labels: [REVIEW_LABELS.DECLINED] });
             return true;
           })
           .reply(200);
@@ -862,12 +862,13 @@ describe('api review', () => {
     const payload = loadFixture('api-review-state/pull_request.semver-minor.json');
 
     nock('https://api.github.com')
-      .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+      .get(`/repos/electron/electron/issues/${payload.pull_request.number}/labels`)
+      .query({ per_page: '100', page: '1' })
       .reply(200, []);
 
     nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
-        expect(body).toEqual([REVIEW_LABELS.REQUESTED]);
+      .post(`/repos/electron/electron/issues/${payload.pull_request.number}/labels`, (body) => {
+        expect(body).toEqual({ labels: [REVIEW_LABELS.REQUESTED] });
         return true;
       })
       .reply(200);
@@ -890,7 +891,8 @@ describe('api review', () => {
     const { pull_request } = payload;
 
     nock('https://api.github.com')
-      .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+      .get(`/repos/electron/electron/issues/${payload.pull_request.number}/labels`)
+      .query({ per_page: '100', page: '1' })
       .reply(200, [
         {
           id: 1034512799,
@@ -905,7 +907,7 @@ describe('api review', () => {
 
     nock('https://api.github.com')
       .post(`/repos/electron/electron/issues/${pull_request.number}/labels`, (body) => {
-        expect(body).toEqual([REVIEW_LABELS.REQUESTED]);
+        expect(body).toEqual({ labels: [REVIEW_LABELS.REQUESTED] });
         return true;
       })
       .reply(200);
@@ -922,7 +924,8 @@ describe('api review', () => {
     const { pull_request } = payload;
 
     nock('https://api.github.com')
-      .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+      .get(`/repos/electron/electron/issues/${payload.pull_request.number}/labels`)
+      .query({ per_page: '100', page: '1' })
       .reply(200, [
         {
           id: 1034512799,
@@ -970,12 +973,13 @@ describe('api review', () => {
     const payload = loadFixture('api-review-state/pull_request.unlabeled.json');
 
     nock('https://api.github.com')
-      .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+      .get(`/repos/electron/electron/issues/${payload.pull_request.number}/labels`)
+      .query({ per_page: '100', page: '1' })
       .reply(200, []);
 
     nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
-        expect(body).toEqual([REVIEW_LABELS.APPROVED]);
+      .post(`/repos/electron/electron/issues/${payload.pull_request.number}/labels`, (body) => {
+        expect(body).toEqual({ labels: [REVIEW_LABELS.APPROVED] });
         return true;
       })
       .reply(200);
