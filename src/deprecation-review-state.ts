@@ -31,6 +31,10 @@ export async function addOrUpdateDeprecationReviewCheck(
     `Validating ${pr.number} by ${pr.user.login}`,
   );
 
+  if (!pr.head.repo) {
+    return;
+  }
+
   const owner = pr.base.repo.owner.login;
   const repo = pr.head.repo.name;
 
@@ -76,7 +80,7 @@ export async function addOrUpdateDeprecationReviewCheck(
     await resetToNeutral();
     return;
   }
-
+  
   // Update the GitHub Check with appropriate deprecation review information.
   const updateCheck = async (
     opts: Omit<
@@ -84,6 +88,10 @@ export async function addOrUpdateDeprecationReviewCheck(
       'baseUrl' | 'headers' | 'mediaType' | 'owner' | 'repo' | 'name' | 'head_sha'
     >,
   ) => {
+    if (!pr.head.repo) {
+    return;
+  }
+
     if (
       checkRun &&
       (checkRun.status === opts.status || !opts.status || opts.status === 'completed')
@@ -138,6 +146,7 @@ export async function addOrUpdateDeprecationReviewCheck(
 
 export async function maybeAddChecklistComment(octokit: Context['octokit'], pr: PullRequest) {
   const owner = pr.base.repo.owner.login;
+  if (!pr.head.repo) return;
   const repo = pr.head.repo.name;
 
   // We do not care about PRs without the deprecation review requested label.
@@ -195,7 +204,7 @@ export function setupDeprecationReviewStateManagement(probot: Probot) {
 
     if (isReviewLabel(label.name)) {
       if (!isBot(initiator) && label.name !== DEPRECATION_REVIEW_LABELS.REQUESTED) {
-        probot.log(
+        probot.log.info(
           `${initiator} tried to add ${label.name} to PR #${pr.number} - this is not permitted.`,
         );
 
@@ -241,7 +250,7 @@ export function setupDeprecationReviewStateManagement(probot: Probot) {
         // Check will be removed by addOrUpdateDeprecationReviewCheck
       } else {
         if (!isBot(initiator)) {
-          probot.log(
+          probot.log.info(
             `${initiator} tried to remove ${label.name} from PR #${pr.number} - this is not permitted.`,
           );
 

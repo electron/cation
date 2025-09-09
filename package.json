@@ -38,10 +38,11 @@
   "dependencies": {
     "@octokit/rest": "^20.1.1",
     "@sentry/node": "^7.119.2",
-    "probot": "^12.4.0",
+    "probot": "^13.0.0",
     "semver": "^7.5.2"
   },
   "lint-staged": {
     "{src,spec}/**/*.ts": "prettier --write"
-  }
+  },
+  "packageManager": "yarn@4.9.4+sha512.7b1cb0b62abba6a537b3a2ce00811a843bea02bcf53138581a6ae5b1bf563f734872bd47de49ce32a9ca9dcaff995aa789577ffb16811da7c603dcf69e73750b"
 }
