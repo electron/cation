@@ -58,7 +58,7 @@ export const getPROpenedTime = async (
   const readyForReviewEvents = events
     .filter((e) => e.event === 'ready_for_review')
     .sort((a, b) => {
-      if ("created_at" in a && "created_at" in b) {
+      if ('created_at' in a && 'created_at' in b) {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
       return 0;
@@ -67,7 +67,7 @@ export const getPROpenedTime = async (
   // If this PR was a draft PR previously, set its opened time as a function
   // of when it was most recently marked ready for review instead of when it was opened,
   // otherwise return the PR open date.
-  return readyForReviewEvents.length > 0 && "created_at" in readyForReviewEvents[0]
+  return readyForReviewEvents.length > 0 && 'created_at' in readyForReviewEvents[0]
     ? new Date(readyForReviewEvents[0].created_at).getTime()
     : new Date(pr.created_at).getTime();
 };
@@ -164,7 +164,9 @@ export async function setUp24HourRule(probot: Probot, disableCronForTesting = fa
         if (!labelShouldBeChecked(label!)) return;
       }
 
-      probot.log.info(`24-hour rule received PR: ${repository.full_name}#${pr.number} checking now`);
+      probot.log.info(
+        `24-hour rule received PR: ${repository.full_name}#${pr.number} checking now`,
+      );
 
       const shouldLabel = await shouldPRHaveLabel(context.octokit, pr);
 

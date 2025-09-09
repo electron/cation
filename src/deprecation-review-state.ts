@@ -80,7 +80,7 @@ export async function addOrUpdateDeprecationReviewCheck(
     await resetToNeutral();
     return;
   }
-  
+
   // Update the GitHub Check with appropriate deprecation review information.
   const updateCheck = async (
     opts: Omit<
@@ -89,8 +89,8 @@ export async function addOrUpdateDeprecationReviewCheck(
     >,
   ) => {
     if (!pr.head.repo) {
-    return;
-  }
+      return;
+    }
 
     if (
       checkRun &&
