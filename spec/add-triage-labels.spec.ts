@@ -36,12 +36,13 @@ describe('add-triage-labels', () => {
     const payload = loadFixture('add-triage-labels/docs_pr_opened.json');
 
     nock('https://api.github.com')
-      .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+      .get(`/repos/electron/electron/issues/${payload.pull_request.number}/labels`)
+      .query({ per_page: '100', page: '1' })
       .reply(200, []);
 
     nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
-        expect(body).toEqual([SEMVER_LABELS.PATCH, DOCUMENTATION_LABEL]);
+      .post(`/repos/electron/electron/issues/${payload.pull_request.number}/labels`, (body) => {
+        expect(body).toEqual({ labels: [SEMVER_LABELS.PATCH, DOCUMENTATION_LABEL] });
         return true;
       })
       .reply(200);
@@ -57,12 +58,13 @@ describe('add-triage-labels', () => {
     const payload = loadFixture('add-triage-labels/build_pr_opened.json');
 
     nock('https://api.github.com')
-      .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+      .get(`/repos/electron/electron/issues/${payload.pull_request.number}/labels`)
+      .query({ per_page: '100', page: '1' })
       .reply(200, []);
 
     nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
-        expect(body).toEqual([SEMVER_NONE_LABEL]);
+      .post(`/repos/electron/electron/issues/${payload.pull_request.number}/labels`, (body) => {
+        expect(body).toEqual({ labels: [SEMVER_NONE_LABEL] });
         return true;
       })
       .reply(200);
@@ -78,12 +80,13 @@ describe('add-triage-labels', () => {
     const payload = loadFixture('add-triage-labels/test_pr_opened.json');
 
     nock('https://api.github.com')
-      .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+      .get(`/repos/electron/electron/issues/${payload.pull_request.number}/labels`)
+      .query({ per_page: '100', page: '1' })
       .reply(200, []);
 
     nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
-        expect(body).toEqual([SEMVER_NONE_LABEL]);
+      .post(`/repos/electron/electron/issues/${payload.pull_request.number}/labels`, (body) => {
+        expect(body).toEqual({ labels: [SEMVER_NONE_LABEL] });
         return true;
       })
       .reply(200);
@@ -99,12 +102,13 @@ describe('add-triage-labels', () => {
     const payload = loadFixture('add-triage-labels/ci_pr_opened.json');
 
     nock('https://api.github.com')
-      .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+      .get(`/repos/electron/electron/issues/${payload.pull_request.number}/labels`)
+      .query({ per_page: '100', page: '1' })
       .reply(200, []);
 
     nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
-        expect(body).toEqual([SEMVER_NONE_LABEL]);
+      .post(`/repos/electron/electron/issues/${payload.pull_request.number}/labels`, (body) => {
+        expect(body).toEqual({ labels: [SEMVER_NONE_LABEL] });
         return true;
       })
       .reply(200);

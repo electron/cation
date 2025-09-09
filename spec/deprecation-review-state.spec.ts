@@ -69,7 +69,6 @@ describe('deprecation review', () => {
   });
 
   afterEach(() => {
-    console.log(nock.pendingMocks());
     expect(nock.isDone()).toEqual(true);
     nock.cleanAll();
   });
@@ -332,6 +331,7 @@ describe('deprecation review', () => {
       })
       .reply(200);
 
+
     await robot.receive({
       id: '123-456',
       name: 'pull_request',
@@ -344,13 +344,14 @@ describe('deprecation review', () => {
 
     nock('https://api.github.com')
       .get(
-        `/repos/dsanders11/deprecation-review/issues/${payload.number}/labels?per_page=100&page=1`,
+        `/repos/dsanders11/deprecation-review/issues/${payload.pull_request.number}/labels`,
       )
+      .query({ per_page: '100', page: '1' })
       .reply(200, []);
 
     nock('https://api.github.com')
-      .post(`/repos/dsanders11/deprecation-review/issues/${payload.number}/labels`, (body) => {
-        expect(body).toEqual([DEPRECATION_REVIEW_LABELS.COMPLETE]);
+      .post(`/repos/dsanders11/deprecation-review/issues/${payload.pull_request.number}/labels`, (body) => {
+        expect(body).toEqual({ labels: [DEPRECATION_REVIEW_LABELS.COMPLETE] });
         return true;
       })
       .reply(200);
@@ -402,7 +403,7 @@ describe('deprecation review', () => {
       .post(
         `/repos/dsanders11/deprecation-review/issues/${payload.issue.number}/labels`,
         (body) => {
-          expect(body).toEqual([DEPRECATION_REVIEW_LABELS.COMPLETE]);
+          expect(body).toEqual({ labels: [DEPRECATION_REVIEW_LABELS.COMPLETE] });
           return true;
         },
       )
