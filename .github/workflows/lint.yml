@@ -22,5 +22,5 @@ jobs:
         node-version: 20.x
     - name: Lint
       run: |
-        npm install
-        npm run lint
+        yarn install
+        yarn lint
