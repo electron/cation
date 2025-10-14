@@ -2,6 +2,7 @@
   "name": "cation",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Electron's PR monitoring bot",
   "main": "index.js",
   "scripts": {
@@ -37,7 +38,7 @@
   "dependencies": {
     "@octokit/rest": "^20.1.1",
     "@sentry/node": "^7.119.2",
-    "probot": "^12.4.0",
+    "probot": "13.4.7",
     "semver": "^7.5.2"
   },
   "lint-staged": {
