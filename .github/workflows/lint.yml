@@ -22,5 +22,5 @@ jobs:
         node-version: 20.x
     - name: Lint
       run: |
-        yarn install
+        yarn install --immutable
         yarn lint
