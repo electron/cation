@@ -124,18 +124,6 @@ describe('api review', () => {
     expect(readyDate).toEqual(expectedDate);
   });
 
-  it('correctly returns PR ready date when skip-timeout label is found', async () => {
-    const payload = loadFixture('api-review-state/pull_request.api-skip-delay_label.json');
-
-    // Set created_at to yesterday.
-    payload.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
-
-    const expectedDate = payload.created_at.toISOString().split('T')[0];
-    const readyDate = getPRReadyDate(payload);
-
-    expect(readyDate).toEqual(expectedDate);
-  });
-
   it('should reset the check when PR does not have an API review label on a base PR', async () => {
     let { pull_request } = loadFixture('api-review-state/pull_request.no_review_label.json');
 
@@ -418,6 +406,46 @@ describe('api review', () => {
 
   it(`correctly updates api review check when no review labels are found`, async () => {
     const payload = loadFixture('api-review-state/pull_request.no_review_label.json');
+
+    nock('https://api.github.com')
+      .get(
+        `/repos/electron/electron/commits/${payload.pull_request.head.sha}/check-runs?per_page=100`,
+      )
+      .reply(200, {
+        check_runs: [
+          {
+            name: API_REVIEW_CHECK_NAME,
+            id: '12345',
+          },
+        ],
+      });
+
+    const expected = {
+      name: API_REVIEW_CHECK_NAME,
+      status: 'completed',
+      output: {
+        title: 'Outdated',
+        summary: 'PR no longer requires API Review',
+      },
+      conclusion: CheckRunStatus.NEUTRAL,
+    };
+
+    nock('https://api.github.com')
+      .patch(`/repos/electron/electron/check-runs/12345`, (body) => {
+        expect(body).toMatchObject(expected);
+        return true;
+      })
+      .reply(200);
+
+    await robot.receive({
+      id: '123-456',
+      name: 'pull_request',
+      payload,
+    });
+  });
+
+  it('correctly returns PR ready date when skip-review label is found', async () => {
+    const payload = loadFixture('api-review-state/pull_request.api-skip-review_label.json');
 
     nock('https://api.github.com')
       .get(
