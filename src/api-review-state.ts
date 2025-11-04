@@ -139,7 +139,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
   }
 
   // If the PR has the skip-review label, it doesn't need API review.
-  if (!pr.labels.some((l) => l.name === API_SKIP_REVIEW_LABEL)) {
+  if (pr.labels.some((l) => l.name === API_SKIP_REVIEW_LABEL)) {
     log(
       'addOrUpdateAPIReviewCheck',
       LogLevel.INFO,
