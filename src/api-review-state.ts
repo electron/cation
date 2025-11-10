@@ -3,6 +3,7 @@ import { log } from './utils/log-util';
 import {
   API_REVIEW_CHECK_NAME,
   API_SKIP_DELAY_LABEL,
+  API_SKIP_REVIEW_LABEL,
   API_WORKING_GROUP,
   EXCLUDE_LABELS,
   MINIMUM_MINOR_OPEN_TIME,
@@ -126,6 +127,28 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
     return;
   }
 
+  // If the PR is semver-patch, it does not need API review.
+  if (!pr.labels.some((l) => isSemverMajorMinorLabel(l.name))) {
+    log(
+      'addOrUpdateAPIReviewCheck',
+      LogLevel.INFO,
+      'Determined this PR is semver-patch and does not need review',
+    );
+    await resetToNeutral();
+    return;
+  }
+
+  // If the PR has the skip-review label, it doesn't need API review.
+  if (pr.labels.some((l) => l.name === API_SKIP_REVIEW_LABEL)) {
+    log(
+      'addOrUpdateAPIReviewCheck',
+      LogLevel.INFO,
+      'This PR has the skip-review label and does not need review',
+    );
+    await resetToNeutral();
+    return;
+  }
+
   // Fetch members of the API Working Group.
   const members = (
     await octokit.teams.listMembersInOrg({
@@ -213,17 +236,6 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
     LogLevel.INFO,
     `Found ${allReviews.length} relevant reviews from WG members`,
   );
-
-  // If the PR is semver-patch, it does not need API review.
-  if (!pr.labels.some((l) => isSemverMajorMinorLabel(l.name))) {
-    log(
-      'addOrUpdateAPIReviewCheck',
-      LogLevel.INFO,
-      'Determined this PR is semver-patch and does not need review',
-    );
-    await resetToNeutral();
-    return;
-  }
 
   const approved = allReviews.filter((r) => r.body?.match(lgtm)).map((r) => r.user?.login);
   const declined = allReviews.filter((r) => r.body?.match(decline)).map((r) => r.user?.login);

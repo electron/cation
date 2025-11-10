@@ -50,6 +50,9 @@ If a PR has passed its minimum open time and has the requisite number of approva
 
 For PRs that need to land faster than the minimum open time (e.g. to respond to OS or Chromium updates), the minimum open time can be bypassed by adding a `api-review/skip-delay ⏰` label to the PR. This label may be added to a PR if at least two members of the API WG representing two different employers approve fast-tracking the PR.
 
+For PRs that are labeled as `semver/minor` or `semver/major` but contain no public-facing API surface, WG members may manually add the `api-review/skip-review 🛂` label
+to bypass the GitHub check.
+
 ## Deprecation Review
 
 The bot controls the deprecation review lifecycle on behalf of the [Releases Working Group](https://github.com/electron/governance/tree/main/wg-releases).
