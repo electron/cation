@@ -2,7 +2,6 @@
   "trailingComma": "all",
   "tabWidth": 2,
   "singleQuote": true,
-  "printWidth": 100,
-  "parser": "typescript"
+  "printWidth": 100
 }
 
