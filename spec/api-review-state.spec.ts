@@ -456,6 +456,46 @@ describe('api review', () => {
     });
   });
 
+  it('correctly returns PR ready date when skip-review label is found', async () => {
+    const payload = loadFixture('api-review-state/pull_request.api-skip-review_label.json');
+
+    nock('https://api.github.com')
+      .get(
+        `/repos/electron/electron/commits/${payload.pull_request.head.sha}/check-runs?per_page=100`,
+      )
+      .reply(200, {
+        check_runs: [
+          {
+            name: API_REVIEW_CHECK_NAME,
+            id: '12345',
+          },
+        ],
+      });
+
+    const expected = {
+      name: API_REVIEW_CHECK_NAME,
+      status: 'completed',
+      output: {
+        title: 'Outdated',
+        summary: 'PR no longer requires API Review',
+      },
+      conclusion: CheckRunStatus.NEUTRAL,
+    };
+
+    nock('https://api.github.com')
+      .patch(`/repos/electron/electron/check-runs/12345`, (body) => {
+        expect(body).toMatchObject(expected);
+        return true;
+      })
+      .reply(200);
+
+    await robot.receive({
+      id: '123-456',
+      name: 'pull_request',
+      payload,
+    });
+  });
+
   describe('correctly updates API Review data when a PR review is submitted', () => {
     describe('from the base repo', () => {
       it('updates the check when there is one API LGTM', async () => {

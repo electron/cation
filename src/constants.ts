@@ -40,6 +40,7 @@ export const REVIEW_LABELS = {
   DECLINED: 'api-review/declined ❌',
 };
 export const API_SKIP_DELAY_LABEL = 'api-review/skip-delay ⏰';
+export const API_SKIP_REVIEW_LABEL = 'api-review/skip-review 🛂';
 
 export const DEPRECATION_REVIEW_LABELS = {
   REQUESTED: 'deprecation-review/requested 📝',
