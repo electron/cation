@@ -5,5 +5,5 @@ lib
 .vscode
 .envrc
 coverage
-.DS_Store.yarn/install-state.gz
+.DS_Store
 .yarn/install-state.gz
