@@ -31,15 +31,6 @@ export async function addOrUpdateDeprecationReviewCheck(
     `Validating ${pr.number} by ${pr.user.login}`,
   );
 
-  if (!pr.head.repo) {
-    log(
-      'addOrUpdateDeprecationReviewCheck',
-      LogLevel.INFO,
-      `${pr.number} has no head repo - checks will not be created or updated`,
-    );
-    return;
-  }
-
   const owner = pr.base.repo.owner.login;
   const repo = pr.head.repo.name;
 
@@ -93,8 +84,6 @@ export async function addOrUpdateDeprecationReviewCheck(
       'baseUrl' | 'headers' | 'mediaType' | 'owner' | 'repo' | 'name' | 'head_sha'
     >,
   ) => {
-    if (!pr.head.repo) return;
-
     if (
       checkRun &&
       (checkRun.status === opts.status || !opts.status || opts.status === 'completed')
@@ -148,8 +137,6 @@ export async function addOrUpdateDeprecationReviewCheck(
 }
 
 export async function maybeAddChecklistComment(octokit: Context['octokit'], pr: PullRequest) {
-  if (!pr.head.repo) return;
-
   const owner = pr.base.repo.owner.login;
   const repo = pr.head.repo.name;
 
@@ -208,7 +195,7 @@ export function setupDeprecationReviewStateManagement(probot: Probot) {
 
     if (isReviewLabel(label.name)) {
       if (!isBot(initiator) && label.name !== DEPRECATION_REVIEW_LABELS.REQUESTED) {
-        probot.log.warn(
+        probot.log(
           `${initiator} tried to add ${label.name} to PR #${pr.number} - this is not permitted.`,
         );
 
@@ -254,7 +241,7 @@ export function setupDeprecationReviewStateManagement(probot: Probot) {
         // Check will be removed by addOrUpdateDeprecationReviewCheck
       } else {
         if (!isBot(initiator)) {
-          probot.log.warn(
+          probot.log(
             `${initiator} tried to remove ${label.name} from PR #${pr.number} - this is not permitted.`,
           );
 

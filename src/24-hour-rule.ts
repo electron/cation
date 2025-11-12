@@ -56,19 +56,16 @@ export const getPROpenedTime = async (
 
   // Filter out all except 'Ready For Review' events.
   const readyForReviewEvents = events
-    .filter(
-      (e): e is typeof e & { created_at: string } =>
-        e.event === 'ready_for_review' && 'created_at' in e,
-    )
+    .filter((e) => e.event === 'ready_for_review')
     .sort(({ created_at: cA }, { created_at: cB }) => {
-      return new Date(cB).getTime() - new Date(cA).getTime();
+      return new Date(cB!).getTime() - new Date(cA!).getTime();
     });
 
   // If this PR was a draft PR previously, set its opened time as a function
   // of when it was most recently marked ready for review instead of when it was opened,
   // otherwise return the PR open date.
   return readyForReviewEvents.length > 0
-    ? new Date(readyForReviewEvents[0].created_at).getTime()
+    ? new Date(readyForReviewEvents[0].created_at!).getTime()
     : new Date(pr.created_at).getTime();
 };
 
@@ -164,9 +161,7 @@ export async function setUp24HourRule(probot: Probot, disableCronForTesting = fa
         if (!labelShouldBeChecked(label!)) return;
       }
 
-      probot.log.info(
-        `24-hour rule received PR: ${repository.full_name}#${pr.number} checking now`,
-      );
+      probot.log(`24-hour rule received PR: ${repository.full_name}#${pr.number} checking now`);
 
       const shouldLabel = await shouldPRHaveLabel(context.octokit, pr);
 
@@ -177,14 +172,14 @@ export async function setUp24HourRule(probot: Probot, disableCronForTesting = fa
   if (!disableCronForTesting) runInterval();
 
   async function runInterval() {
-    probot.log.info('Running 24 hour rule check');
+    probot.log('Running 24 hour rule check');
     const github = await probot.auth();
     const { data: installs } = await github.apps.listInstallations({});
     for (const install of installs) {
       try {
         await runCron(probot, install.id);
       } catch (err) {
-        probot.log.error(`Failed to run cron for install: ${install.id} ${err}`);
+        probot.log(`Failed to run cron for install: ${install.id} ${err}`);
       }
     }
 
@@ -196,7 +191,7 @@ export async function setUp24HourRule(probot: Probot, disableCronForTesting = fa
     const { data } = await octokit.apps.listReposAccessibleToInstallation({});
 
     for (const repo of data.repositories) {
-      probot.log.info(`Running 24 hour cron job on repo: ${repo.owner.login}/${repo.name}`);
+      probot.log(`Running 24 hour cron job on repo: ${repo.owner.login}/${repo.name}`);
       let page = 0;
       const prs: PullRequest[] = [];
       let lastPRCount = -1;
@@ -216,7 +211,7 @@ export async function setUp24HourRule(probot: Probot, disableCronForTesting = fa
         page++;
       } while (lastPRCount < prs.length);
 
-      probot.log.info(`Found ${prs.length} prs for repo: ${repo.owner.login}/${repo.name}`);
+      probot.log(`Found ${prs.length} prs for repo: ${repo.owner.login}/${repo.name}`);
 
       for (const pr of prs) {
         const shouldLabel = await shouldPRHaveLabel(octokit, pr);
