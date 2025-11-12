@@ -21,6 +21,8 @@ import {
 import { CheckRunStatus } from '../src/enums';
 import { loadFixture } from './utils';
 
+const GH_API = 'https://api.github.com';
+
 const handler = async (app: Probot) => {
   setupDeprecationReviewStateManagement(app);
 };
@@ -45,23 +47,25 @@ describe('deprecation review', () => {
     });
 
     moctokit = {
-      issues: {
-        addLabels: vi.fn().mockReturnValue({ data: [] }),
-        createComment: vi.fn().mockResolvedValue({}),
-        listLabelsOnIssue: vi.fn().mockReturnValue({ data: [] }),
-        listComments: vi.fn().mockReturnValue({ data: [] }),
-        removeLabel: vi.fn().mockReturnValue({ data: [] }),
-      },
-      checks: {
-        listForRef: vi.fn().mockReturnValue({ data: { check_runs: [] } }),
-        create: vi.fn().mockReturnValue({ data: {} }),
-        update: vi.fn().mockReturnValue({ data: {} }),
-      },
-      teams: {
-        listMembersInOrg: vi.fn().mockReturnValue({ data: [] }),
-      },
-      pulls: {
-        listReviews: vi.fn().mockReturnValue({ data: [] }),
+      rest: {
+        issues: {
+          addLabels: vi.fn().mockReturnValue({ data: [] }),
+          createComment: vi.fn().mockResolvedValue({}),
+          listLabelsOnIssue: vi.fn().mockReturnValue({ data: [] }),
+          listComments: vi.fn().mockReturnValue({ data: [] }),
+          removeLabel: vi.fn().mockReturnValue({ data: [] }),
+        },
+        checks: {
+          listForRef: vi.fn().mockReturnValue({ data: { check_runs: [] } }),
+          create: vi.fn().mockReturnValue({ data: {} }),
+          update: vi.fn().mockReturnValue({ data: {} }),
+        },
+        teams: {
+          listMembersInOrg: vi.fn().mockReturnValue({ data: [] }),
+        },
+        pulls: {
+          listReviews: vi.fn().mockReturnValue({ data: [] }),
+        },
       },
     } as any as Context['octokit'];
 
@@ -105,7 +109,7 @@ describe('deprecation review', () => {
         'deprecation-review-state/pull_request.no_review_label.json',
       );
 
-      moctokit.checks.listForRef = vi.fn().mockReturnValue({
+      moctokit.rest.checks.listForRef = vi.fn().mockReturnValue({
         data: {
           check_runs: [
             {
@@ -127,13 +131,13 @@ describe('deprecation review', () => {
       };
 
       await addOrUpdateDeprecationReviewCheck(moctokit, pull_request);
-      expect(moctokit.checks.update).toHaveBeenCalledWith(expect.objectContaining(expected));
+      expect(moctokit.rest.checks.update).toHaveBeenCalledWith(expect.objectContaining(expected));
 
-      expect(moctokit.issues.addLabels).not.toHaveBeenCalled();
-      expect(moctokit.issues.removeLabel).not.toHaveBeenCalled();
+      expect(moctokit.rest.issues.addLabels).not.toHaveBeenCalled();
+      expect(moctokit.rest.issues.removeLabel).not.toHaveBeenCalled();
 
-      expect(moctokit.checks.listForRef).toHaveBeenCalled();
-      expect(moctokit.checks.update).toHaveBeenCalled();
+      expect(moctokit.rest.checks.listForRef).toHaveBeenCalled();
+      expect(moctokit.rest.checks.update).toHaveBeenCalled();
     });
 
     it(`should create the check for a PR with the ${DEPRECATION_REVIEW_LABELS.REQUESTED} label`, async () => {
@@ -141,7 +145,7 @@ describe('deprecation review', () => {
         'deprecation-review-state/pull_request.requested_review_label.json',
       );
 
-      moctokit.checks.listForRef = vi.fn().mockReturnValue({
+      moctokit.rest.checks.listForRef = vi.fn().mockReturnValue({
         data: {
           check_runs: [],
         },
@@ -157,7 +161,7 @@ describe('deprecation review', () => {
       };
 
       await addOrUpdateDeprecationReviewCheck(moctokit, pull_request);
-      expect(moctokit.checks.create).toHaveBeenCalledWith(expect.objectContaining(expected));
+      expect(moctokit.rest.checks.create).toHaveBeenCalledWith(expect.objectContaining(expected));
     });
 
     it('should not use Checks API when the PR is from a fork', async () => {
@@ -168,8 +172,8 @@ describe('deprecation review', () => {
       pull_request.head.repo.fork = true;
 
       await addOrUpdateDeprecationReviewCheck(moctokit, pull_request);
-      expect(moctokit.checks.create).not.toHaveBeenCalled();
-      expect(moctokit.checks.update).not.toHaveBeenCalled();
+      expect(moctokit.rest.checks.create).not.toHaveBeenCalled();
+      expect(moctokit.rest.checks.update).not.toHaveBeenCalled();
     });
 
     it(`should correctly update deprecation review check for ${DEPRECATION_REVIEW_LABELS.COMPLETE} label`, async () => {
@@ -177,7 +181,7 @@ describe('deprecation review', () => {
         'deprecation-review-state/pull_request.review_complete_label.json',
       );
 
-      moctokit.checks.listForRef = vi.fn().mockReturnValue({
+      moctokit.rest.checks.listForRef = vi.fn().mockReturnValue({
         data: {
           check_runs: [
             {
@@ -199,7 +203,7 @@ describe('deprecation review', () => {
       };
 
       await addOrUpdateDeprecationReviewCheck(moctokit, payload.pull_request);
-      expect(moctokit.checks.update).toHaveBeenCalledWith(expect.objectContaining(expected));
+      expect(moctokit.rest.checks.update).toHaveBeenCalledWith(expect.objectContaining(expected));
     });
   });
 
@@ -210,7 +214,7 @@ describe('deprecation review', () => {
       );
 
       await maybeAddChecklistComment(moctokit, pull_request);
-      expect(moctokit.issues.createComment).toHaveBeenCalledWith(
+      expect(moctokit.rest.issues.createComment).toHaveBeenCalledWith(
         expect.objectContaining({
           body: CHECKLIST_COMMENT,
         }),
@@ -223,7 +227,7 @@ describe('deprecation review', () => {
       );
 
       await maybeAddChecklistComment(moctokit, pull_request);
-      expect(moctokit.issues.createComment).not.toHaveBeenCalled();
+      expect(moctokit.rest.issues.createComment).not.toHaveBeenCalled();
     });
 
     it('should not comment on the PR when the comment already exists', async () => {
@@ -231,7 +235,7 @@ describe('deprecation review', () => {
         'deprecation-review-state/pull_request.requested_review_label.json',
       );
 
-      moctokit.issues.listComments = vi.fn().mockReturnValue({
+      moctokit.rest.issues.listComments = vi.fn().mockReturnValue({
         data: [
           {
             user: {
@@ -243,7 +247,7 @@ describe('deprecation review', () => {
       });
 
       await maybeAddChecklistComment(moctokit, pull_request);
-      expect(moctokit.issues.createComment).not.toHaveBeenCalled();
+      expect(moctokit.rest.issues.createComment).not.toHaveBeenCalled();
     });
   });
 
@@ -252,7 +256,7 @@ describe('deprecation review', () => {
       'deprecation-review-state/pull_request.requested_review_label.json',
     );
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .get(
         `/repos/dsanders11/deprecation-review/commits/${payload.pull_request.head.sha}/check-runs?per_page=100`,
       )
@@ -260,7 +264,7 @@ describe('deprecation review', () => {
         check_runs: [],
       });
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .get(
         `/repos/dsanders11/deprecation-review/issues/${payload.pull_request.number}/comments?per_page=100`,
       )
@@ -275,14 +279,14 @@ describe('deprecation review', () => {
       },
     };
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .post('/repos/dsanders11/deprecation-review/check-runs', (body) => {
         expect(body).toMatchObject(expected);
         return true;
       })
       .reply(200);
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .post(
         `/repos/dsanders11/deprecation-review/issues/${payload.pull_request.number}/comments`,
         ({ body }) => {
@@ -302,7 +306,7 @@ describe('deprecation review', () => {
   it(`correctly updates deprecation review check when no review labels are found`, async () => {
     const payload = loadFixture('deprecation-review-state/pull_request.no_review_label.json');
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .get(
         `/repos/dsanders11/deprecation-review/commits/${payload.pull_request.head.sha}/check-runs?per_page=100`,
       )
@@ -325,7 +329,7 @@ describe('deprecation review', () => {
       conclusion: CheckRunStatus.NEUTRAL,
     };
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .patch(`/repos/dsanders11/deprecation-review/check-runs/12345`, (body) => {
         expect(body).toMatchObject(expected);
         return true;
@@ -342,17 +346,20 @@ describe('deprecation review', () => {
   it('correctly updates deprecation review check and deprecation review label when pr is unlabeled', async () => {
     const payload = loadFixture('deprecation-review-state/pull_request.unlabeled.json');
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .get(
         `/repos/dsanders11/deprecation-review/issues/${payload.number}/labels?per_page=100&page=1`,
       )
       .reply(200, []);
 
-    nock('https://api.github.com')
-      .post(`/repos/dsanders11/deprecation-review/issues/${payload.number}/labels`, (body) => {
-        expect(body).toEqual([DEPRECATION_REVIEW_LABELS.COMPLETE]);
-        return true;
-      })
+    nock(GH_API)
+      .post(
+        `/repos/dsanders11/deprecation-review/issues/${payload.number}/labels`,
+        ({ labels }) => {
+          expect(labels).toEqual([DEPRECATION_REVIEW_LABELS.COMPLETE]);
+          return true;
+        },
+      )
       .reply(200);
 
     await robot.receive({
@@ -385,7 +392,7 @@ describe('deprecation review', () => {
   it('correctly updates deprecation review check and deprecation review label when checklist complete', async () => {
     const payload = loadFixture('deprecation-review-state/issue_comment.checklist_complete.json');
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .get(
         `/repos/dsanders11/deprecation-review/issues/${payload.issue.number}/labels?per_page=100&page=1`,
       )
@@ -398,18 +405,18 @@ describe('deprecation review', () => {
         { name: DEPRECATION_REVIEW_LABELS.COMPLETE },
       ]);
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .post(
         `/repos/dsanders11/deprecation-review/issues/${payload.issue.number}/labels`,
-        (body) => {
-          expect(body).toEqual([DEPRECATION_REVIEW_LABELS.COMPLETE]);
+        ({ labels }) => {
+          expect(labels).toEqual([DEPRECATION_REVIEW_LABELS.COMPLETE]);
           return true;
         },
       )
       .reply(200);
 
     const encoded = encodeURIComponent(DEPRECATION_REVIEW_LABELS.REQUESTED);
-    nock('https://api.github.com')
+    nock(GH_API)
       .delete(
         `/repos/dsanders11/deprecation-review/issues/${payload.issue.number}/labels/${encoded}`,
       )

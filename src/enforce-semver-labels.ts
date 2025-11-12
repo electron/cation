@@ -27,7 +27,7 @@ export function setupSemverLabelEnforcement(probot: Probot) {
       if (semverLabels.length === 0) {
         log('setupSemverLabelEnforcement', LogLevel.ERROR, `#${pr.number} is missing semver label`);
 
-        await context.octokit.checks.create(
+        await context.octokit.rest.checks.create(
           context.repo({
             name: 'Semver Label Enforcement',
             head_sha: pr.head.sha,
@@ -45,7 +45,7 @@ export function setupSemverLabelEnforcement(probot: Probot) {
           `#${pr.number} has duplicate semver labels`,
         );
 
-        await context.octokit.checks.create(
+        await context.octokit.rest.checks.create(
           context.repo({
             name: 'Semver Label Enforcement',
             head_sha: pr.head.sha,
@@ -59,7 +59,7 @@ export function setupSemverLabelEnforcement(probot: Probot) {
       } else {
         log('setupSemverLabelEnforcement', LogLevel.INFO, `#${pr.number} has a valid semver label`);
 
-        await context.octokit.checks.create(
+        await context.octokit.rest.checks.create(
           context.repo({
             name: 'Semver Label Enforcement',
             head_sha: pr.head.sha,

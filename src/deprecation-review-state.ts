@@ -1,12 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { Context, Probot } from 'probot';
+import { Context, Probot, ProbotOctokit } from 'probot';
 import { log } from './utils/log-util';
 import { DEPRECATION_REVIEW_CHECK_NAME, DEPRECATION_REVIEW_LABELS } from './constants';
 import { CheckRunStatus, LogLevel } from './enums';
 import { getEnvVar } from './utils/env-util';
-import { IssueComment, PullRequest } from '@octokit/webhooks-types';
+import { IssueCommentEvent, PullRequest } from './types';
 import { Endpoints } from '@octokit/types';
 import { addLabels, removeLabel } from './utils/label-utils';
 
@@ -18,18 +18,28 @@ const checkTitles = {
 const isBot = (user: string) => user === getEnvVar('BOT_USER_NAME', 'bot');
 export const isReviewLabel = (label: string) =>
   Object.values(DEPRECATION_REVIEW_LABELS).includes(label);
-export const isChecklistComment = (comment: IssueComment) =>
-  isBot(comment.user.login) && comment.body.startsWith('## 🪦 Deprecation Checklist');
 
-export async function addOrUpdateDeprecationReviewCheck(
-  octokit: Context['octokit'],
-  pr: PullRequest,
-) {
+export const isChecklistComment = (comment: IssueCommentEvent) => {
+  const { user, body } = comment;
+  if (!user) return false;
+  return isBot(user.login) && body.startsWith('## 🪦 Deprecation Checklist');
+};
+
+export async function addOrUpdateDeprecationReviewCheck(octokit: ProbotOctokit, pr: PullRequest) {
   log(
     'addOrUpdateDeprecationReviewCheck',
     LogLevel.INFO,
     `Validating ${pr.number} by ${pr.user.login}`,
   );
+
+  if (!pr.head.repo) {
+    log(
+      'addOrUpdateDeprecationReviewCheck',
+      LogLevel.WARN,
+      `PR #${pr.number} does not have a head repo - cannot update check`,
+    );
+    return;
+  }
 
   const owner = pr.base.repo.owner.login;
   const repo = pr.head.repo.name;
@@ -46,7 +56,7 @@ export async function addOrUpdateDeprecationReviewCheck(
 
   // Fetch the latest Deprecation Review check for the PR.
   const checkRun = (
-    await octokit.checks.listForRef({
+    await octokit.rest.checks.listForRef({
       ref: pr.head.sha,
       per_page: 100,
       owner,
@@ -56,7 +66,7 @@ export async function addOrUpdateDeprecationReviewCheck(
 
   const resetToNeutral = async () => {
     if (!checkRun) return;
-    return await octokit.checks.update({
+    return await octokit.rest.checks.update({
       owner,
       repo,
       name: DEPRECATION_REVIEW_CHECK_NAME,
@@ -88,17 +98,17 @@ export async function addOrUpdateDeprecationReviewCheck(
       checkRun &&
       (checkRun.status === opts.status || !opts.status || opts.status === 'completed')
     ) {
-      await octokit.checks.update({
-        owner: pr.head.repo.owner.login,
-        repo: pr.head.repo.name,
+      await octokit.rest.checks.update({
+        owner: pr.head.repo!.owner.login,
+        repo: pr.head.repo!.name,
         name: DEPRECATION_REVIEW_CHECK_NAME,
         check_run_id: checkRun.id,
         ...opts,
       });
     } else {
-      await octokit.checks.create({
-        owner: pr.head.repo.owner.login,
-        repo: pr.head.repo.name,
+      await octokit.rest.checks.create({
+        owner: pr.head.repo!.owner.login,
+        repo: pr.head.repo!.name,
         name: DEPRECATION_REVIEW_CHECK_NAME,
         head_sha: pr.head.sha,
         ...opts,
@@ -136,7 +146,16 @@ export async function addOrUpdateDeprecationReviewCheck(
   }
 }
 
-export async function maybeAddChecklistComment(octokit: Context['octokit'], pr: PullRequest) {
+export async function maybeAddChecklistComment(octokit: ProbotOctokit, pr: PullRequest) {
+  if (!pr.head.repo) {
+    log(
+      'maybeAddChecklistComment',
+      LogLevel.WARN,
+      `PR #${pr.number} does not have a head repo - cannot add checklist comment`,
+    );
+    return;
+  }
+
   const owner = pr.base.repo.owner.login;
   const repo = pr.head.repo.name;
 
@@ -146,16 +165,16 @@ export async function maybeAddChecklistComment(octokit: Context['octokit'], pr: 
 
   // Find the checklist comment from the bot, if it exists
   const comment = (
-    await octokit.issues.listComments({
+    await octokit.rest.issues.listComments({
       owner,
       repo,
       issue_number: pr.number,
       per_page: 100,
     })
-  ).data.find((comment) => comment.user && isChecklistComment(comment as IssueComment));
+  ).data.find((comment) => comment.user && isChecklistComment(comment as IssueCommentEvent));
 
   if (!comment) {
-    await octokit.issues.createComment({
+    await octokit.rest.issues.createComment({
       owner,
       repo,
       issue_number: pr.number,
@@ -171,7 +190,8 @@ export function setupDeprecationReviewStateManagement(probot: Probot) {
   probot.on(
     ['pull_request.synchronize', 'pull_request.opened'],
     async (context: Context<'pull_request'>) => {
-      await addOrUpdateDeprecationReviewCheck(context.octokit, context.payload.pull_request);
+      const pr = context.payload.pull_request as PullRequest;
+      await addOrUpdateDeprecationReviewCheck(context.octokit, pr);
     },
   );
 
@@ -182,9 +202,10 @@ export function setupDeprecationReviewStateManagement(probot: Probot) {
   probot.on('pull_request.labeled', async (context: Context<'pull_request.labeled'>) => {
     const {
       label,
-      pull_request: pr,
       sender: { login: initiator },
     } = context.payload;
+
+    const pr = context.payload.pull_request as PullRequest;
 
     if (!label) {
       throw new Error('Something went wrong - label does not exist.');
@@ -195,7 +216,9 @@ export function setupDeprecationReviewStateManagement(probot: Probot) {
 
     if (isReviewLabel(label.name)) {
       if (!isBot(initiator) && label.name !== DEPRECATION_REVIEW_LABELS.REQUESTED) {
-        probot.log(
+        log(
+          'pull_request.labeled',
+          LogLevel.WARN,
           `${initiator} tried to add ${label.name} to PR #${pr.number} - this is not permitted.`,
         );
 
@@ -207,7 +230,7 @@ export function setupDeprecationReviewStateManagement(probot: Probot) {
       }
 
       if (label.name === DEPRECATION_REVIEW_LABELS.REQUESTED) {
-        await maybeAddChecklistComment(context.octokit, context.payload.pull_request);
+        await maybeAddChecklistComment(context.octokit, pr);
       }
     }
 
@@ -222,9 +245,10 @@ export function setupDeprecationReviewStateManagement(probot: Probot) {
   probot.on('pull_request.unlabeled', async (context: Context<'pull_request.unlabeled'>) => {
     const {
       label,
-      pull_request: pr,
       sender: { login: initiator },
     } = context.payload;
+
+    const pr = context.payload.pull_request as PullRequest;
 
     if (!label) {
       throw new Error('Something went wrong - label does not exist.');
@@ -241,7 +265,9 @@ export function setupDeprecationReviewStateManagement(probot: Probot) {
         // Check will be removed by addOrUpdateDeprecationReviewCheck
       } else {
         if (!isBot(initiator)) {
-          probot.log(
+          log(
+            'pull_request.labeled',
+            LogLevel.WARN,
             `${initiator} tried to remove ${label.name} from PR #${pr.number} - this is not permitted.`,
           );
 

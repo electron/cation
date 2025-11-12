@@ -17,7 +17,7 @@ import {
 import { CheckRunStatus, LogLevel } from './enums';
 import { isAPIReviewRequired } from './utils/check-utils';
 import { getEnvVar } from './utils/env-util';
-import { PullRequest, Label } from '@octokit/webhooks-types';
+import { PullRequest, Label } from './types';
 import { GetResponseDataTypeFromEndpointMethod, Endpoints } from '@octokit/types';
 import { addLabels, removeLabel } from './utils/label-utils';
 
@@ -72,13 +72,24 @@ export const getPRReadyDate = (pr: PullRequest) => {
 export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr: PullRequest) {
   log('addOrUpdateAPIReviewCheck', LogLevel.INFO, `Validating ${pr.number} by ${pr.user.login}`);
 
-  type ListReviewsItem = GetResponseDataTypeFromEndpointMethod<typeof octokit.pulls.listReviews>[0];
+  type ListReviewsItem = GetResponseDataTypeFromEndpointMethod<
+    typeof octokit.rest.pulls.listReviews
+  >[0];
 
   type ListCommentsItem = GetResponseDataTypeFromEndpointMethod<
-    typeof octokit.issues.listComments
+    typeof octokit.rest.issues.listComments
   >[0];
 
   type CommentOrReview = ListReviewsItem & ListCommentsItem;
+
+  if (!pr.head.repo) {
+    log(
+      'addOrUpdateAPIReviewCheck',
+      LogLevel.WARN,
+      `PR #${pr.number} does not have a head repo - cannot update check`,
+    );
+    return;
+  }
 
   const fork = pr.head.repo.fork;
   const owner = pr.base.repo.owner.login;
@@ -96,7 +107,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
   const checkRun = fork
     ? null
     : (
-        await octokit.checks.listForRef({
+        await octokit.rest.checks.listForRef({
           ref: pr.head.sha,
           per_page: 100,
           owner,
@@ -106,7 +117,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
 
   const resetToNeutral = async () => {
     if (!checkRun) return;
-    return await octokit.checks.update({
+    return await octokit.rest.checks.update({
       owner,
       repo,
       name: API_REVIEW_CHECK_NAME,
@@ -151,7 +162,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
 
   // Fetch members of the API Working Group.
   const members = (
-    await octokit.teams.listMembersInOrg({
+    await octokit.rest.teams.listMembersInOrg({
       org: owner,
       team_slug: API_WORKING_GROUP,
     })
@@ -165,7 +176,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
 
   // Filter reviews by those from members of the API Working Group.
   const reviews = (
-    await octokit.paginate(octokit.pulls.listReviews, {
+    await octokit.paginate(octokit.rest.pulls.listReviews, {
       owner,
       repo,
       pull_number: pr.number,
@@ -182,7 +193,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
 
   // Filter comments by those from members of the API Working Group.
   const comments = (
-    await octokit.issues.listComments({
+    await octokit.rest.issues.listComments({
       owner,
       repo,
       issue_number: pr.number,
@@ -265,17 +276,17 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
       checkRun &&
       (checkRun.status === opts.status || !opts.status || opts.status === 'completed')
     ) {
-      await octokit.checks.update({
-        owner: pr.head.repo.owner.login,
-        repo: pr.head.repo.name,
+      await octokit.rest.checks.update({
+        owner: pr.head.repo!.owner.login,
+        repo: pr.head.repo!.name,
         name: API_REVIEW_CHECK_NAME,
         check_run_id: checkRun.id,
         ...opts,
       });
     } else {
-      await octokit.checks.create({
-        owner: pr.head.repo.owner.login,
-        repo: pr.head.repo.name,
+      await octokit.rest.checks.create({
+        owner: pr.head.repo!.owner.login,
+        repo: pr.head.repo!.name,
         name: API_REVIEW_CHECK_NAME,
         head_sha: pr.head.sha,
         ...opts,
@@ -397,7 +408,8 @@ export function setupAPIReviewStateManagement(probot: Probot) {
   probot.on(
     ['pull_request.synchronize', 'pull_request.opened'],
     async (context: Context<'pull_request'>) => {
-      await addOrUpdateAPIReviewCheck(context.octokit, context.payload.pull_request);
+      const pr = context.payload.pull_request as PullRequest;
+      await addOrUpdateAPIReviewCheck(context.octokit, pr);
     },
   );
 
@@ -419,14 +431,15 @@ export function setupAPIReviewStateManagement(probot: Probot) {
    * we want to add the 'api-review/requested 🗳' label.
    */
   probot.on('pull_request.ready_for_review', async (context: Context<'pull_request'>) => {
-    const { pull_request: pr, repository } = context.payload;
+    const { repository } = context.payload;
+    const pr = context.payload.pull_request as PullRequest;
 
     if (hasSemverMajorMinorLabel(pr)) {
-      probot.log(
-        'semver-minor or semver-major PR:',
-        `${repository.full_name}#${pr.number}`,
-        'was marked as ready for review',
-        "Adding the 'api-review/requested 🗳' label",
+      probot.log.info(
+        'semver-minor or semver-major PR: ' +
+          `${repository.full_name}#${pr.number}` +
+          'was marked as ready for review' +
+          "Adding the 'api-review/requested 🗳' label",
       );
 
       await addLabels(context.octokit, {
@@ -442,14 +455,15 @@ export function setupAPIReviewStateManagement(probot: Probot) {
    * we want to remove the 'api-review/requested 🗳' label.
    */
   probot.on('pull_request.converted_to_draft', async (context: Context<'pull_request'>) => {
-    const { pull_request: pr, repository } = context.payload;
+    const { repository } = context.payload;
+    const pr = context.payload.pull_request as PullRequest;
 
     if (hasSemverMajorMinorLabel(pr) && hasAPIReviewRequestedLabel(pr)) {
-      probot.log(
-        'semver-minor or semver-major PR:',
-        `${repository.full_name}#${pr.number}`,
-        'was converted to draft status',
-        "Removing the 'api-review/requested 🗳' label",
+      probot.log.info(
+        'semver-minor or semver-major PR:' +
+          `${repository.full_name}#${pr.number}` +
+          'was converted to draft status' +
+          "Removing the 'api-review/requested 🗳' label",
       );
 
       await removeLabel(context.octokit, {
@@ -479,10 +493,11 @@ export function setupAPIReviewStateManagement(probot: Probot) {
   probot.on('pull_request.labeled', async (context: Context<'pull_request.labeled'>) => {
     const {
       label,
-      pull_request: pr,
       repository,
       sender: { login: initiator },
     } = context.payload;
+
+    const pr = context.payload.pull_request as PullRequest;
 
     if (!label) {
       throw new Error('Something went wrong - label does not exist.');
@@ -505,10 +520,10 @@ export function setupAPIReviewStateManagement(probot: Probot) {
     // If a PR is semver-minor or semver-major and the PR does not have an
     // exclusion condition, automatically add the 'api-review/requested 🗳' label.
     if (isSemverMajorMinorLabel(label.name) && !excludePR) {
-      probot.log(
-        'Received a semver-minor or semver-major PR:',
-        `${repository.full_name}#${pr.number}`,
-        "Adding the 'api-review/requested 🗳' label",
+      probot.log.info(
+        'Received a semver-minor or semver-major PR: ' +
+          `${repository.full_name}#${pr.number}` +
+          "Adding the 'api-review/requested 🗳' label",
       );
 
       await addLabels(context.octokit, {
@@ -521,7 +536,7 @@ export function setupAPIReviewStateManagement(probot: Probot) {
       // remove it.
     } else if (isReviewLabel(label.name)) {
       if (!isBot(initiator) && label.name !== REVIEW_LABELS.REQUESTED) {
-        probot.log(
+        probot.log.info(
           `${initiator} tried to add ${label.name} to PR #${pr.number} - this is not permitted.`,
         );
 
@@ -556,9 +571,10 @@ export function setupAPIReviewStateManagement(probot: Probot) {
   probot.on('pull_request.unlabeled', async (context: Context<'pull_request.unlabeled'>) => {
     const {
       label,
-      pull_request: pr,
       sender: { login: initiator },
     } = context.payload;
+
+    const pr = context.payload.pull_request as PullRequest;
 
     if (!label) {
       throw new Error('Something went wrong - label does not exist.');
@@ -575,7 +591,7 @@ export function setupAPIReviewStateManagement(probot: Probot) {
         // Check will be removed by addOrUpdateCheck
       } else {
         if (!isBot(initiator)) {
-          probot.log(
+          probot.log.warn(
             `${initiator} tried to remove ${label.name} from PR #${pr.number} - this is not permitted.`,
           );
 

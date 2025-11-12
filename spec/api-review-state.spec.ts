@@ -23,6 +23,8 @@ import {
 import { CheckRunStatus } from '../src/enums';
 import { loadFixture } from './utils';
 
+const GH_API = 'https://api.github.com';
+
 const API_WORKING_GROUP_MEMBERS = [
   { login: 'ckerr' },
   { login: 'codebytere' },
@@ -54,22 +56,24 @@ describe('api review', () => {
     });
 
     moctokit = {
-      issues: {
-        addLabels: vi.fn().mockReturnValue({ data: [] }),
-        removeLabel: vi.fn().mockReturnValue({ data: [] }),
-        listLabelsOnIssue: vi.fn().mockReturnValue({ data: [] }),
-        listComments: vi.fn().mockReturnValue({ data: [] }),
-      },
-      checks: {
-        listForRef: vi.fn().mockReturnValue({ data: { check_runs: [] } }),
-        create: vi.fn().mockReturnValue({ data: {} }),
-        update: vi.fn().mockReturnValue({ data: {} }),
-      },
-      teams: {
-        listMembersInOrg: vi.fn().mockReturnValue({ data: [] }),
-      },
-      pulls: {
-        listReviews: vi.fn().mockReturnValue({ data: [] }),
+      rest: {
+        issues: {
+          addLabels: vi.fn().mockReturnValue({ data: [] }),
+          removeLabel: vi.fn().mockReturnValue({ data: [] }),
+          listLabelsOnIssue: vi.fn().mockReturnValue({ data: [] }),
+          listComments: vi.fn().mockReturnValue({ data: [] }),
+        },
+        checks: {
+          listForRef: vi.fn().mockReturnValue({ data: { check_runs: [] } }),
+          create: vi.fn().mockReturnValue({ data: {} }),
+          update: vi.fn().mockReturnValue({ data: {} }),
+        },
+        teams: {
+          listMembersInOrg: vi.fn().mockReturnValue({ data: [] }),
+        },
+        pulls: {
+          listReviews: vi.fn().mockReturnValue({ data: [] }),
+        },
       },
       paginate: (endpoint: Function, params: any) => endpoint(params)?.data,
     } as any as Context['octokit'];
@@ -139,7 +143,7 @@ describe('api review', () => {
   it('should reset the check when PR does not have an API review label on a base PR', async () => {
     let { pull_request } = loadFixture('api-review-state/pull_request.no_review_label.json');
 
-    moctokit.checks.listForRef = vi.fn().mockReturnValue({
+    moctokit.rest.checks.listForRef = vi.fn().mockReturnValue({
       data: {
         check_runs: [
           {
@@ -153,11 +157,11 @@ describe('api review', () => {
     const users = await addOrUpdateAPIReviewCheck(moctokit, pull_request);
     expect(users).toEqual(undefined);
 
-    expect(moctokit.issues.addLabels).not.toHaveBeenCalled();
-    expect(moctokit.issues.removeLabel).not.toHaveBeenCalled();
+    expect(moctokit.rest.issues.addLabels).not.toHaveBeenCalled();
+    expect(moctokit.rest.issues.removeLabel).not.toHaveBeenCalled();
 
-    expect(moctokit.checks.listForRef).toHaveBeenCalled();
-    expect(moctokit.checks.update).toHaveBeenCalled();
+    expect(moctokit.rest.checks.listForRef).toHaveBeenCalled();
+    expect(moctokit.rest.checks.update).toHaveBeenCalled();
   });
 
   it('should do nothing when the PR does not have an API review label on a fork PR', async () => {
@@ -168,11 +172,11 @@ describe('api review', () => {
     const users = await addOrUpdateAPIReviewCheck(moctokit, pull_request);
     expect(users).toEqual(undefined);
 
-    expect(moctokit.issues.addLabels).not.toHaveBeenCalled();
-    expect(moctokit.issues.removeLabel).not.toHaveBeenCalled();
+    expect(moctokit.rest.issues.addLabels).not.toHaveBeenCalled();
+    expect(moctokit.rest.issues.removeLabel).not.toHaveBeenCalled();
 
-    expect(moctokit.checks.listForRef).toHaveBeenCalled();
-    expect(moctokit.checks.update).not.toHaveBeenCalled();
+    expect(moctokit.rest.checks.listForRef).toHaveBeenCalled();
+    expect(moctokit.rest.checks.update).not.toHaveBeenCalled();
   });
 
   it(`should correctly parse user approval status for ${REVIEW_LABELS.REQUESTED} label`, async () => {
@@ -180,7 +184,7 @@ describe('api review', () => {
       'api-review-state/pull_request.requested_review_label.json',
     );
 
-    moctokit.pulls.listReviews.mockReturnValue({
+    moctokit.rest.pulls.listReviews.mockReturnValue({
       data: [
         {
           user: { id: 1, login: 'ckerr' },
@@ -210,7 +214,7 @@ describe('api review', () => {
       ],
     });
 
-    moctokit.teams.listMembersInOrg.mockReturnValue({
+    moctokit.rest.teams.listMembersInOrg.mockReturnValue({
       data: [
         { login: 'codebytere' },
         { login: 'jkleinsc' },
@@ -221,7 +225,7 @@ describe('api review', () => {
     });
 
     const users = await addOrUpdateAPIReviewCheck(moctokit, pull_request);
-    expect(moctokit.checks.create).toHaveBeenCalledWith({
+    expect(moctokit.rest.checks.create).toHaveBeenCalledWith({
       head_sha: 'c6b1b7168ab850a47f856c4a30f7a441bede1117',
       name: 'API Review',
       output: {
@@ -256,7 +260,7 @@ describe('api review', () => {
       'api-review-state/pull_request.requested_review_label.json',
     );
 
-    moctokit.pulls.listReviews.mockReturnValue({
+    moctokit.rest.pulls.listReviews.mockReturnValue({
       data: [
         {
           user: { id: 1, login: 'nornagon' },
@@ -278,7 +282,7 @@ describe('api review', () => {
       ],
     });
 
-    moctokit.teams.listMembersInOrg.mockReturnValue({
+    moctokit.rest.teams.listMembersInOrg.mockReturnValue({
       data: [{ login: 'jkleinsc' }, { login: 'nornagon' }],
     });
 
@@ -295,7 +299,7 @@ describe('api review', () => {
       'api-review-state/pull_request.requested_review_label.json',
     );
 
-    moctokit.pulls.listReviews.mockReturnValue({
+    moctokit.rest.pulls.listReviews.mockReturnValue({
       data: [
         {
           user: { id: 2, login: 'marshallofsound' },
@@ -312,7 +316,7 @@ describe('api review', () => {
       ],
     });
 
-    moctokit.teams.listMembersInOrg.mockReturnValue({
+    moctokit.rest.teams.listMembersInOrg.mockReturnValue({
       data: [{ login: 'marshallofsound' }],
     });
 
@@ -358,8 +362,8 @@ describe('api review', () => {
       requestedChanges: [],
     });
 
-    expect(moctokit.issues.addLabels).not.toHaveBeenCalled();
-    expect(moctokit.issues.removeLabel).not.toHaveBeenCalled();
+    expect(moctokit.rest.issues.addLabels).not.toHaveBeenCalled();
+    expect(moctokit.rest.issues.removeLabel).not.toHaveBeenCalled();
   });
 
   it(`should update api review label for ${REVIEW_LABELS.DECLINED}`, async () => {
@@ -371,8 +375,8 @@ describe('api review', () => {
       requestedChanges: [],
     });
 
-    expect(moctokit.issues.removeLabel).not.toHaveBeenCalled();
-    expect(moctokit.issues.addLabels).toHaveBeenCalledWith({
+    expect(moctokit.rest.issues.removeLabel).not.toHaveBeenCalled();
+    expect(moctokit.rest.issues.addLabels).toHaveBeenCalledWith({
       issue_number: pull_request.number,
       labels: [REVIEW_LABELS.DECLINED],
       owner: 'electron',
@@ -389,8 +393,8 @@ describe('api review', () => {
       requestedChanges: [],
     });
 
-    expect(moctokit.issues.removeLabel).not.toHaveBeenCalled();
-    expect(moctokit.issues.addLabels).toHaveBeenCalledWith({
+    expect(moctokit.rest.issues.removeLabel).not.toHaveBeenCalled();
+    expect(moctokit.rest.issues.addLabels).toHaveBeenCalledWith({
       issue_number: pull_request.number,
       labels: [REVIEW_LABELS.APPROVED],
       owner: 'electron',
@@ -407,8 +411,8 @@ describe('api review', () => {
       requestedChanges: ['nornagon'],
     });
 
-    expect(moctokit.issues.removeLabel).not.toHaveBeenCalled();
-    expect(moctokit.issues.addLabels).toHaveBeenCalledWith({
+    expect(moctokit.rest.issues.removeLabel).not.toHaveBeenCalled();
+    expect(moctokit.rest.issues.addLabels).toHaveBeenCalledWith({
       issue_number: pull_request.number,
       labels: [REVIEW_LABELS.REQUESTED],
       owner: 'electron',
@@ -419,7 +423,7 @@ describe('api review', () => {
   it(`correctly updates api review check when no review labels are found`, async () => {
     const payload = loadFixture('api-review-state/pull_request.no_review_label.json');
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .get(
         `/repos/electron/electron/commits/${payload.pull_request.head.sha}/check-runs?per_page=100`,
       )
@@ -442,7 +446,7 @@ describe('api review', () => {
       conclusion: CheckRunStatus.NEUTRAL,
     };
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .patch(`/repos/electron/electron/check-runs/12345`, (body) => {
         expect(body).toMatchObject(expected);
         return true;
@@ -459,7 +463,7 @@ describe('api review', () => {
   it('correctly returns PR ready date when skip-review label is found', async () => {
     const payload = loadFixture('api-review-state/pull_request.api-skip-review_label.json');
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .get(
         `/repos/electron/electron/commits/${payload.pull_request.head.sha}/check-runs?per_page=100`,
       )
@@ -482,7 +486,7 @@ describe('api review', () => {
       conclusion: CheckRunStatus.NEUTRAL,
     };
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .patch(`/repos/electron/electron/check-runs/12345`, (body) => {
         expect(body).toMatchObject(expected);
         return true;
@@ -502,11 +506,11 @@ describe('api review', () => {
         const payload = loadFixture('api-review-state/pull_request_review/base/submitted.json');
         const { pull_request } = payload;
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/orgs/electron/teams/${API_WORKING_GROUP}/members`)
           .reply(200, API_WORKING_GROUP_MEMBERS);
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/commits/${pull_request.head.sha}/check-runs?per_page=100`)
           .reply(200, {
             check_runs: [
@@ -518,16 +522,16 @@ describe('api review', () => {
           });
 
         const r1 = loadFixture('api-review-state/pull_request_review/base/review_lgtm.json');
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/pulls/${pull_request.number}/reviews`)
           .reply(200, [r1]);
 
         const c1 = loadFixture('api-review-state/pull_request_review/base/comment_neutral.json');
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/comments`)
           .reply(200, [c1]);
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .post('/repos/electron/electron/check-runs', (body) => {
             expect(body).toMatchObject({
               name: API_REVIEW_CHECK_NAME,
@@ -555,11 +559,11 @@ describe('api review', () => {
         const payload = loadFixture('api-review-state/pull_request_review/base/submitted.json');
         const { pull_request } = payload;
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/orgs/electron/teams/${API_WORKING_GROUP}/members`)
           .reply(200, API_WORKING_GROUP_MEMBERS);
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/commits/${pull_request.head.sha}/check-runs?per_page=100`)
           .reply(200, {
             check_runs: [
@@ -572,15 +576,15 @@ describe('api review', () => {
 
         const r1 = loadFixture('api-review-state/pull_request_review/base/review_lgtm.json');
         const r2 = loadFixture('api-review-state/pull_request_review/base/review_lgtm_2.json');
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/pulls/${pull_request.number}/reviews`)
           .reply(200, [r1, r2]);
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/comments`)
           .reply(200, []);
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/labels?per_page=100&page=1`)
           .reply(200, [
             {
@@ -594,7 +598,7 @@ describe('api review', () => {
             },
           ]);
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .post('/repos/electron/electron/check-runs', (body) => {
             expect(body).toMatchObject({
               name: 'API Review',
@@ -614,7 +618,7 @@ describe('api review', () => {
           .reply(200);
 
         const encoded = encodeURIComponent(REVIEW_LABELS.REQUESTED);
-        nock('https://api.github.com')
+        nock(GH_API)
           .delete(`/repos/electron/electron/issues/${pull_request.number}/labels/${encoded}`)
           .reply(200, [
             {
@@ -628,13 +632,13 @@ describe('api review', () => {
             },
           ]);
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/labels?per_page=100&page=1`)
           .reply(200, []);
 
-        nock('https://api.github.com')
-          .post(`/repos/electron/electron/issues/${pull_request.number}/labels`, (body) => {
-            expect(body).toEqual([REVIEW_LABELS.APPROVED]);
+        nock(GH_API)
+          .post(`/repos/electron/electron/issues/${pull_request.number}/labels`, ({ labels }) => {
+            expect(labels).toEqual([REVIEW_LABELS.APPROVED]);
             return true;
           })
           .reply(200);
@@ -650,11 +654,11 @@ describe('api review', () => {
         const payload = loadFixture('api-review-state/pull_request_review/base/submitted.json');
         const { pull_request } = payload;
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/orgs/electron/teams/${API_WORKING_GROUP}/members`)
           .reply(200, API_WORKING_GROUP_MEMBERS);
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/commits/${pull_request.head.sha}/check-runs?per_page=100`)
           .reply(200, {
             check_runs: [
@@ -666,15 +670,15 @@ describe('api review', () => {
           });
 
         const r1 = loadFixture('api-review-state/pull_request_review/base/review_declined.json');
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/pulls/${pull_request.number}/reviews`)
           .reply(200, [r1]);
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/comments`)
           .reply(200, []);
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/labels?per_page=100&page=1`)
           .reply(200, [
             {
@@ -688,7 +692,7 @@ describe('api review', () => {
             },
           ]);
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .post('/repos/electron/electron/check-runs', (body) => {
             expect(body).toMatchObject({
               name: 'API Review',
@@ -707,7 +711,7 @@ describe('api review', () => {
           .reply(200);
 
         const encoded = encodeURIComponent(REVIEW_LABELS.REQUESTED);
-        nock('https://api.github.com')
+        nock(GH_API)
           .delete(`/repos/electron/electron/issues/${pull_request.number}/labels/${encoded}`)
           .reply(200, [
             {
@@ -721,13 +725,13 @@ describe('api review', () => {
             },
           ]);
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/labels?per_page=100&page=1`)
           .reply(200, []);
 
-        nock('https://api.github.com')
-          .post(`/repos/electron/electron/issues/${pull_request.number}/labels`, (body) => {
-            expect(body).toEqual([REVIEW_LABELS.DECLINED]);
+        nock(GH_API)
+          .post(`/repos/electron/electron/issues/${pull_request.number}/labels`, ({ labels }) => {
+            expect(labels).toEqual([REVIEW_LABELS.DECLINED]);
             return true;
           })
           .reply(200);
@@ -745,17 +749,17 @@ describe('api review', () => {
         const payload = loadFixture('api-review-state/pull_request_review/fork/submitted.json');
         const { pull_request } = payload;
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/orgs/electron/teams/${API_WORKING_GROUP}/members`)
           .reply(200, API_WORKING_GROUP_MEMBERS);
 
         const r1 = loadFixture('api-review-state/pull_request_review/fork/review_lgtm.json');
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/pulls/${pull_request.number}/reviews`)
           .reply(200, [r1]);
 
         const c1 = loadFixture('api-review-state/pull_request_review/fork/comment_neutral.json');
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/comments`)
           .reply(200, [c1]);
 
@@ -770,22 +774,22 @@ describe('api review', () => {
         const payload = loadFixture('api-review-state/pull_request_review/fork/submitted.json');
         const { pull_request } = payload;
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/orgs/electron/teams/${API_WORKING_GROUP}/members`)
           .reply(200, API_WORKING_GROUP_MEMBERS);
 
         const r1 = loadFixture('api-review-state/pull_request_review/fork/review_lgtm.json');
         const r2 = loadFixture('api-review-state/pull_request_review/fork/review_lgtm_2.json');
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/pulls/${pull_request.number}/reviews`)
           .reply(200, [r1, r2]);
 
         const c1 = loadFixture('api-review-state/pull_request_review/fork/comment_neutral.json');
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/comments`)
           .reply(200, [c1]);
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/labels?per_page=100&page=1`)
           .reply(200, [
             {
@@ -800,7 +804,7 @@ describe('api review', () => {
           ]);
 
         const encoded = encodeURIComponent(REVIEW_LABELS.REQUESTED);
-        nock('https://api.github.com')
+        nock(GH_API)
           .delete(`/repos/electron/electron/issues/${pull_request.number}/labels/${encoded}`)
           .reply(200, [
             {
@@ -814,13 +818,13 @@ describe('api review', () => {
             },
           ]);
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/labels?per_page=100&page=1`)
           .reply(200, []);
 
-        nock('https://api.github.com')
-          .post(`/repos/electron/electron/issues/${pull_request.number}/labels`, (body) => {
-            expect(body).toEqual([REVIEW_LABELS.APPROVED]);
+        nock(GH_API)
+          .post(`/repos/electron/electron/issues/${pull_request.number}/labels`, ({ labels }) => {
+            expect(labels).toEqual([REVIEW_LABELS.APPROVED]);
             return true;
           })
           .reply(200);
@@ -836,20 +840,20 @@ describe('api review', () => {
         const payload = loadFixture('api-review-state/pull_request_review/fork/submitted.json');
         const { pull_request } = payload;
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/orgs/electron/teams/${API_WORKING_GROUP}/members`)
           .reply(200, API_WORKING_GROUP_MEMBERS);
 
         const r1 = loadFixture('api-review-state/pull_request_review/fork/review_declined.json');
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/pulls/${pull_request.number}/reviews`)
           .reply(200, [r1]);
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/comments`)
           .reply(200, []);
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/labels?per_page=100&page=1`)
           .reply(200, [
             {
@@ -864,7 +868,7 @@ describe('api review', () => {
           ]);
 
         const encoded = encodeURIComponent(REVIEW_LABELS.REQUESTED);
-        nock('https://api.github.com')
+        nock(GH_API)
           .delete(`/repos/electron/electron/issues/${pull_request.number}/labels/${encoded}`)
           .reply(200, [
             {
@@ -878,13 +882,13 @@ describe('api review', () => {
             },
           ]);
 
-        nock('https://api.github.com')
+        nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/labels?per_page=100&page=1`)
           .reply(200, []);
 
-        nock('https://api.github.com')
-          .post(`/repos/electron/electron/issues/${pull_request.number}/labels`, (body) => {
-            expect(body).toEqual([REVIEW_LABELS.DECLINED]);
+        nock(GH_API)
+          .post(`/repos/electron/electron/issues/${pull_request.number}/labels`, ({ labels }) => {
+            expect(labels).toEqual([REVIEW_LABELS.DECLINED]);
             return true;
           })
           .reply(200);
@@ -901,18 +905,18 @@ describe('api review', () => {
   it(`adds ${REVIEW_LABELS.REQUESTED} label if pr has semver/major or semver/minor label and no exclusion labels`, async () => {
     const payload = loadFixture('api-review-state/pull_request.semver-minor.json');
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
       .reply(200, []);
 
-    nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
-        expect(body).toEqual([REVIEW_LABELS.REQUESTED]);
+    nock(GH_API)
+      .post(`/repos/electron/electron/issues/${payload.number}/labels`, ({ labels }) => {
+        expect(labels).toEqual([REVIEW_LABELS.REQUESTED]);
         return true;
       })
       .reply(200);
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .get(
         `/repos/electron/electron/commits/${payload.pull_request.head.sha}/check-runs?per_page=100`,
       )
@@ -929,7 +933,7 @@ describe('api review', () => {
     const payload = loadFixture('api-review-state/pull_request.ready_for_review.json');
     const { pull_request } = payload;
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
       .reply(200, [
         {
@@ -943,9 +947,9 @@ describe('api review', () => {
         },
       ]);
 
-    nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${pull_request.number}/labels`, (body) => {
-        expect(body).toEqual([REVIEW_LABELS.REQUESTED]);
+    nock(GH_API)
+      .post(`/repos/electron/electron/issues/${pull_request.number}/labels`, ({ labels }) => {
+        expect(labels).toEqual([REVIEW_LABELS.REQUESTED]);
         return true;
       })
       .reply(200);
@@ -961,7 +965,7 @@ describe('api review', () => {
     const payload = loadFixture('api-review-state/pull_request.converted_to_draft.json');
     const { pull_request } = payload;
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
       .reply(200, [
         {
@@ -985,7 +989,7 @@ describe('api review', () => {
       ]);
 
     const encoded = encodeURIComponent(REVIEW_LABELS.REQUESTED);
-    nock('https://api.github.com')
+    nock(GH_API)
       .delete(`/repos/electron/electron/issues/${pull_request.number}/labels/${encoded}`)
       .reply(200, [
         {
@@ -1009,13 +1013,13 @@ describe('api review', () => {
   it('correctly updates API review check and API review label when pr is unlabeled', async () => {
     const payload = loadFixture('api-review-state/pull_request.unlabeled.json');
 
-    nock('https://api.github.com')
+    nock(GH_API)
       .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
       .reply(200, []);
 
-    nock('https://api.github.com')
-      .post(`/repos/electron/electron/issues/${payload.number}/labels`, (body) => {
-        expect(body).toEqual([REVIEW_LABELS.APPROVED]);
+    nock(GH_API)
+      .post(`/repos/electron/electron/issues/${payload.number}/labels`, ({ labels }) => {
+        expect(labels).toEqual([REVIEW_LABELS.APPROVED]);
         return true;
       })
       .reply(200);
