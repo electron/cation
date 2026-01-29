@@ -8,7 +8,6 @@
     "build": "tsc",
     "lint": "prettier --list-different \"{src,spec}/**/*.ts\"",
     "start": "probot run ./lib/index.js",
-    "postinstall": "tsc",
     "prettier:write": "prettier --write \"{src,spec}/**/*.ts\"",
     "test": "vitest run --reporter=verbose",
     "coverage": "vitest run --silent --coverage",
