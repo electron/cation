@@ -405,26 +405,20 @@ export function setupAPIReviewStateManagement(probot: Probot) {
    * If a PR is opened or synchronized, we want to ensure the
    * API review check is up-to-date.
    */
-  probot.on(
-    ['pull_request.synchronize', 'pull_request.opened'],
-    async (context) => {
-      const pr = context.payload.pull_request as PullRequest;
-      await addOrUpdateAPIReviewCheck(context.octokit, pr);
-    },
-  );
+  probot.on(['pull_request.synchronize', 'pull_request.opened'], async (context) => {
+    const pr = context.payload.pull_request as PullRequest;
+    await addOrUpdateAPIReviewCheck(context.octokit, pr);
+  });
 
   /**
    * If a PR review is submitted, we want to ensure the API
    * review check is up-to-date.
    */
-  probot.on(
-    'pull_request_review.submitted',
-    async (context) => {
-      const pr = context.payload.pull_request as PullRequest;
-      const state = await addOrUpdateAPIReviewCheck(context.octokit, pr);
-      await checkPRReadyForMerge(context.octokit, pr, state);
-    },
-  );
+  probot.on('pull_request_review.submitted', async (context) => {
+    const pr = context.payload.pull_request as PullRequest;
+    const state = await addOrUpdateAPIReviewCheck(context.octokit, pr);
+    await checkPRReadyForMerge(context.octokit, pr, state);
+  });
 
   /**
    * If a PR with API review requirements is marked ready for review,

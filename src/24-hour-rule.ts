@@ -201,13 +201,15 @@ export async function setUp24HourRule(probot: Probot, disableCronForTesting = fa
       do {
         lastPRCount = prs.length;
         prs.push(
-          ...((await octokit.rest.pulls.list({
-            owner: repo.owner.login,
-            repo: repo.name,
-            per_page: 100,
-            state: 'open',
-            page,
-          })).data as unknown as PullRequest[]),
+          ...((
+            await octokit.rest.pulls.list({
+              owner: repo.owner.login,
+              repo: repo.name,
+              per_page: 100,
+              state: 'open',
+              page,
+            })
+          ).data as unknown as PullRequest[]),
         );
         page++;
       } while (lastPRCount < prs.length);

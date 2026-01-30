@@ -187,13 +187,10 @@ export async function maybeAddChecklistComment(octokit: ProbotOctokit, pr: PullR
 }
 
 export function setupDeprecationReviewStateManagement(probot: Probot) {
-  probot.on(
-    ['pull_request.synchronize', 'pull_request.opened'],
-    async (context) => {
-      const pr = context.payload.pull_request as PullRequest;
-      await addOrUpdateDeprecationReviewCheck(context.octokit, pr);
-    },
-  );
+  probot.on(['pull_request.synchronize', 'pull_request.opened'], async (context) => {
+    const pr = context.payload.pull_request as PullRequest;
+    await addOrUpdateDeprecationReviewCheck(context.octokit, pr);
+  });
 
   /**
    * The deprecation-review/requested label initiates deprecation review,
