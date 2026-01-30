@@ -34,7 +34,7 @@ const probotHandler = async (app: Probot) => {
   setupDeprecationReviewStateManagement(app);
 };
 
-module.exports = probotHandler;
+export default probotHandler;
 
 type ProbotHandler = typeof probotHandler;
 export { ProbotHandler };
