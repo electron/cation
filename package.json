@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Electron's PR monitoring bot",
-  "main": "lib/index.js",
+  "main": "index.js",
   "scripts": {
     "build": "tsc",
     "lint": "prettier --list-different \"{src,spec}/**/*.ts\"",
@@ -31,11 +31,12 @@
     "lint-staged": "^15.2.10",
     "nock": "^14.0.10",
     "prettier": "^3.3.3",
-    "typescript": "^5.8.3",
+    "typescript": "^5.9.3",
     "vitest": "^3.0.5"
   },
   "dependencies": {
     "@sentry/node": "^7.119.2",
+    "@tsconfig/node24": "^24.0.4",
     "probot": "^14.2.1",
     "semver": "^7.5.2"
   },

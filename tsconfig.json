@@ -1,21 +1,15 @@
 {
-	"compilerOptions": {
-		"module": "commonjs",
-		"target": "es2024",
-		"outDir": "lib",
-		"sourceMap": true,
-		"rootDir": "src",
-    "experimentalDecorators": true,
-		"allowJs": true,
-		"strict": true,
-		"allowSyntheticDefaultImports": true,
-		"esModuleInterop": true
-	},
-	"exclude": [
-		"node_modules",
-		"spec",
-		"lib",
-		"coverage",
-		"vitest.config.ts"
-	]
+  "extends": "@tsconfig/node24/tsconfig.json",
+  "compilerOptions": {
+    "sourceMap": true,
+    "strict": false,
+    "outDir": "lib",
+    "types": [
+      "node"
+    ],
+    "declaration": true
+  },
+  "include": [
+    "src"
+  ]
 }

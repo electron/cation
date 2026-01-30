@@ -405,32 +405,26 @@ export function setupAPIReviewStateManagement(probot: Probot) {
    * If a PR is opened or synchronized, we want to ensure the
    * API review check is up-to-date.
    */
-  probot.on(
-    ['pull_request.synchronize', 'pull_request.opened'],
-    async (context: Context<'pull_request'>) => {
-      const pr = context.payload.pull_request as PullRequest;
-      await addOrUpdateAPIReviewCheck(context.octokit, pr);
-    },
-  );
+  probot.on(['pull_request.synchronize', 'pull_request.opened'], async (context) => {
+    const pr = context.payload.pull_request as PullRequest;
+    await addOrUpdateAPIReviewCheck(context.octokit, pr);
+  });
 
   /**
    * If a PR review is submitted, we want to ensure the API
    * review check is up-to-date.
    */
-  probot.on(
-    'pull_request_review.submitted',
-    async (context: Context<'pull_request_review.submitted'>) => {
-      const pr = context.payload.pull_request as PullRequest;
-      const state = await addOrUpdateAPIReviewCheck(context.octokit, pr);
-      await checkPRReadyForMerge(context.octokit, pr, state);
-    },
-  );
+  probot.on('pull_request_review.submitted', async (context) => {
+    const pr = context.payload.pull_request as PullRequest;
+    const state = await addOrUpdateAPIReviewCheck(context.octokit, pr);
+    await checkPRReadyForMerge(context.octokit, pr, state);
+  });
 
   /**
    * If a PR with API review requirements is marked ready for review,
    * we want to add the 'api-review/requested 🗳' label.
    */
-  probot.on('pull_request.ready_for_review', async (context: Context<'pull_request'>) => {
+  probot.on('pull_request.ready_for_review', async (context) => {
     const { repository } = context.payload;
     const pr = context.payload.pull_request as PullRequest;
 
@@ -454,7 +448,7 @@ export function setupAPIReviewStateManagement(probot: Probot) {
    * If a PR with existing API review requirements is converted to draft status,
    * we want to remove the 'api-review/requested 🗳' label.
    */
-  probot.on('pull_request.converted_to_draft', async (context: Context<'pull_request'>) => {
+  probot.on('pull_request.converted_to_draft', async (context) => {
     const { repository } = context.payload;
     const pr = context.payload.pull_request as PullRequest;
 
@@ -490,7 +484,7 @@ export function setupAPIReviewStateManagement(probot: Probot) {
    *    - If any api-review-{state} label besides api-review-requested is added, remove it.
    *      API approval is controlled solely by cation.
    */
-  probot.on('pull_request.labeled', async (context: Context<'pull_request.labeled'>) => {
+  probot.on('pull_request.labeled', async (context) => {
     const {
       label,
       repository,
@@ -568,7 +562,7 @@ export function setupAPIReviewStateManagement(probot: Probot) {
    * label.
    *
    */
-  probot.on('pull_request.unlabeled', async (context: Context<'pull_request.unlabeled'>) => {
+  probot.on('pull_request.unlabeled', async (context) => {
     const {
       label,
       sender: { login: initiator },
