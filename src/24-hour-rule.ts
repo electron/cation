@@ -153,7 +153,7 @@ export const labelShouldBeChecked = (label: Label) => {
 export async function setUp24HourRule(probot: Probot, disableCronForTesting = false) {
   probot.on(
     ['pull_request.opened', 'pull_request.unlabeled', 'pull_request.labeled'],
-    async (context: Context<'pull_request'>) => {
+    async (context) => {
       const { action, pull_request: pr, repository } = context.payload;
 
       // We only care about user labels adds for new-pr and semver labels.
@@ -201,15 +201,13 @@ export async function setUp24HourRule(probot: Probot, disableCronForTesting = fa
       do {
         lastPRCount = prs.length;
         prs.push(
-          ...((
-            await octokit.rest.pulls.list({
-              owner: repo.owner.login,
-              repo: repo.name,
-              per_page: 100,
-              state: 'open',
-              page,
-            })
-          ).data as PullRequest[]),
+          ...((await octokit.rest.pulls.list({
+            owner: repo.owner.login,
+            repo: repo.name,
+            per_page: 100,
+            state: 'open',
+            page,
+          })).data as unknown as PullRequest[]),
         );
         page++;
       } while (lastPRCount < prs.length);

@@ -189,7 +189,7 @@ export async function maybeAddChecklistComment(octokit: ProbotOctokit, pr: PullR
 export function setupDeprecationReviewStateManagement(probot: Probot) {
   probot.on(
     ['pull_request.synchronize', 'pull_request.opened'],
-    async (context: Context<'pull_request'>) => {
+    async (context) => {
       const pr = context.payload.pull_request as PullRequest;
       await addOrUpdateDeprecationReviewCheck(context.octokit, pr);
     },
@@ -199,7 +199,7 @@ export function setupDeprecationReviewStateManagement(probot: Probot) {
    * The deprecation-review/requested label initiates deprecation review,
    * but the deprecation-review/complete label is solely controlled by cation
    */
-  probot.on('pull_request.labeled', async (context: Context<'pull_request.labeled'>) => {
+  probot.on('pull_request.labeled', async (context) => {
     const {
       label,
       sender: { login: initiator },
@@ -242,7 +242,7 @@ export function setupDeprecationReviewStateManagement(probot: Probot) {
    * did not remove a deprecation-review state label other than
    * deprecation-review-requested.
    */
-  probot.on('pull_request.unlabeled', async (context: Context<'pull_request.unlabeled'>) => {
+  probot.on('pull_request.unlabeled', async (context) => {
     const {
       label,
       sender: { login: initiator },
@@ -285,7 +285,7 @@ export function setupDeprecationReviewStateManagement(probot: Probot) {
     }
   });
 
-  probot.on('issue_comment.edited', async (context: Context<'issue_comment.edited'>) => {
+  probot.on('issue_comment.edited', async (context) => {
     const {
       comment,
       issue: { labels, number: prNumber, pull_request: pr },

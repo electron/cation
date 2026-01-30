@@ -18,7 +18,7 @@ export function setupSemverLabelEnforcement(probot: Probot) {
       'pull_request.labeled',
       'pull_request.synchronize',
     ],
-    async (context: Context<'pull_request'>) => {
+    async (context) => {
       const { pull_request: pr } = context.payload;
 
       log('setupSemverLabelEnforcement', LogLevel.INFO, `Checking #${pr.number} for semver label`);
