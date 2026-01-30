@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Electron's PR monitoring bot",
-  "main": "index.js",
+  "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
     "lint": "prettier --list-different \"{src,spec}/**/*.ts\"",
