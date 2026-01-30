@@ -1,4 +1,4 @@
-import { Probot } from 'probot';
+import { Context, Probot } from 'probot';
 import { SEMVER_LABELS, SEMVER_NONE_LABEL } from './constants';
 import { log } from './utils/log-util';
 import { LogLevel } from './enums';
@@ -18,7 +18,7 @@ export function setupSemverLabelEnforcement(probot: Probot) {
       'pull_request.labeled',
       'pull_request.synchronize',
     ],
-    async (context) => {
+    async (context: Context<'pull_request'>) => {
       const { pull_request: pr } = context.payload;
 
       log('setupSemverLabelEnforcement', LogLevel.INFO, `Checking #${pr.number} for semver label`);
