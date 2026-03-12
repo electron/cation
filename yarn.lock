@@ -663,13 +663,13 @@ __metadata:
   linkType: hard
 
 "@probot/octokit-plugin-config@npm:^4.0.0":
-  version: 4.0.0
-  resolution: "@probot/octokit-plugin-config@npm:4.0.0"
+  version: 4.1.0
+  resolution: "@probot/octokit-plugin-config@npm:4.1.0"
   dependencies:
-    js-yaml: "npm:^4.1.0"
+    yaml: "npm:^2.8.1"
   peerDependencies:
     "@octokit/core": ">=7"
-  checksum: 10c0/ca7c34635de009071a1bb25f228b40a3b7548436454853649b88ef7bb08a324ceb23c2c569484b637aee5b269d62fe3ba405cc444dedcdcdfc5dc158320760d5
+  checksum: 10c0/47bff01ba7558f5beefde99139c6ca8277f880b19967fd828dfa33feaebcefd44989b1f3e7fda2ae4dc964c20b066f9303d0b026225c683f1463296629aa0141
   languageName: node
   linkType: hard
 
@@ -1142,13 +1142,6 @@ __metadata:
   version: 6.2.3
   resolution: "ansi-styles@npm:6.2.3"
   checksum: 10c0/23b8a4ce14e18fb854693b95351e286b771d23d8844057ed2e7d083cd3e708376c3323707ec6a24365f7d7eda3ca00327fe04092e29e551499ec4c8b7bfac868
-  languageName: node
-  linkType: hard
-
-"argparse@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "argparse@npm:2.0.1"
-  checksum: 10c0/c5640c2d89045371c7cedd6a70212a04e360fd34d6edeae32f6952c63949e3525ea77dbec0289d8213a99bbaeab5abfa860b5c12cf88a2e6cf8106e90dd27a7e
   languageName: node
   linkType: hard
 
@@ -1932,17 +1925,6 @@ __metadata:
   version: 9.0.1
   resolution: "js-tokens@npm:9.0.1"
   checksum: 10c0/68dcab8f233dde211a6b5fd98079783cbcd04b53617c1250e3553ee16ab3e6134f5e65478e41d82f6d351a052a63d71024553933808570f04dbf828d7921e80e
-  languageName: node
-  linkType: hard
-
-"js-yaml@npm:^4.1.0":
-  version: 4.1.1
-  resolution: "js-yaml@npm:4.1.1"
-  dependencies:
-    argparse: "npm:^2.0.1"
-  bin:
-    js-yaml: bin/js-yaml.js
-  checksum: 10c0/561c7d7088c40a9bb53cc75becbfb1df6ae49b34b5e6e5a81744b14ae8667ec564ad2527709d1a6e7d5e5fa6d483aa0f373a50ad98d42fde368ec4a190d4fae7
   languageName: node
   linkType: hard
 
