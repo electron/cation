@@ -20,6 +20,7 @@ import { getEnvVar } from './utils/env-util';
 import { PullRequest, Label } from './types';
 import { GetResponseDataTypeFromEndpointMethod, Endpoints } from '@octokit/types';
 import { addLabels, removeLabel } from './utils/label-utils';
+import { getPROpenedTime } from './utils/pr-open-time-util';
 
 type APIApprovalState =
   ReturnType<typeof addOrUpdateAPIReviewCheck> extends Promise<infer T> ? T : unknown;
@@ -45,8 +46,8 @@ export const hasAPIReviewRequestedLabel = (pr: PullRequest) =>
  * @returns a date corresponding to the time that must elapse before a PR requiring
  *          API review is ready to be merged according to its semver label.
  */
-export const getPRReadyDate = (pr: PullRequest) => {
-  let readyTime = new Date(pr.created_at).getTime();
+export const getPRReadyDate = async (octokit: Context['octokit'], pr: PullRequest) => {
+  let readyTime = await getPROpenedTime(octokit, pr);
 
   if (pr.labels.some((l) => l.name === API_SKIP_DELAY_LABEL)) {
     log(
@@ -319,7 +320,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
       output: {
         title: `${checkTitles[currentReviewLabel.name]} (${
           users.approved.length
-        }/2 LGTMs - ready on ${getPRReadyDate(pr)})`,
+        }/2 LGTMs - ready on ${await getPRReadyDate(octokit, pr)})`,
         summary: checkSummary,
       },
     });
