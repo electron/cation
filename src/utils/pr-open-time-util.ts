@@ -3,7 +3,7 @@ import { PullRequest } from '../types';
 
 /**
  * @param octokit - An Octokit instance
- * @returns a number representing the that cation should use as the
+ * @returns a number representing the date that cation should use as the
  * open time for the PR in milliseconds, taking draft status into account.
  */
 export const getPROpenedTime = async (octokit: ProbotOctokit, pr: PullRequest): Promise<number> => {

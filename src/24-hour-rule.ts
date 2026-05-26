@@ -18,8 +18,6 @@ import { LogLevel } from './enums';
 import { PullRequest, Label, PullRequestLabeledEvent } from './types';
 import { getPROpenedTime } from './utils/pr-open-time-util';
 
-export { getPROpenedTime };
-
 const CHECK_INTERVAL = 1000 * 60 * 5;
 
 /**
