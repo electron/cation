@@ -45,6 +45,7 @@
     ],
     "base": {
       "repo": {
+        "full_name": "electron/electron",
         "owner": {
           "login": "electron"
         }

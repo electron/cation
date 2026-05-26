@@ -62,6 +62,7 @@ describe('api review', () => {
           removeLabel: vi.fn().mockReturnValue({ data: [] }),
           listLabelsOnIssue: vi.fn().mockReturnValue({ data: [] }),
           listComments: vi.fn().mockReturnValue({ data: [] }),
+          listEventsForTimeline: vi.fn().mockReturnValue({ data: [] }),
         },
         checks: {
           listForRef: vi.fn().mockReturnValue({ data: { check_runs: [] } }),
@@ -108,9 +109,11 @@ describe('api review', () => {
     // Set created_at to yesterday.
     pull_request.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
 
+    moctokit.rest.issues.listEventsForTimeline = vi.fn().mockReturnValue({ data: [] });
+
     const expectedTime = pull_request.created_at.getTime() + MINIMUM_MINOR_OPEN_TIME;
     const expectedDate = new Date(expectedTime).toISOString().split('T')[0];
-    const readyDate = getPRReadyDate(pull_request);
+    const readyDate = await getPRReadyDate(moctokit, pull_request);
 
     expect(readyDate).toEqual(expectedDate);
   });
@@ -121,9 +124,11 @@ describe('api review', () => {
     // Set created_at to yesterday.
     payload.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
 
+    moctokit.rest.issues.listEventsForTimeline = vi.fn().mockReturnValue({ data: [] });
+
     const expectedTime = payload.created_at.getTime() + MINIMUM_PATCH_OPEN_TIME;
     const expectedDate = new Date(expectedTime).toISOString().split('T')[0];
-    const readyDate = getPRReadyDate(payload);
+    const readyDate = await getPRReadyDate(moctokit, payload);
 
     expect(readyDate).toEqual(expectedDate);
   });
@@ -134,8 +139,33 @@ describe('api review', () => {
     // Set created_at to yesterday.
     payload.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
 
+    moctokit.rest.issues.listEventsForTimeline = vi.fn().mockReturnValue({ data: [] });
+
     const expectedDate = payload.created_at.toISOString().split('T')[0];
-    const readyDate = getPRReadyDate(payload);
+    const readyDate = await getPRReadyDate(moctokit, payload);
+
+    expect(readyDate).toEqual(expectedDate);
+  });
+
+  it('correctly returns PR ready date based on ready_for_review event when PR was a draft', async () => {
+    const { pull_request } = loadFixture('api-review-state/pull_request.semver-minor.json');
+
+    // PR was created 10 days ago but marked ready 2 days ago.
+    pull_request.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 10).toISOString();
+    const readyForReviewTime = new Date(+new Date() - 1000 * 60 * 60 * 24 * 2);
+
+    moctokit.rest.issues.listEventsForTimeline = vi.fn().mockReturnValue({
+      data: [
+        {
+          event: 'ready_for_review',
+          created_at: readyForReviewTime.toISOString(),
+        },
+      ],
+    });
+
+    const expectedTime = readyForReviewTime.getTime() + MINIMUM_MINOR_OPEN_TIME;
+    const expectedDate = new Date(expectedTime).toISOString().split('T')[0];
+    const readyDate = await getPRReadyDate(moctokit, pull_request);
 
     expect(readyDate).toEqual(expectedDate);
   });
@@ -532,6 +562,10 @@ describe('api review', () => {
           .reply(200, [c1]);
 
         nock(GH_API)
+          .get(`/repos/electron/electron/issues/${pull_request.number}/timeline`)
+          .reply(200, []);
+
+        nock(GH_API)
           .post('/repos/electron/electron/check-runs', (body) => {
             expect(body).toMatchObject({
               name: API_REVIEW_CHECK_NAME,
@@ -582,6 +616,10 @@ describe('api review', () => {
 
         nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/comments`)
+          .reply(200, []);
+
+        nock(GH_API)
+          .get(`/repos/electron/electron/issues/${pull_request.number}/timeline`)
           .reply(200, []);
 
         nock(GH_API)
@@ -676,6 +714,10 @@ describe('api review', () => {
 
         nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/comments`)
+          .reply(200, []);
+
+        nock(GH_API)
+          .get(`/repos/electron/electron/issues/${pull_request.number}/timeline`)
           .reply(200, []);
 
         nock(GH_API)

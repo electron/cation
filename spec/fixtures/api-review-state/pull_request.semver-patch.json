@@ -35,6 +35,18 @@
   "review_comment_url": "https://api.github.com/repos/electron/electron/pulls/comments{/number}",
   "comments_url": "https://api.github.com/repos/electron/electron/issues/26876/comments",
   "statuses_url": "https://api.github.com/repos/electron/electron/statuses/c6b1b7168ab850a47f856c4a30f7a441bede1117",
+  "base": {
+    "ref": "main",
+    "repo": {
+      "id": 9384267,
+      "name": "electron",
+      "full_name": "electron/electron",
+      "owner": {
+        "login": "electron"
+      },
+      "default_branch": "main"
+    }
+  },
   "head": {
     "label": "electron:fix-lint-js",
     "ref": "fix-lint-js",
