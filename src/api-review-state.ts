@@ -8,7 +8,6 @@ import {
   EXCLUDE_LABELS,
   MINIMUM_MINOR_OPEN_TIME,
   MINIMUM_PATCH_OPEN_TIME,
-  NEW_PR_LABEL,
   OWNER,
   REPO,
   REVIEW_LABELS,
@@ -17,10 +16,12 @@ import {
 import { CheckRunStatus, LogLevel } from './enums';
 import { isAPIReviewRequired } from './utils/check-utils';
 import { getEnvVar } from './utils/env-util';
-import { PullRequest, Label } from './types';
+import { PullRequest } from './types';
 import { GetResponseDataTypeFromEndpointMethod, Endpoints } from '@octokit/types';
 import { addLabels, removeLabel } from './utils/label-utils';
 import { getPROpenedTime } from './utils/pr-open-time-util';
+
+const CHECK_INTERVAL = 1000 * 60 * 5;
 
 type APIApprovalState =
   ReturnType<typeof addOrUpdateAPIReviewCheck> extends Promise<infer T> ? T : unknown;
@@ -41,17 +42,20 @@ export const hasAPIReviewRequestedLabel = (pr: PullRequest) =>
   pr.labels.some((l) => l.name === REVIEW_LABELS.REQUESTED);
 
 /**
- * Determines the PR readiness date depending on its semver label.
+ * Determines the PR readiness time depending on its semver label.
  *
- * @returns a date corresponding to the time that must elapse before a PR requiring
- *          API review is ready to be merged according to its semver label.
+ * @returns a number representing the time in milliseconds that must be reached before
+ *          a PR requiring API review is ready to be merged according to its semver label.
  */
-export const getPRReadyDate = async (octokit: Context['octokit'], pr: PullRequest) => {
+export const getPRReadyTime = async (
+  octokit: Context['octokit'],
+  pr: PullRequest,
+): Promise<number> => {
   let readyTime = await getPROpenedTime(octokit, pr);
 
   if (pr.labels.some((l) => l.name === API_SKIP_DELAY_LABEL)) {
     log(
-      'getPRReadyDate',
+      'getPRReadyTime',
       LogLevel.INFO,
       `${pr.number} has "${API_SKIP_DELAY_LABEL}" label - skipping minimum open time`,
     );
@@ -59,7 +63,7 @@ export const getPRReadyDate = async (octokit: Context['octokit'], pr: PullReques
     const isMajorMinor = pr.labels.some((l) => isSemverMajorMinorLabel(l.name));
     readyTime += isMajorMinor ? MINIMUM_MINOR_OPEN_TIME : MINIMUM_PATCH_OPEN_TIME;
     log(
-      'getPRReadyDate',
+      'getPRReadyTime',
       LogLevel.INFO,
       `${pr.number} has no "${API_SKIP_DELAY_LABEL}" label - applying minimum open time for ${
         isMajorMinor ? 'major/minor' : 'patch'
@@ -67,7 +71,24 @@ export const getPRReadyDate = async (octokit: Context['octokit'], pr: PullReques
     );
   }
 
-  return new Date(readyTime).toISOString().split('T')[0];
+  return readyTime;
+};
+
+/**
+ * Determines the PR readiness date depending on its semver label.
+ *
+ * @returns a date corresponding to the time that must elapse before a PR requiring
+ *          API review is ready to be merged according to its semver label.
+ */
+export const getPRReadyDate = async (octokit: Context['octokit'], pr: PullRequest) => {
+  return new Date(await getPRReadyTime(octokit, pr)).toISOString().split('T')[0];
+};
+
+/**
+ * @returns whether or not a PR requiring API review has been open for its minimum open time.
+ */
+export const hasPRPassedMinimumOpenTime = async (octokit: Context['octokit'], pr: PullRequest) => {
+  return Date.now() >= (await getPRReadyTime(octokit, pr));
 };
 
 export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr: PullRequest) {
@@ -385,8 +406,17 @@ export async function checkPRReadyForMerge(
     }
   };
 
-  const isNewPR = pr.labels.some((l: Label) => l.name === NEW_PR_LABEL);
-  if (!userApprovalState || isNewPR) return;
+  if (!userApprovalState) return;
+
+  // The API review outcome is not applied until the PR has been open for its minimum open time.
+  if (!(await hasPRPassedMinimumOpenTime(octokit, pr))) {
+    log(
+      'checkPRReadyForMerge',
+      LogLevel.INFO,
+      `${pr.number} has not passed its minimum open time - not updating API review label`,
+    );
+    return;
+  }
 
   const { approved, declined, requestedChanges } = userApprovalState;
   if (declined.length > 0) {
@@ -401,7 +431,7 @@ export async function checkPRReadyForMerge(
   }
 }
 
-export function setupAPIReviewStateManagement(probot: Probot) {
+export function setupAPIReviewStateManagement(probot: Probot, disableCronForTesting = false) {
   /**
    * If a PR is opened or synchronized, we want to ensure the
    * API review check is up-to-date.
@@ -603,4 +633,52 @@ export function setupAPIReviewStateManagement(probot: Probot) {
       await addOrUpdateAPIReviewCheck(context.octokit, pr);
     }
   });
+
+  if (!disableCronForTesting) runInterval();
+
+  /**
+   * No webhook is sent when a PR passes its minimum open time, so periodically
+   * ensure the API review state is up-to-date for PRs undergoing API review.
+   */
+  async function runInterval() {
+    probot.log.info('Running API review state check');
+    const github = await probot.auth();
+    const { data: installs } = await github.rest.apps.listInstallations({});
+    for (const install of installs) {
+      try {
+        await runCron(install.id);
+      } catch (err) {
+        probot.log.error(`Failed to run cron for install: ${install.id} ${err}`);
+      }
+    }
+
+    setTimeout(runInterval, CHECK_INTERVAL);
+  }
+
+  async function runCron(installId: number) {
+    const octokit = await probot.auth(installId);
+    const { data } = await octokit.rest.apps.listReposAccessibleToInstallation({});
+
+    for (const repo of data.repositories) {
+      probot.log.info(`Running API review cron job on repo: ${repo.owner.login}/${repo.name}`);
+
+      const prs = (await octokit.paginate(octokit.rest.pulls.list, {
+        owner: repo.owner.login,
+        repo: repo.name,
+        per_page: 100,
+        state: 'open',
+      })) as unknown as PullRequest[];
+
+      const reviewPRs = prs.filter((pr) => pr.labels.some((l) => isReviewLabel(l.name)));
+
+      probot.log.info(
+        `Found ${reviewPRs.length} prs undergoing API review for repo: ${repo.owner.login}/${repo.name}`,
+      );
+
+      for (const pr of reviewPRs) {
+        const approvalState = await addOrUpdateAPIReviewCheck(octokit, pr);
+        await checkPRReadyForMerge(octokit, pr, approvalState);
+      }
+    }
+  }
 }

@@ -16,7 +16,7 @@ import {
   MINIMUM_MINOR_OPEN_TIME,
   MINIMUM_PATCH_OPEN_TIME,
   API_REVIEW_CHECK_NAME,
-  NEW_PR_LABEL,
+  API_SKIP_DELAY_LABEL,
   API_WORKING_GROUP,
 } from '../src/constants';
 
@@ -38,7 +38,7 @@ const API_WORKING_GROUP_MEMBERS = [
 ];
 
 const handler = async (app: Probot) => {
-  setupAPIReviewStateManagement(app);
+  setupAPIReviewStateManagement(app, true);
 };
 
 describe('api review', () => {
@@ -384,16 +384,93 @@ describe('api review', () => {
     });
   });
 
-  it(`should not update api review label if the PR has ${NEW_PR_LABEL}`, async () => {
-    const { pull_request } = loadFixture('api-review-state/pull_request.new-pr_label.json');
+  it('should not update api review label if the PR has not passed its minimum open time', async () => {
+    const { pull_request } = loadFixture(
+      'api-review-state/pull_request.requested_review_label.json',
+    );
+
+    // Set created_at to yesterday.
+    pull_request.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24).toISOString();
+
     await checkPRReadyForMerge(moctokit, pull_request, {
-      approved: [],
+      approved: ['jkleinsc', 'codebytere'],
       declined: [],
       requestedChanges: [],
     });
 
     expect(moctokit.rest.issues.addLabels).not.toHaveBeenCalled();
     expect(moctokit.rest.issues.removeLabel).not.toHaveBeenCalled();
+  });
+
+  it('should not update api review label if the PR was marked ready for review within its minimum open time', async () => {
+    const { pull_request } = loadFixture(
+      'api-review-state/pull_request.requested_review_label.json',
+    );
+
+    // PR was created 10 days ago but marked ready 2 days ago.
+    pull_request.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 10).toISOString();
+    moctokit.rest.issues.listEventsForTimeline = vi.fn().mockReturnValue({
+      data: [
+        {
+          event: 'ready_for_review',
+          created_at: new Date(+new Date() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+        },
+      ],
+    });
+
+    await checkPRReadyForMerge(moctokit, pull_request, {
+      approved: ['jkleinsc', 'codebytere'],
+      declined: [],
+      requestedChanges: [],
+    });
+
+    expect(moctokit.rest.issues.addLabels).not.toHaveBeenCalled();
+    expect(moctokit.rest.issues.removeLabel).not.toHaveBeenCalled();
+  });
+
+  it('should update api review label once the PR has passed its minimum open time', async () => {
+    const { pull_request } = loadFixture(
+      'api-review-state/pull_request.requested_review_label.json',
+    );
+
+    // Set created_at to 8 days ago.
+    pull_request.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24 * 8).toISOString();
+
+    await checkPRReadyForMerge(moctokit, pull_request, {
+      approved: ['jkleinsc', 'codebytere'],
+      declined: [],
+      requestedChanges: [],
+    });
+
+    expect(moctokit.rest.issues.addLabels).toHaveBeenCalledWith({
+      issue_number: pull_request.number,
+      labels: [REVIEW_LABELS.APPROVED],
+      owner: 'electron',
+      repo: 'electron',
+    });
+  });
+
+  it(`should update api review label within the minimum open time if the PR has ${API_SKIP_DELAY_LABEL}`, async () => {
+    const { pull_request } = loadFixture(
+      'api-review-state/pull_request.requested_review_label.json',
+    );
+
+    // Set created_at to yesterday.
+    pull_request.created_at = new Date(+new Date() - 1000 * 60 * 60 * 24).toISOString();
+    pull_request.labels.push({ name: API_SKIP_DELAY_LABEL });
+
+    await checkPRReadyForMerge(moctokit, pull_request, {
+      approved: ['jkleinsc', 'codebytere'],
+      declined: [],
+      requestedChanges: [],
+    });
+
+    expect(moctokit.rest.issues.addLabels).toHaveBeenCalledWith({
+      issue_number: pull_request.number,
+      labels: [REVIEW_LABELS.APPROVED],
+      owner: 'electron',
+      repo: 'electron',
+    });
   });
 
   it(`should update api review label for ${REVIEW_LABELS.DECLINED}`, async () => {
@@ -563,6 +640,7 @@ describe('api review', () => {
 
         nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/timeline`)
+          .times(2)
           .reply(200, []);
 
         nock(GH_API)
@@ -620,6 +698,7 @@ describe('api review', () => {
 
         nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/timeline`)
+          .times(2)
           .reply(200, []);
 
         nock(GH_API)
@@ -718,6 +797,7 @@ describe('api review', () => {
 
         nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/timeline`)
+          .times(2)
           .reply(200, []);
 
         nock(GH_API)
@@ -805,6 +885,10 @@ describe('api review', () => {
           .get(`/repos/electron/electron/issues/${pull_request.number}/comments`)
           .reply(200, [c1]);
 
+        nock(GH_API)
+          .get(`/repos/electron/electron/issues/${pull_request.number}/timeline`)
+          .reply(200, []);
+
         await robot.receive({
           id: '123-456',
           name: 'pull_request_review',
@@ -830,6 +914,10 @@ describe('api review', () => {
         nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/comments`)
           .reply(200, [c1]);
+
+        nock(GH_API)
+          .get(`/repos/electron/electron/issues/${pull_request.number}/timeline`)
+          .reply(200, []);
 
         nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/labels?per_page=100&page=1`)
@@ -893,6 +981,10 @@ describe('api review', () => {
 
         nock(GH_API)
           .get(`/repos/electron/electron/issues/${pull_request.number}/comments`)
+          .reply(200, []);
+
+        nock(GH_API)
+          .get(`/repos/electron/electron/issues/${pull_request.number}/timeline`)
           .reply(200, []);
 
         nock(GH_API)

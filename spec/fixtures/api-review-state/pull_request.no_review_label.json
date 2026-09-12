@@ -28,6 +28,8 @@
     "labels": [],
     "base": {
       "repo": {
+        "name": "electron",
+        "full_name": "electron/electron",
         "owner": {
           "login": "electron"
         }
