@@ -104,35 +104,63 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
 
   type CommentOrReview = ListReviewsItem & ListCommentsItem;
 
+  type CheckRun = GetResponseDataTypeFromEndpointMethod<
+    typeof octokit.rest.checks.listForRef
+  >['check_runs'][0];
+
   // Checks are always written to the base repo against the head SHA, so that
   // they also work for PRs opened from forks (where Cation is not installed).
   const owner = pr.base.repo.owner.login;
   const repo = pr.base.repo.name;
 
-  // Fetch the latest API Review check for the PR.
-  const checkRun = (
-    await octokit.rest.checks.listForRef({
-      ref: pr.head.sha,
-      per_page: 100,
-      owner,
-      repo,
-    })
-  ).data.check_runs.find((run) => run.name === API_REVIEW_CHECK_NAME);
+  // Checks API failures are logged rather than thrown, so that they can never
+  // block API review label automation.
+  const logCheckError = (err: unknown) =>
+    log(
+      'addOrUpdateAPIReviewCheck',
+      LogLevel.ERROR,
+      `Failed to update ${API_REVIEW_CHECK_NAME} check for #${pr.number}: ${err}`,
+    );
+
+  // Fetch the latest API Review check for the PR. Only runs created by Cation
+  // itself are considered, so that a same-named run from another app (e.g. an
+  // Actions job added by a fork PR) can't shadow it.
+  let checkRun: CheckRun | undefined;
+  let checkLookupFailed = false;
+  try {
+    checkRun = (
+      await octokit.rest.checks.listForRef({
+        ref: pr.head.sha,
+        check_name: API_REVIEW_CHECK_NAME,
+        app_id: Number(getEnvVar('APP_ID')),
+        per_page: 100,
+        owner,
+        repo,
+      })
+    ).data.check_runs.find((run) => run.name === API_REVIEW_CHECK_NAME);
+  } catch (err) {
+    checkLookupFailed = true;
+    logCheckError(err);
+  }
 
   const resetToNeutral = async () => {
     if (!checkRun) return;
-    return await octokit.rest.checks.update({
-      owner,
-      repo,
-      name: API_REVIEW_CHECK_NAME,
-      status: 'completed',
-      output: {
-        title: 'Outdated',
-        summary: 'PR no longer requires API Review',
-      },
-      check_run_id: checkRun.id,
-      conclusion: CheckRunStatus.NEUTRAL,
-    });
+    try {
+      await octokit.rest.checks.update({
+        owner,
+        repo,
+        name: API_REVIEW_CHECK_NAME,
+        status: 'completed',
+        output: {
+          title: 'Outdated',
+          summary: 'PR no longer requires API Review',
+        },
+        check_run_id: checkRun.id,
+        conclusion: CheckRunStatus.NEUTRAL,
+      });
+    } catch (err) {
+      logCheckError(err);
+    }
   };
 
   // We do not care about PRs without an API review label of any kind.
@@ -273,25 +301,32 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
       'baseUrl' | 'headers' | 'mediaType' | 'owner' | 'repo' | 'name' | 'head_sha'
     >,
   ) => {
-    if (
-      checkRun &&
-      (checkRun.status === opts.status || !opts.status || opts.status === 'completed')
-    ) {
-      await octokit.rest.checks.update({
-        owner,
-        repo,
-        name: API_REVIEW_CHECK_NAME,
-        check_run_id: checkRun.id,
-        ...opts,
-      });
-    } else {
-      await octokit.rest.checks.create({
-        owner,
-        repo,
-        name: API_REVIEW_CHECK_NAME,
-        head_sha: pr.head.sha,
-        ...opts,
-      });
+    // If we couldn't look up the existing check, don't risk creating a duplicate.
+    if (checkLookupFailed) return users;
+
+    try {
+      if (
+        checkRun &&
+        (checkRun.status === opts.status || !opts.status || opts.status === 'completed')
+      ) {
+        await octokit.rest.checks.update({
+          owner,
+          repo,
+          name: API_REVIEW_CHECK_NAME,
+          check_run_id: checkRun.id,
+          ...opts,
+        });
+      } else {
+        await octokit.rest.checks.create({
+          owner,
+          repo,
+          name: API_REVIEW_CHECK_NAME,
+          head_sha: pr.head.sha,
+          ...opts,
+        });
+      }
+    } catch (err) {
+      logCheckError(err);
     }
 
     return users;
@@ -655,8 +690,15 @@ export function setupAPIReviewStateManagement(probot: Probot, disableCronForTest
       );
 
       for (const pr of reviewPRs) {
-        const approvalState = await addOrUpdateAPIReviewCheck(octokit, pr);
-        await checkPRReadyForMerge(octokit, pr, approvalState);
+        // Isolate each PR so that one failure doesn't skip the remaining PRs.
+        try {
+          const approvalState = await addOrUpdateAPIReviewCheck(octokit, pr);
+          await checkPRReadyForMerge(octokit, pr, approvalState);
+        } catch (err) {
+          probot.log.error(
+            `Failed to update API review state for ${repo.owner.login}/${repo.name}#${pr.number}: ${err}`,
+          );
+        }
       }
     }
   }

@@ -37,10 +37,14 @@ export async function addOrUpdateDeprecationReviewCheck(octokit: ProbotOctokit, 
   const owner = pr.base.repo.owner.login;
   const repo = pr.base.repo.name;
 
-  // Fetch the latest Deprecation Review check for the PR.
+  // Fetch the latest Deprecation Review check for the PR. Only runs created by
+  // Cation itself are considered, so that a same-named run from another app
+  // (e.g. an Actions job added by a fork PR) can't shadow it.
   const checkRun = (
     await octokit.rest.checks.listForRef({
       ref: pr.head.sha,
+      check_name: DEPRECATION_REVIEW_CHECK_NAME,
+      app_id: Number(getEnvVar('APP_ID')),
       per_page: 100,
       owner,
       repo,

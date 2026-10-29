@@ -23,6 +23,14 @@ import { loadFixture } from './utils';
 
 const GH_API = 'https://api.github.com';
 
+const APP_ID = 690857;
+
+const CHECK_RUNS_QUERY = {
+  check_name: DEPRECATION_REVIEW_CHECK_NAME,
+  app_id: APP_ID,
+  per_page: 100,
+};
+
 const handler = async (app: Probot) => {
   setupDeprecationReviewStateManagement(app);
 };
@@ -39,11 +47,12 @@ describe('deprecation review', () => {
   beforeEach(() => {
     nock.cleanAll();
     nock.disableNetConnect();
+    vi.stubEnv('APP_ID', String(APP_ID));
     robot = new Probot({
       githubToken: 'test',
       secret: 'secret',
       privateKey: 'private key',
-      appId: 690857,
+      appId: APP_ID,
     });
 
     moctokit = {
@@ -73,6 +82,7 @@ describe('deprecation review', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     console.log(nock.pendingMocks());
     expect(nock.isDone()).toEqual(true);
     nock.cleanAll();
@@ -162,6 +172,36 @@ describe('deprecation review', () => {
 
       await addOrUpdateDeprecationReviewCheck(moctokit, pull_request);
       expect(moctokit.rest.checks.create).toHaveBeenCalledWith(expect.objectContaining(expected));
+    });
+
+    it('should only look up Deprecation Review check runs created by Cation', async () => {
+      const { pull_request } = loadFixture(
+        'deprecation-review-state/pull_request.requested_review_label.json',
+      );
+
+      // Simulate the API filtering by app: a same-named run from another app
+      // (e.g. a fork PR's Actions job) is only returned when not filtering.
+      moctokit.rest.checks.listForRef = vi.fn().mockImplementation(({ app_id }) => ({
+        data: {
+          check_runs:
+            app_id === APP_ID
+              ? []
+              : [{ name: DEPRECATION_REVIEW_CHECK_NAME, id: '67890', app: { id: 15368 } }],
+        },
+      }));
+
+      await addOrUpdateDeprecationReviewCheck(moctokit, pull_request);
+
+      expect(moctokit.rest.checks.listForRef).toHaveBeenCalledWith(
+        expect.objectContaining({ check_name: DEPRECATION_REVIEW_CHECK_NAME, app_id: APP_ID }),
+      );
+      expect(moctokit.rest.checks.update).not.toHaveBeenCalled();
+      expect(moctokit.rest.checks.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: DEPRECATION_REVIEW_CHECK_NAME,
+          head_sha: pull_request.head.sha,
+        }),
+      );
     });
 
     it('should create the check on the base repo when the PR is from a fork', async () => {
@@ -278,8 +318,9 @@ describe('deprecation review', () => {
 
     nock(GH_API)
       .get(
-        `/repos/dsanders11/deprecation-review/commits/${payload.pull_request.head.sha}/check-runs?per_page=100`,
+        `/repos/dsanders11/deprecation-review/commits/${payload.pull_request.head.sha}/check-runs`,
       )
+      .query(CHECK_RUNS_QUERY)
       .reply(200, {
         check_runs: [],
       });
@@ -328,8 +369,9 @@ describe('deprecation review', () => {
 
     nock(GH_API)
       .get(
-        `/repos/dsanders11/deprecation-review/commits/${payload.pull_request.head.sha}/check-runs?per_page=100`,
+        `/repos/dsanders11/deprecation-review/commits/${payload.pull_request.head.sha}/check-runs`,
       )
+      .query(CHECK_RUNS_QUERY)
       .reply(200, {
         check_runs: [
           {
