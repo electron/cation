@@ -545,7 +545,7 @@ export function setupAPIReviewStateManagement(probot: Probot, disableCronForTest
       sender: { login: initiator },
     } = context.payload;
 
-    const pr = context.payload.pull_request as PullRequest;
+    let pr = context.payload.pull_request as PullRequest;
 
     if (!label) {
       throw new Error('Something went wrong - label does not exist.');
@@ -579,6 +579,15 @@ export function setupAPIReviewStateManagement(probot: Probot, disableCronForTest
         prNumber: pr.number,
         labels: [REVIEW_LABELS.REQUESTED],
       });
+
+      // This event's payload predates the label we just added, so include it
+      // when updating the check to avoid briefly marking it as not required.
+      if (!hasAPIReviewRequestedLabel(pr)) {
+        pr = {
+          ...pr,
+          labels: [...pr.labels, { name: REVIEW_LABELS.REQUESTED } as PullRequest['labels'][0]],
+        };
+      }
 
       // If the human-added label is an approve/decline API review label
       // remove it.

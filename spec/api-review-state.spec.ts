@@ -1325,14 +1325,24 @@ describe('api review', () => {
       .query(CHECK_RUNS_QUERY)
       .reply(200, { check_runs: [] });
 
-    // This event's payload predates the requested label, so the check is marked
-    // not required here and then superseded by the labeled event for that label.
+    nock(GH_API)
+      .get(`/orgs/electron/teams/${API_WORKING_GROUP}/members`)
+      .reply(200, API_WORKING_GROUP_MEMBERS);
+
+    nock(GH_API).get(`/repos/electron/electron/pulls/${payload.number}/reviews`).reply(200, []);
+
+    nock(GH_API).get(`/repos/electron/electron/issues/${payload.number}/comments`).reply(200, []);
+
+    nock(GH_API).get(`/repos/electron/electron/issues/${payload.number}/timeline`).reply(200, []);
+
+    // The check reflects the requested label even though this event's payload
+    // predates it, rather than being marked as not required.
     nock(GH_API)
       .post('/repos/electron/electron/check-runs', (body) => {
         expect(body).toMatchObject({
           name: API_REVIEW_CHECK_NAME,
           head_sha: payload.pull_request.head.sha,
-          conclusion: CheckRunStatus.SUCCESS,
+          status: 'in_progress',
         });
         return true;
       })
