@@ -164,15 +164,35 @@ describe('deprecation review', () => {
       expect(moctokit.rest.checks.create).toHaveBeenCalledWith(expect.objectContaining(expected));
     });
 
-    it('should not use Checks API when the PR is from a fork', async () => {
+    it('should create the check on the base repo when the PR is from a fork', async () => {
       const { pull_request } = loadFixture(
         'deprecation-review-state/pull_request.requested_review_label.json',
       );
 
-      pull_request.head.repo.fork = true;
+      pull_request.head.repo = {
+        ...pull_request.head.repo,
+        name: 'deprecation-review-fork',
+        full_name: 'contributor/deprecation-review-fork',
+        owner: { login: 'contributor' },
+        fork: true,
+      };
 
       await addOrUpdateDeprecationReviewCheck(moctokit, pull_request);
-      expect(moctokit.rest.checks.create).not.toHaveBeenCalled();
+      expect(moctokit.rest.checks.listForRef).toHaveBeenCalledWith(
+        expect.objectContaining({
+          owner: 'dsanders11',
+          repo: 'deprecation-review',
+          ref: pull_request.head.sha,
+        }),
+      );
+      expect(moctokit.rest.checks.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          owner: 'dsanders11',
+          repo: 'deprecation-review',
+          name: DEPRECATION_REVIEW_CHECK_NAME,
+          head_sha: pull_request.head.sha,
+        }),
+      );
       expect(moctokit.rest.checks.update).not.toHaveBeenCalled();
     });
 

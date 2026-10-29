@@ -104,38 +104,20 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
 
   type CommentOrReview = ListReviewsItem & ListCommentsItem;
 
-  if (!pr.head.repo) {
-    log(
-      'addOrUpdateAPIReviewCheck',
-      LogLevel.WARN,
-      `PR #${pr.number} does not have a head repo - cannot update check`,
-    );
-    return;
-  }
-
-  const fork = pr.head.repo.fork;
+  // Checks are always written to the base repo against the head SHA, so that
+  // they also work for PRs opened from forks (where Cation is not installed).
   const owner = pr.base.repo.owner.login;
-  const repo = pr.head.repo.name;
-
-  if (fork) {
-    log(
-      'addOrUpdateAPIReviewCheck',
-      LogLevel.INFO,
-      `${pr.number} is a fork - checks will not be created or updated`,
-    );
-  }
+  const repo = pr.base.repo.name;
 
   // Fetch the latest API Review check for the PR.
-  const checkRun = fork
-    ? null
-    : (
-        await octokit.rest.checks.listForRef({
-          ref: pr.head.sha,
-          per_page: 100,
-          owner,
-          repo,
-        })
-      ).data.check_runs.find((run) => run.name === API_REVIEW_CHECK_NAME);
+  const checkRun = (
+    await octokit.rest.checks.listForRef({
+      ref: pr.head.sha,
+      per_page: 100,
+      owner,
+      repo,
+    })
+  ).data.check_runs.find((run) => run.name === API_REVIEW_CHECK_NAME);
 
   const resetToNeutral = async () => {
     if (!checkRun) return;
@@ -284,9 +266,6 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
 
   const users = { approved, declined, requestedChanges };
 
-  // If the PR is a fork PR, return early as the Checks API doesn't work.
-  if (fork) return users;
-
   // Update the GitHub Check with appropriate API review information.
   const updateCheck = async (
     opts: Omit<
@@ -299,16 +278,16 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
       (checkRun.status === opts.status || !opts.status || opts.status === 'completed')
     ) {
       await octokit.rest.checks.update({
-        owner: pr.head.repo!.owner.login,
-        repo: pr.head.repo!.name,
+        owner,
+        repo,
         name: API_REVIEW_CHECK_NAME,
         check_run_id: checkRun.id,
         ...opts,
       });
     } else {
       await octokit.rest.checks.create({
-        owner: pr.head.repo!.owner.login,
-        repo: pr.head.repo!.name,
+        owner,
+        repo,
         name: API_REVIEW_CHECK_NAME,
         head_sha: pr.head.sha,
         ...opts,
