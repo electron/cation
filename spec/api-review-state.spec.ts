@@ -17,6 +17,7 @@ import {
   MINIMUM_PATCH_OPEN_TIME,
   API_REVIEW_CHECK_NAME,
   API_SKIP_DELAY_LABEL,
+  API_SKIP_REVIEW_LABEL,
   API_WORKING_GROUP,
 } from '../src/constants';
 
@@ -180,7 +181,13 @@ describe('api review', () => {
     expect(readyDate).toEqual(expectedDate);
   });
 
-  it('should reset the check when PR does not have an API review label on a base PR', async () => {
+  const NOT_REQUIRED = {
+    name: API_REVIEW_CHECK_NAME,
+    status: 'completed',
+    conclusion: CheckRunStatus.SUCCESS,
+  };
+
+  it('should mark the existing check as not required when PR does not have an API review label', async () => {
     let { pull_request } = loadFixture('api-review-state/pull_request.no_review_label.json');
 
     moctokit.rest.checks.listForRef = vi.fn().mockReturnValue({
@@ -189,6 +196,7 @@ describe('api review', () => {
           {
             name: API_REVIEW_CHECK_NAME,
             id: '12345',
+            status: 'in_progress',
           },
         ],
       },
@@ -201,10 +209,20 @@ describe('api review', () => {
     expect(moctokit.rest.issues.removeLabel).not.toHaveBeenCalled();
 
     expect(moctokit.rest.checks.listForRef).toHaveBeenCalled();
-    expect(moctokit.rest.checks.update).toHaveBeenCalled();
+    expect(moctokit.rest.checks.create).not.toHaveBeenCalled();
+    expect(moctokit.rest.checks.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...NOT_REQUIRED,
+        check_run_id: '12345',
+        output: {
+          title: 'Not required',
+          summary: 'This PR does not require API review: it has no API review label.',
+        },
+      }),
+    );
   });
 
-  it('should reset the check on the base repo when the PR does not have an API review label on a fork PR', async () => {
+  it('should create a passing check on the base repo when a fork PR does not have an API review label', async () => {
     let { pull_request } = loadFixture('api-review-state/pull_request.no_review_label.json');
 
     pull_request.head.repo = {
@@ -215,17 +233,6 @@ describe('api review', () => {
       fork: true,
     };
 
-    moctokit.rest.checks.listForRef = vi.fn().mockReturnValue({
-      data: {
-        check_runs: [
-          {
-            name: API_REVIEW_CHECK_NAME,
-            id: '12345',
-          },
-        ],
-      },
-    });
-
     const users = await addOrUpdateAPIReviewCheck(moctokit, pull_request);
     expect(users).toEqual(undefined);
 
@@ -235,8 +242,104 @@ describe('api review', () => {
     expect(moctokit.rest.checks.listForRef).toHaveBeenCalledWith(
       expect.objectContaining({ owner: 'electron', repo: 'electron', ref: pull_request.head.sha }),
     );
-    expect(moctokit.rest.checks.update).toHaveBeenCalledWith(
-      expect.objectContaining({ owner: 'electron', repo: 'electron', check_run_id: '12345' }),
+    expect(moctokit.rest.checks.update).not.toHaveBeenCalled();
+    expect(moctokit.rest.checks.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...NOT_REQUIRED,
+        owner: 'electron',
+        repo: 'electron',
+        head_sha: pull_request.head.sha,
+      }),
+    );
+  });
+
+  it('should create a passing check when a semver-patch PR has no existing check', async () => {
+    const { pull_request } = loadFixture(
+      'api-review-state/pull_request.requested_review_label.json',
+    );
+    pull_request.labels = [{ name: REVIEW_LABELS.REQUESTED }, { name: SEMVER_LABELS.PATCH }];
+
+    const users = await addOrUpdateAPIReviewCheck(moctokit, pull_request);
+    expect(users).toEqual(undefined);
+
+    expect(moctokit.rest.checks.update).not.toHaveBeenCalled();
+    expect(moctokit.rest.checks.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...NOT_REQUIRED,
+        head_sha: pull_request.head.sha,
+        output: {
+          title: 'Not required',
+          summary: 'This PR does not require API review: it is not semver-minor or semver-major.',
+        },
+      }),
+    );
+  });
+
+  it('should create a passing check when a PR has the skip-review label and no existing check', async () => {
+    const { pull_request } = loadFixture(
+      'api-review-state/pull_request.requested_review_label.json',
+    );
+    pull_request.labels = [
+      { name: REVIEW_LABELS.REQUESTED },
+      { name: SEMVER_LABELS.MINOR },
+      { name: API_SKIP_REVIEW_LABEL },
+    ];
+
+    const users = await addOrUpdateAPIReviewCheck(moctokit, pull_request);
+    expect(users).toEqual(undefined);
+
+    expect(moctokit.rest.teams.listMembersInOrg).not.toHaveBeenCalled();
+    expect(moctokit.rest.checks.update).not.toHaveBeenCalled();
+    expect(moctokit.rest.checks.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...NOT_REQUIRED,
+        head_sha: pull_request.head.sha,
+        output: {
+          title: 'Not required',
+          summary: `This PR does not require API review: it has the "${API_SKIP_REVIEW_LABEL}" label.`,
+        },
+      }),
+    );
+  });
+
+  it('should not write a passing check when the check lookup throws', async () => {
+    const { pull_request } = loadFixture('api-review-state/pull_request.no_review_label.json');
+
+    moctokit.rest.checks.listForRef = vi.fn().mockRejectedValue(new Error('Server Error'));
+
+    const users = await addOrUpdateAPIReviewCheck(moctokit, pull_request);
+    expect(users).toEqual(undefined);
+    expect(moctokit.rest.checks.create).not.toHaveBeenCalled();
+    expect(moctokit.rest.checks.update).not.toHaveBeenCalled();
+  });
+
+  it('should supersede a not required check with a new in-progress run when API review is requested', async () => {
+    const { pull_request } = loadFixture(
+      'api-review-state/pull_request.requested_review_label.json',
+    );
+
+    moctokit.rest.checks.listForRef = vi.fn().mockReturnValue({
+      data: {
+        check_runs: [
+          {
+            name: API_REVIEW_CHECK_NAME,
+            id: '12345',
+            status: 'completed',
+            conclusion: CheckRunStatus.SUCCESS,
+          },
+        ],
+      },
+    });
+
+    await addOrUpdateAPIReviewCheck(moctokit, pull_request);
+
+    expect(moctokit.rest.checks.update).not.toHaveBeenCalled();
+    expect(moctokit.rest.checks.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: API_REVIEW_CHECK_NAME,
+        head_sha: pull_request.head.sha,
+        status: 'in_progress',
+      }),
     );
   });
 
@@ -661,10 +764,10 @@ describe('api review', () => {
       name: API_REVIEW_CHECK_NAME,
       status: 'completed',
       output: {
-        title: 'Outdated',
-        summary: 'PR no longer requires API Review',
+        title: 'Not required',
+        summary: 'This PR does not require API review: it has no API review label.',
       },
-      conclusion: CheckRunStatus.NEUTRAL,
+      conclusion: CheckRunStatus.SUCCESS,
     };
 
     nock(GH_API)
@@ -700,10 +803,10 @@ describe('api review', () => {
       name: API_REVIEW_CHECK_NAME,
       status: 'completed',
       output: {
-        title: 'Outdated',
-        summary: 'PR no longer requires API Review',
+        title: 'Not required',
+        summary: 'This PR does not require API review: it has no API review label.',
       },
-      conclusion: CheckRunStatus.NEUTRAL,
+      conclusion: CheckRunStatus.SUCCESS,
     };
 
     nock(GH_API)
@@ -1222,6 +1325,19 @@ describe('api review', () => {
       .query(CHECK_RUNS_QUERY)
       .reply(200, { check_runs: [] });
 
+    // This event's payload predates the requested label, so the check is marked
+    // not required here and then superseded by the labeled event for that label.
+    nock(GH_API)
+      .post('/repos/electron/electron/check-runs', (body) => {
+        expect(body).toMatchObject({
+          name: API_REVIEW_CHECK_NAME,
+          head_sha: payload.pull_request.head.sha,
+          conclusion: CheckRunStatus.SUCCESS,
+        });
+        return true;
+      })
+      .reply(200);
+
     await robot.receive({
       id: '123-456',
       name: 'pull_request',
@@ -1363,7 +1479,7 @@ describe('api review', () => {
 
     nock(GH_API).get(`/orgs/electron/teams/${API_WORKING_GROUP}/members`).reply(404);
 
-    // The second PR is no longer semver-minor, so its check is reset.
+    // The second PR is no longer semver-minor, so its check is marked not required.
     nock(GH_API)
       .get(`/repos/electron/electron/commits/${passingPR.head.sha}/check-runs`)
       .query(CHECK_RUNS_QUERY)
@@ -1371,7 +1487,7 @@ describe('api review', () => {
 
     nock(GH_API)
       .patch('/repos/electron/electron/check-runs/12345', (body) => {
-        expect(body).toMatchObject({ conclusion: CheckRunStatus.NEUTRAL });
+        expect(body).toMatchObject({ conclusion: CheckRunStatus.SUCCESS });
         return true;
       })
       .reply(200);

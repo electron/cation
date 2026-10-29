@@ -143,21 +143,30 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
     logCheckError(err);
   }
 
-  const resetToNeutral = async () => {
-    if (!checkRun) return;
+  // PRs that don't need API review get a passing check on every head SHA, so
+  // that the check can be required without blocking them.
+  const markNotRequired = async (reason: string) => {
+    // If we couldn't look up the existing check, don't risk creating a duplicate.
+    if (checkLookupFailed) return;
+
+    const opts = {
+      owner,
+      repo,
+      name: API_REVIEW_CHECK_NAME,
+      status: 'completed' as const,
+      conclusion: CheckRunStatus.SUCCESS,
+      output: {
+        title: 'Not required',
+        summary: `This PR does not require API review: ${reason}.`,
+      },
+    };
+
     try {
-      await octokit.rest.checks.update({
-        owner,
-        repo,
-        name: API_REVIEW_CHECK_NAME,
-        status: 'completed',
-        output: {
-          title: 'Outdated',
-          summary: 'PR no longer requires API Review',
-        },
-        check_run_id: checkRun.id,
-        conclusion: CheckRunStatus.NEUTRAL,
-      });
+      if (checkRun) {
+        await octokit.rest.checks.update({ ...opts, check_run_id: checkRun.id });
+      } else {
+        await octokit.rest.checks.create({ ...opts, head_sha: pr.head.sha });
+      }
     } catch (err) {
       logCheckError(err);
     }
@@ -166,7 +175,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
   // We do not care about PRs without an API review label of any kind.
   const currentReviewLabel = pr.labels.find((l) => Object.values(REVIEW_LABELS).includes(l.name));
   if (!currentReviewLabel) {
-    await resetToNeutral();
+    await markNotRequired('it has no API review label');
     return;
   }
 
@@ -177,7 +186,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
       LogLevel.INFO,
       'Determined this PR is semver-patch and does not need review',
     );
-    await resetToNeutral();
+    await markNotRequired('it is not semver-minor or semver-major');
     return;
   }
 
@@ -188,7 +197,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
       LogLevel.INFO,
       'This PR has the skip-review label and does not need review',
     );
-    await resetToNeutral();
+    await markNotRequired(`it has the "${API_SKIP_REVIEW_LABEL}" label`);
     return;
   }
 
