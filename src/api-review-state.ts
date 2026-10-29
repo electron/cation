@@ -104,59 +104,78 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
 
   type CommentOrReview = ListReviewsItem & ListCommentsItem;
 
-  if (!pr.head.repo) {
-    log(
-      'addOrUpdateAPIReviewCheck',
-      LogLevel.WARN,
-      `PR #${pr.number} does not have a head repo - cannot update check`,
-    );
-    return;
-  }
+  type CheckRun = GetResponseDataTypeFromEndpointMethod<
+    typeof octokit.rest.checks.listForRef
+  >['check_runs'][0];
 
-  const fork = pr.head.repo.fork;
+  // Checks are always written to the base repo against the head SHA, so that
+  // they also work for PRs opened from forks (where Cation is not installed).
   const owner = pr.base.repo.owner.login;
-  const repo = pr.head.repo.name;
+  const repo = pr.base.repo.name;
 
-  if (fork) {
+  // Checks API failures are logged rather than thrown, so that they can never
+  // block API review label automation.
+  const logCheckError = (err: unknown) =>
     log(
       'addOrUpdateAPIReviewCheck',
-      LogLevel.INFO,
-      `${pr.number} is a fork - checks will not be created or updated`,
+      LogLevel.ERROR,
+      `Failed to update ${API_REVIEW_CHECK_NAME} check for #${pr.number}: ${err}`,
     );
+
+  // Fetch the latest API Review check for the PR. Only runs created by Cation
+  // itself are considered, so that a same-named run from another app (e.g. an
+  // Actions job added by a fork PR) can't shadow it.
+  let checkRun: CheckRun | undefined;
+  let checkLookupFailed = false;
+  try {
+    checkRun = (
+      await octokit.rest.checks.listForRef({
+        ref: pr.head.sha,
+        check_name: API_REVIEW_CHECK_NAME,
+        app_id: Number(getEnvVar('APP_ID')),
+        per_page: 100,
+        owner,
+        repo,
+      })
+    ).data.check_runs.find((run) => run.name === API_REVIEW_CHECK_NAME);
+  } catch (err) {
+    checkLookupFailed = true;
+    logCheckError(err);
   }
 
-  // Fetch the latest API Review check for the PR.
-  const checkRun = fork
-    ? null
-    : (
-        await octokit.rest.checks.listForRef({
-          ref: pr.head.sha,
-          per_page: 100,
-          owner,
-          repo,
-        })
-      ).data.check_runs.find((run) => run.name === API_REVIEW_CHECK_NAME);
+  // PRs that don't need API review get a passing check on every head SHA, so
+  // that the check can be required without blocking them.
+  const markNotRequired = async (reason: string) => {
+    // If we couldn't look up the existing check, don't risk creating a duplicate.
+    if (checkLookupFailed) return;
 
-  const resetToNeutral = async () => {
-    if (!checkRun) return;
-    return await octokit.rest.checks.update({
+    const opts = {
       owner,
       repo,
       name: API_REVIEW_CHECK_NAME,
-      status: 'completed',
+      status: 'completed' as const,
+      conclusion: CheckRunStatus.SUCCESS,
       output: {
-        title: 'Outdated',
-        summary: 'PR no longer requires API Review',
+        title: 'Not required',
+        summary: `This PR does not require API review: ${reason}.`,
       },
-      check_run_id: checkRun.id,
-      conclusion: CheckRunStatus.NEUTRAL,
-    });
+    };
+
+    try {
+      if (checkRun) {
+        await octokit.rest.checks.update({ ...opts, check_run_id: checkRun.id });
+      } else {
+        await octokit.rest.checks.create({ ...opts, head_sha: pr.head.sha });
+      }
+    } catch (err) {
+      logCheckError(err);
+    }
   };
 
   // We do not care about PRs without an API review label of any kind.
   const currentReviewLabel = pr.labels.find((l) => Object.values(REVIEW_LABELS).includes(l.name));
   if (!currentReviewLabel) {
-    await resetToNeutral();
+    await markNotRequired('it has no API review label');
     return;
   }
 
@@ -167,7 +186,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
       LogLevel.INFO,
       'Determined this PR is semver-patch and does not need review',
     );
-    await resetToNeutral();
+    await markNotRequired('it is not semver-minor or semver-major');
     return;
   }
 
@@ -178,7 +197,7 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
       LogLevel.INFO,
       'This PR has the skip-review label and does not need review',
     );
-    await resetToNeutral();
+    await markNotRequired(`it has the "${API_SKIP_REVIEW_LABEL}" label`);
     return;
   }
 
@@ -284,9 +303,6 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
 
   const users = { approved, declined, requestedChanges };
 
-  // If the PR is a fork PR, return early as the Checks API doesn't work.
-  if (fork) return users;
-
   // Update the GitHub Check with appropriate API review information.
   const updateCheck = async (
     opts: Omit<
@@ -294,25 +310,32 @@ export async function addOrUpdateAPIReviewCheck(octokit: Context['octokit'], pr:
       'baseUrl' | 'headers' | 'mediaType' | 'owner' | 'repo' | 'name' | 'head_sha'
     >,
   ) => {
-    if (
-      checkRun &&
-      (checkRun.status === opts.status || !opts.status || opts.status === 'completed')
-    ) {
-      await octokit.rest.checks.update({
-        owner: pr.head.repo!.owner.login,
-        repo: pr.head.repo!.name,
-        name: API_REVIEW_CHECK_NAME,
-        check_run_id: checkRun.id,
-        ...opts,
-      });
-    } else {
-      await octokit.rest.checks.create({
-        owner: pr.head.repo!.owner.login,
-        repo: pr.head.repo!.name,
-        name: API_REVIEW_CHECK_NAME,
-        head_sha: pr.head.sha,
-        ...opts,
-      });
+    // If we couldn't look up the existing check, don't risk creating a duplicate.
+    if (checkLookupFailed) return users;
+
+    try {
+      if (
+        checkRun &&
+        (checkRun.status === opts.status || !opts.status || opts.status === 'completed')
+      ) {
+        await octokit.rest.checks.update({
+          owner,
+          repo,
+          name: API_REVIEW_CHECK_NAME,
+          check_run_id: checkRun.id,
+          ...opts,
+        });
+      } else {
+        await octokit.rest.checks.create({
+          owner,
+          repo,
+          name: API_REVIEW_CHECK_NAME,
+          head_sha: pr.head.sha,
+          ...opts,
+        });
+      }
+    } catch (err) {
+      logCheckError(err);
     }
 
     return users;
@@ -522,7 +545,7 @@ export function setupAPIReviewStateManagement(probot: Probot, disableCronForTest
       sender: { login: initiator },
     } = context.payload;
 
-    const pr = context.payload.pull_request as PullRequest;
+    let pr = context.payload.pull_request as PullRequest;
 
     if (!label) {
       throw new Error('Something went wrong - label does not exist.');
@@ -556,6 +579,15 @@ export function setupAPIReviewStateManagement(probot: Probot, disableCronForTest
         prNumber: pr.number,
         labels: [REVIEW_LABELS.REQUESTED],
       });
+
+      // This event's payload predates the label we just added, so include it
+      // when updating the check to avoid briefly marking it as not required.
+      if (!hasAPIReviewRequestedLabel(pr)) {
+        pr = {
+          ...pr,
+          labels: [...pr.labels, { name: REVIEW_LABELS.REQUESTED } as PullRequest['labels'][0]],
+        };
+      }
 
       // If the human-added label is an approve/decline API review label
       // remove it.
@@ -676,8 +708,15 @@ export function setupAPIReviewStateManagement(probot: Probot, disableCronForTest
       );
 
       for (const pr of reviewPRs) {
-        const approvalState = await addOrUpdateAPIReviewCheck(octokit, pr);
-        await checkPRReadyForMerge(octokit, pr, approvalState);
+        // Isolate each PR so that one failure doesn't skip the remaining PRs.
+        try {
+          const approvalState = await addOrUpdateAPIReviewCheck(octokit, pr);
+          await checkPRReadyForMerge(octokit, pr, approvalState);
+        } catch (err) {
+          probot.log.error(
+            `Failed to update API review state for ${repo.owner.login}/${repo.name}#${pr.number}: ${err}`,
+          );
+        }
       }
     }
   }
