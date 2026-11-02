@@ -32,32 +32,19 @@ export async function addOrUpdateDeprecationReviewCheck(octokit: ProbotOctokit, 
     `Validating ${pr.number} by ${pr.user.login}`,
   );
 
-  if (!pr.head.repo) {
-    log(
-      'addOrUpdateDeprecationReviewCheck',
-      LogLevel.WARN,
-      `PR #${pr.number} does not have a head repo - cannot update check`,
-    );
-    return;
-  }
-
+  // Checks are always written to the base repo against the head SHA, so that
+  // they also work for PRs opened from forks (where Cation is not installed).
   const owner = pr.base.repo.owner.login;
-  const repo = pr.head.repo.name;
+  const repo = pr.base.repo.name;
 
-  if (pr.head.repo.fork) {
-    log(
-      'addOrUpdateDeprecationReviewCheck',
-      LogLevel.INFO,
-      `${pr.number} is a fork - checks will not be created or updated`,
-    );
-    // If the PR is a fork PR, return early as the Checks API doesn't work.
-    return;
-  }
-
-  // Fetch the latest Deprecation Review check for the PR.
+  // Fetch the latest Deprecation Review check for the PR. Only runs created by
+  // Cation itself are considered, so that a same-named run from another app
+  // (e.g. an Actions job added by a fork PR) can't shadow it.
   const checkRun = (
     await octokit.rest.checks.listForRef({
       ref: pr.head.sha,
+      check_name: DEPRECATION_REVIEW_CHECK_NAME,
+      app_id: Number(getEnvVar('APP_ID')),
       per_page: 100,
       owner,
       repo,
@@ -99,16 +86,16 @@ export async function addOrUpdateDeprecationReviewCheck(octokit: ProbotOctokit, 
       (checkRun.status === opts.status || !opts.status || opts.status === 'completed')
     ) {
       await octokit.rest.checks.update({
-        owner: pr.head.repo!.owner.login,
-        repo: pr.head.repo!.name,
+        owner,
+        repo,
         name: DEPRECATION_REVIEW_CHECK_NAME,
         check_run_id: checkRun.id,
         ...opts,
       });
     } else {
       await octokit.rest.checks.create({
-        owner: pr.head.repo!.owner.login,
-        repo: pr.head.repo!.name,
+        owner,
+        repo,
         name: DEPRECATION_REVIEW_CHECK_NAME,
         head_sha: pr.head.sha,
         ...opts,
@@ -147,17 +134,8 @@ export async function addOrUpdateDeprecationReviewCheck(octokit: ProbotOctokit, 
 }
 
 export async function maybeAddChecklistComment(octokit: ProbotOctokit, pr: PullRequest) {
-  if (!pr.head.repo) {
-    log(
-      'maybeAddChecklistComment',
-      LogLevel.WARN,
-      `PR #${pr.number} does not have a head repo - cannot add checklist comment`,
-    );
-    return;
-  }
-
   const owner = pr.base.repo.owner.login;
-  const repo = pr.head.repo.name;
+  const repo = pr.base.repo.name;
 
   // We do not care about PRs without the deprecation review requested label.
   const currentReviewLabel = pr.labels.find(({ name }) => isReviewLabel(name));
