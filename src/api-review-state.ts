@@ -42,6 +42,14 @@ export const hasAPIReviewRequestedLabel = (pr: PullRequest) =>
   pr.labels.some((l) => l.name === REVIEW_LABELS.REQUESTED);
 
 /**
+ * PRs that have a backport, backport-check-skip or fast-track label, or that
+ * target a branch other than the repo's default branch, are exempt from API review.
+ */
+export const isExcludedFromAPIReview = (pr: PullRequest) =>
+  pr.labels.some((l) => EXCLUDE_LABELS.includes(l.name)) ||
+  pr.base.ref !== pr.base.repo.default_branch;
+
+/**
  * Determines the PR readiness time depending on its semver label.
  *
  * @returns a number representing the time in milliseconds that must be reached before
@@ -476,13 +484,14 @@ export function setupAPIReviewStateManagement(probot: Probot, disableCronForTest
 
   /**
    * If a PR with API review requirements is marked ready for review,
-   * we want to add the 'api-review/requested 🗳' label.
+   * we want to add the 'api-review/requested 🗳' label, unless the PR
+   * is excluded from API review (e.g. a backport).
    */
   probot.on('pull_request.ready_for_review', async (context) => {
     const { repository } = context.payload;
     const pr = context.payload.pull_request as PullRequest;
 
-    if (hasSemverMajorMinorLabel(pr)) {
+    if (hasSemverMajorMinorLabel(pr) && !isExcludedFromAPIReview(pr)) {
       probot.log.info(
         'semver-minor or semver-major PR: ' +
           `${repository.full_name}#${pr.number}` +
@@ -559,11 +568,7 @@ export function setupAPIReviewStateManagement(probot: Probot, disableCronForTest
     // 2) Are targeting a non-main branch
     // 3) Are semver-patch PRs
     // 4) Are draft PRs
-    const excludePR =
-      pr.labels.some((l) => EXCLUDE_LABELS.includes(l.name)) ||
-      pr.base.ref !== pr.base.repo.default_branch ||
-      label.name === SEMVER_LABELS.PATCH ||
-      pr.draft;
+    const excludePR = isExcludedFromAPIReview(pr) || label.name === SEMVER_LABELS.PATCH || pr.draft;
 
     // If a PR is semver-minor or semver-major and the PR does not have an
     // exclusion condition, automatically add the 'api-review/requested 🗳' label.
