@@ -19,6 +19,8 @@ import {
   API_SKIP_DELAY_LABEL,
   API_SKIP_REVIEW_LABEL,
   API_WORKING_GROUP,
+  BACKPORT_LABEL,
+  FAST_TRACK_LABEL,
 } from '../src/constants';
 
 import { CheckRunStatus } from '../src/enums';
@@ -1380,6 +1382,43 @@ describe('api review', () => {
       })
       .reply(200);
 
+    await robot.receive({
+      id: '123-456',
+      name: 'pull_request',
+      payload,
+    });
+  });
+
+  it('does not add the API requested label if a backport PR is marked ready for review', async () => {
+    const payload = loadFixture('api-review-state/pull_request.ready_for_review.json');
+    payload.pull_request.base.ref = '44-x-y';
+    payload.pull_request.labels.push({ name: BACKPORT_LABEL });
+
+    // No label requests are mocked, so any attempt to add a label fails the test.
+    await robot.receive({
+      id: '123-456',
+      name: 'pull_request',
+      payload,
+    });
+  });
+
+  it('does not add the API requested label if a PR targeting a non-default branch is marked ready for review', async () => {
+    const payload = loadFixture('api-review-state/pull_request.ready_for_review.json');
+    payload.pull_request.base.ref = '44-x-y';
+
+    // No label requests are mocked, so any attempt to add a label fails the test.
+    await robot.receive({
+      id: '123-456',
+      name: 'pull_request',
+      payload,
+    });
+  });
+
+  it('does not add the API requested label if a fast-track PR is marked ready for review', async () => {
+    const payload = loadFixture('api-review-state/pull_request.ready_for_review.json');
+    payload.pull_request.labels.push({ name: FAST_TRACK_LABEL });
+
+    // No label requests are mocked, so any attempt to add a label fails the test.
     await robot.receive({
       id: '123-456',
       name: 'pull_request',
