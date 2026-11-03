@@ -1496,6 +1496,79 @@ describe('api review', () => {
     });
   });
 
+  it('re-adds the API requested label if a human removes it from a semver-minor PR', async () => {
+    const payload = loadFixture('api-review-state/pull_request.unlabeled.json');
+    payload.label = { name: REVIEW_LABELS.REQUESTED };
+
+    nock(GH_API)
+      .get(`/repos/electron/electron/issues/${payload.number}/labels?per_page=100&page=1`)
+      .reply(200, []);
+
+    nock(GH_API)
+      .post(`/repos/electron/electron/issues/${payload.number}/labels`, ({ labels }) => {
+        expect(labels).toEqual([REVIEW_LABELS.REQUESTED]);
+        return true;
+      })
+      .reply(200);
+
+    await robot.receive({
+      id: '123-456',
+      name: 'pull_request',
+      payload,
+    });
+  });
+
+  describe('when a human removes the API requested label from an excluded semver-minor PR', () => {
+    const expectLabelNotReAdded = async (payload: any) => {
+      payload.label = { name: REVIEW_LABELS.REQUESTED };
+
+      // No label requests are mocked, so any attempt to re-add the label fails the test.
+      nock(GH_API)
+        .get(`/repos/electron/electron/commits/${payload.pull_request.head.sha}/check-runs`)
+        .query(CHECK_RUNS_QUERY)
+        .reply(200, { check_runs: [] });
+
+      nock(GH_API)
+        .post('/repos/electron/electron/check-runs', (body) => {
+          expect(body).toMatchObject({
+            name: API_REVIEW_CHECK_NAME,
+            status: 'completed',
+            conclusion: CheckRunStatus.SUCCESS,
+          });
+          return true;
+        })
+        .reply(200);
+
+      await robot.receive({
+        id: '123-456',
+        name: 'pull_request',
+        payload,
+      });
+    };
+
+    it('does not re-add the label on a backport PR', async () => {
+      const payload = loadFixture('api-review-state/pull_request.unlabeled.json');
+      payload.pull_request.base.ref = '44-x-y';
+      payload.pull_request.labels.push({ name: BACKPORT_LABEL });
+
+      await expectLabelNotReAdded(payload);
+    });
+
+    it('does not re-add the label on a PR targeting a non-default branch', async () => {
+      const payload = loadFixture('api-review-state/pull_request.unlabeled.json');
+      payload.pull_request.base.ref = '44-x-y';
+
+      await expectLabelNotReAdded(payload);
+    });
+
+    it('does not re-add the label on a backport-labeled PR targeting the default branch', async () => {
+      const payload = loadFixture('api-review-state/pull_request.unlabeled.json');
+      payload.pull_request.labels.push({ name: BACKPORT_LABEL });
+
+      await expectLabelNotReAdded(payload);
+    });
+  });
+
   it('continues the cron pass past a PR that fails to update', async () => {
     const { pull_request: failingPR } = loadFixture(
       'api-review-state/pull_request.requested_review_label.json',

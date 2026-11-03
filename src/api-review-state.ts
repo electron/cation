@@ -648,8 +648,13 @@ export function setupAPIReviewStateManagement(probot: Probot, disableCronForTest
     // We want to prevent tampering with api-review/* labels other than
     // request labels - the bot should control the full review lifecycle.
     if (isReviewLabel(label.name)) {
-      // The 'api-review/requested 🗳' label can be removed if it does not violate requirements.
-      if (label.name === REVIEW_LABELS.REQUESTED && !isAPIReviewRequired(pr)) {
+      // The 'api-review/requested 🗳' label can be removed if it does not violate requirements,
+      // either because the PR is not semver-minor/major or because it is excluded from API
+      // review (e.g. a backport or a PR targeting a non-default branch).
+      if (
+        label.name === REVIEW_LABELS.REQUESTED &&
+        (!isAPIReviewRequired(pr) || isExcludedFromAPIReview(pr))
+      ) {
         // Check will be removed by addOrUpdateCheck
       } else {
         if (!isBot(initiator)) {
